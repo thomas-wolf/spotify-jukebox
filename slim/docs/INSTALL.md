@@ -100,8 +100,15 @@ No sound? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 ## 5. Install go-librespot
 
 1. On the [release page](https://github.com/devgianlu/go-librespot/releases/latest) download the Linux
-   archive for your architecture. `uname -m` tells you which: `aarch64` is 64-bit ARM, `armv7l` is 32-bit
-   ARM, `armv6l` is the Pi Zero. I cannot give the exact file names **(unverified)**.
+   archive for your Pi. `uname -m` and `cat /proc/device-tree/model` tell you which: `aarch64` is 64-bit ARM
+   (Pi 3 and newer with a 64-bit system), `armv7l` is 32-bit ARM, `armv6l` is the Pi Zero and Pi 1.
+   One known file name is `go-librespot_linux_armv6_rpi.tar.gz` (seen in release v0.10.5, for ARMv6). I could not
+   load the list of the other files, so the names for the other architectures are **unverified**. Download
+   directly on the Pi, for example:
+   ```
+   cd /tmp && wget https://github.com/devgianlu/go-librespot/releases/download/v0.10.5/go-librespot_linux_armv6_rpi.tar.gz
+   mkdir go-librespot && tar -xzf go-librespot_linux_armv6_rpi.tar.gz -C go-librespot && ls go-librespot
+   ```
 2. Unpack it and put the program in `/usr/local/bin/` (`sudo install -m 755 ... /usr/local/bin/`). If the
    file is not called `go-librespot`, adjust `ExecStart` in `packaging/go-librespot.service`.
 3. Create the configuration:
