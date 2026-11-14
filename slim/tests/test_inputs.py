@@ -11,7 +11,7 @@ from jukebox.inputs.usb_reader import KeyAssembler
 def test_key_assembler_builds_card_on_enter():
     a = KeyAssembler()
     out = [a.feed(k) for k in ("KEY_0", "KEY_4", "KEY_A", "KEY_LEFTSHIFT", "KEY_KP7", "KEY_ENTER")]
-    assert out[:-1] == [None] * 5 and out[-1] == "04A7"
+    assert out[:-1] == [None] * 5 and out[-1] == "04a7"   # lower case, like v2
     assert a.feed("KEY_ENTER") is None             # empty line gives no card
 
 
@@ -25,10 +25,17 @@ def frame(tag_hex: str, checksum: int | None = None) -> bytes:
     return b"\x02" + tag_hex.encode() + f"{checksum:02X}".encode() + b"\x03"
 
 
-def test_rdm_valid_frame_both_formats():
-    f = frame("0415026F42")
-    assert parse_frame(f) == "0415026F42"
-    assert parse_frame(f, "dec") == str(0x15026F42)
+def test_rdm_formats_match_phoniebox_v2():
+    # vectors from the v2 reader: raw 070067315809 / dec 0006762840 / float 103,12632
+    f = frame("0700673158")
+    assert f[1:13] == b"070067315809"
+    assert parse_frame(f) == "070067315809"                 # default = raw, as in v2
+    assert parse_frame(f, "raw") == "070067315809"
+    assert parse_frame(f, "dec") == "0006762840"
+    assert parse_frame(f, "float") == "103,12632"
+    assert parse_frame(f, "hex") == "0700673158"
+    with pytest.raises(ValueError):
+        parse_frame(f, "octal")
 
 
 @pytest.mark.parametrize("bad", [frame("0415026F42", 0x00), b"\x02" + b"ZZ" * 5 + b"00\x03",

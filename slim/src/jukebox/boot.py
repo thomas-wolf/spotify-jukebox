@@ -120,3 +120,13 @@ def write_config(path: Path, new_text: str) -> Path | None:
         made = backup
     path.write_text(new_text)
     return made
+
+
+MODULES_FILE = Path("/etc/modules-load.d/jukebox.conf")
+
+
+def modules_text(plan: BootPlan) -> str | None:
+    """Content of modules-load.d/jukebox.conf (None if no module is needed)."""
+    if not plan.modules:
+        return None
+    return "# written by jukebox setup\n" + "\n".join(plan.modules) + "\n"

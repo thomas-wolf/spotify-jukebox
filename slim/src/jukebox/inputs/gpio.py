@@ -126,7 +126,8 @@ class GpioBackend(Protocol):
 
 
 class GpiodBackend:
-    """libgpiod v2 bindings (Debian Bookworm/Trixie: python3-gpiod)."""
+    """libgpiod v2 bindings: apt package python3-libgpiod 2.x (Raspberry Pi OS Trixie,
+    or Bookworm with bookworm-backports). Bookworm's own 1.6.x has a different API."""
 
     def __init__(self, chip: str, inputs: dict[int, str], outputs: list[int]) -> None:
         import gpiod

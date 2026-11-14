@@ -117,3 +117,9 @@ def test_shutdown_runs_command(env):
     feed(ev.ACTION, name="shutdown")
     assert ran == [["systemctl", "poweroff"]]
     assert ev.SHUTDOWN in names(seen)
+
+
+def test_card_lookup_ignores_case(env):
+    _, feed, spotify, *_ = env
+    feed(ev.CARD, id="a")                      # configured as "A"
+    assert ("play", "spotify:playlist:a") in spotify.calls

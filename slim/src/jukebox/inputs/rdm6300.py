@@ -20,8 +20,21 @@ STX, ETX = 0x02, 0x03
 FRAME_LEN = 14
 
 
-def parse_frame(frame: bytes, id_format: str = "hex") -> str | None:
-    """Return the card id or None if the frame is malformed."""
+ID_FORMATS = ("raw", "dec", "float", "hex")
+
+
+def parse_frame(frame: bytes, id_format: str = "raw") -> str | None:
+    """Return the card id or None if the frame is malformed.
+
+    Formats (the first three produce exactly the ids of the Phoniebox v2
+    reader, so existing cards keep working):
+      raw    12 characters as sent by the reader, tag + checksum: 070067315809
+      dec    10 digits, zero padded, last 4 tag bytes:            0006762840
+      float  two numbers, like the printed number on the tag:      103,12632
+      hex    the 10 tag characters without checksum:               0700673158
+    """
+    if id_format not in ID_FORMATS:
+        raise ValueError(f"id_format must be one of {ID_FORMATS}")
     if len(frame) != FRAME_LEN or frame[0] != STX or frame[-1] != ETX:
         return None
     try:
@@ -35,8 +48,12 @@ def parse_frame(frame: bytes, id_format: str = "hex") -> str | None:
         expected ^= b
     if expected != checksum:
         return None
-    if id_format == "dec":  # the number printed on most tags: last 4 bytes
-        return str(int.from_bytes(tag[1:], "big"))
+    if id_format == "raw":
+        return frame[1:13].decode("ascii")
+    if id_format == "dec":
+        return f"{int.from_bytes(tag[1:], 'big'):010d}"
+    if id_format == "float":
+        return f"{(tag[1] << 8) + tag[2]:d},{(tag[3] << 8) + tag[4]:05d}"
     return tag_hex.upper()
 
 
@@ -63,7 +80,7 @@ class Rdm6300Reader(threading.Thread):
     """Posts a card event once per presentation, not once per frame."""
 
     def __init__(self, bus: EventBus, port: str = "/dev/serial0",
-                 id_format: str = "hex", release_after: float = 1.0) -> None:
+                 id_format: str = "raw", release_after: float = 1.0) -> None:
         super().__init__(name="rdm6300", daemon=True)
         self.bus, self.port, self.id_format = bus, port, id_format
         self.release_after = release_after

@@ -30,9 +30,11 @@ device_name = "RFID"          # substring of the evdev device name
 [readers.rdm6300]
 enabled = true
 port = "/dev/serial0"
-id_format = "hex"             # hex = 10 digits, dec = number printed on the tag
+id_format = "raw"             # raw | dec | float | hex; raw/dec/float = same ids as Phoniebox v2
 
 # --- GPIO (BCM numbers). Remove what this box does not have. ----------------
+# Reserved elsewhere: 14/15 UART (RDM6300), 2/3 I2C (ADS1115), 8-11 SPI (display),
+# 18-21 I2S (MiniAmp). See docs/HARDWARE.md.
 [gpio]
 chip = "/dev/gpiochip0"
 
@@ -41,11 +43,11 @@ pin = 26
 action = "next"
 
 [[gpio.button]]
-pin = 20
+pin = 5
 action = "prev"
 
 [[gpio.button]]
-pin = 3
+pin = 27
 action = "play_pause"
 hold_action = "shutdown"
 hold_time = 2.0
@@ -58,7 +60,7 @@ ccw = "volume_down"
 
 [[gpio.led]]
 name = "status"
-pin = 14
+pin = 24
 
 # --- potentiometer on an ADS1115 --------------------------------------------
 [adc]

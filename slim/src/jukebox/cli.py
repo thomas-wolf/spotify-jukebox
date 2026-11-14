@@ -53,7 +53,7 @@ def start_inputs(cfg, app):
     if rdm.get("enabled"):
         from .inputs.rdm6300 import Rdm6300Reader
         threads.append(Rdm6300Reader(app.bus, rdm.get("port", "/dev/serial0"),
-                                     rdm.get("id_format", "hex")))
+                                     rdm.get("id_format", "raw")))
     gpio_cfg = cfg.section("gpio")
     if gpio_cfg and gpio_cfg.get("enabled", True):
         from .inputs.gpio import GpioInputs
@@ -108,15 +108,26 @@ def cmd_setup(args) -> int:
     cfg = load_config(args.config)
     plan = boot.plan_from_config(cfg.section("boot"))
     path = Path(args.config_txt) if args.config_txt else boot.find_config_txt()
+    modules_path = Path(args.modules_file) if args.modules_file else boot.MODULES_FILE
     old = path.read_text()
     new = boot.apply_plan(old, plan)
-    if new == old:
+    modules = boot.modules_text(plan)
+    modules_current = modules_path.read_text() if modules_path.exists() else None
+    changes = new != old or (modules is not None and modules != modules_current)
+    if not changes:
         print(f"{path}: already up to date")
         return 0
-    print(boot.diff(old, new, path.name))
+    if new != old:
+        print(boot.diff(old, new, path.name))
+    if modules is not None and modules != modules_current:
+        print(f"{modules_path} (new): {modules.strip().splitlines()[-1]}")
     if args.apply:
-        backup = boot.write_config(path, new)
-        print(f"written {path}" + (f" (backup: {backup})" if backup else ""))
+        if new != old:
+            backup = boot.write_config(path, new)
+            print(f"written {path}" + (f" (backup: {backup})" if backup else ""))
+        if modules is not None and modules != modules_current:
+            modules_path.write_text(modules)
+            print(f"written {modules_path}")
         print("Reboot to activate the overlays.")
     else:
         print("Dry run. Add --apply to write the change (needs root).")
@@ -173,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
     setup = sub.add_parser("setup", help="write overlays to config.txt (dry run by default)")
     setup.add_argument("--apply", action="store_true")
     setup.add_argument("--config-txt", help="override the config.txt path")
+    setup.add_argument("--modules-file", help="override /etc/modules-load.d/jukebox.conf")
     setup.set_defaults(fn=cmd_setup)
     sub.add_parser("spotify-check").set_defaults(fn=cmd_spotify_check)
     sub.add_parser("adc-check").set_defaults(fn=cmd_adc_check)

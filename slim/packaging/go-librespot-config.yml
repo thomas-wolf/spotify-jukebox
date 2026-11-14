@@ -1,10 +1,15 @@
-# Copy to ~/.config/go-librespot/config.yml
-# Keys taken from the go-librespot README (device_name, credentials, server).
-# Further audio options (device, volume) are in its README; verify them there.
+# Nach ~/.config/go-librespot/config.yml kopieren.
+# Schlüssel und Standardwerte laut go-librespot-README; vollständiges Schema
+# steht dort in config_schema.json.
 
-device_name: Jukebox
+device_name: Jukebox          # so erscheint die Box in der Spotify-App
+audio_backend: alsa
+audio_device: default         # mit dem MiniAmp-Overlay und abgeschaltetem Onboard-Audio ist das die DAC-Karte (mit `aplay -l` prüfen)
+
 credentials:
-  type: interactive   # one-time login through the printed link; credentials are stored afterwards
-server:
+  type: device_auth           # Code-Login: Link/Code erscheint im Log, Eingabe auf spotify.com/pair
+
+server:                       # lokale REST-API, nur von diesem Gerät erreichbar
   enabled: true
+  address: localhost
   port: 3678

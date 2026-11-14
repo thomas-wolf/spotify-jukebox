@@ -24,7 +24,7 @@ class KeyAssembler:
         if key_name.startswith("KEY_KP") and key_name[6:].isdigit():
             self._chars.append(key_name[6:])
         elif key_name.startswith("KEY_") and len(key_name) == 5 and key_name[4].isalnum():
-            self._chars.append(key_name[4])
+            self._chars.append(key_name[4].lower())  # v2 compatible
         # everything else (shift, ...) is ignored
         return None
 

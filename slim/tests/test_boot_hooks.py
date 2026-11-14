@@ -121,3 +121,17 @@ def test_failing_handler_does_not_stop_others():
 
 def test_missing_hooks_file_is_harmless(tmp_path):
     load_user_hooks(make_app(), tmp_path / "none.py")
+
+
+def test_modules_file_only_when_needed():
+    assert boot.modules_text(plan(audio="hifiberry-miniamp")) is None
+    assert boot.modules_text(plan(i2c=True)) == "# written by jukebox setup\ni2c-dev\n"
+
+
+def test_hook_can_register_custom_action(tmp_path):
+    hooks = tmp_path / "hooks.py"
+    hooks.write_text("def setup(app):\n    app.actions['nachtmodus'] = lambda: app.set_volume(10)\n")
+    app = make_app()
+    load_user_hooks(app, hooks)
+    app.handle(Event("action", {"name": "nachtmodus", "args": {}}))
+    assert app.players.volume == 10

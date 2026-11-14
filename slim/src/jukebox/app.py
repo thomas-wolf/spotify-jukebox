@@ -29,6 +29,7 @@ class App:
         run: Callable[[list[str]], Any] = subprocess.Popen,
     ) -> None:
         self.cfg, self.cards, self.players, self.bus = cfg, cards, players, bus
+        self._cards_ci = {k.lower(): v for k, v in cards.items()}
         self._clock, self._run = clock, run
         audio = cfg.section("audio")
         self.max_volume: int = audio["max_volume"]
@@ -66,7 +67,7 @@ class App:
 
     # -- cards ---------------------------------------------------------------
     def on_card(self, card_id: str) -> None:
-        card = self.cards.get(card_id)
+        card = self._cards_ci.get(card_id.lower())
         if card is None:
             log.info("unknown card %s", card_id)
             self.bus.post(ev.CARD_UNKNOWN, id=card_id)
