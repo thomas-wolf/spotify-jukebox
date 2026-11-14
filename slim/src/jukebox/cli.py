@@ -159,12 +159,17 @@ def cmd_setup(args) -> int:
     if modules is not None and modules != modules_current:
         print(f"{modules_path} (new): {modules.strip().splitlines()[-1]}")
     if args.apply:
-        if new != old:
-            backup = boot.write_config(path, new)
-            print(f"written {path}" + (f" (backup: {backup})" if backup else ""))
-        if modules is not None and modules != modules_current:
-            modules_path.write_text(modules)
-            print(f"written {modules_path}")
+        try:
+            if new != old:
+                backup = boot.write_config(path, new)
+                print(f"written {path}" + (f" (backup: {backup})" if backup else ""))
+            if modules is not None and modules != modules_current:
+                modules_path.write_text(modules)
+                print(f"written {modules_path}")
+        except PermissionError as exc:
+            print(f"error: {exc.filename or exc}: permission denied. Writing the boot files needs root. Run:\n"
+                  f"  sudo {sys.executable} -m jukebox -c {cfg.path or DEFAULT_CONFIG} setup --apply")
+            return 1
         print("Reboot to activate the overlays.")
     else:
         print("Dry run. Add --apply to write the change (needs root).")

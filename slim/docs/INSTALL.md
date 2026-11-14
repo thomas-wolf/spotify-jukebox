@@ -74,11 +74,13 @@ out and a marked block with `dtoverlay=hifiberry-dac` (plus `dtparam=spi=on` if 
 overlay and turning off the on-board audio match HiFiBerry's own documentation. Apply it:
 
 ```
-sudo /opt/jukebox/venv/bin/jukebox -c "$HOME/.config/jukebox/config.toml" setup --apply
+sudo /opt/jukebox/venv/bin/jukebox setup --apply
 sudo reboot
 ```
 
-The `-c` with an absolute path is needed because `~` points to root's home under `sudo`. Before the first
+Writing `/boot/firmware/config.txt` needs root. Without `sudo` you get a "permission denied" message that shows
+the command to use. Under `sudo`, `~` still means your own home, so the default configuration file
+is found. If you keep it somewhere else, add `-c /full/path/config.toml` (before `setup`). Before the first
 change the tool puts `config.txt.jukebox.bak` next to the original. To roll back, copy the backup back.
 
 After the reboot the DAC must show up as a sound card:

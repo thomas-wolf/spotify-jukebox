@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import pwd
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,6 +41,15 @@ def _merge(base: dict, over: dict) -> dict:
 
 
 def expand(path: str | Path) -> Path:
+    """Like expanduser, but under ``sudo`` a leading ``~`` means the invoking user's home, not root's."""
+    text = str(path)
+    if text == "~" or text.startswith("~/"):
+        user = os.environ.get("SUDO_USER")
+        if user and os.geteuid() == 0:
+            try:
+                return Path(pwd.getpwnam(user).pw_dir + text[1:])
+            except KeyError:
+                pass
     return Path(path).expanduser()
 
 

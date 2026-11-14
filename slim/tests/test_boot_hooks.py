@@ -135,3 +135,32 @@ def test_hook_can_register_custom_action(tmp_path):
     load_user_hooks(app, hooks)
     app.handle(Event("action", {"name": "nachtmodus", "args": {}}))
     assert app.players.volume == 10
+
+
+def test_expand_uses_sudo_users_home(monkeypatch):
+    import os, pwd
+    from jukebox import config
+    monkeypatch.setenv("SUDO_USER", "alice")
+    monkeypatch.setattr(os, "geteuid", lambda: 0)
+    monkeypatch.setattr(pwd, "getpwnam", lambda n: type("P", (), {"pw_dir": "/home/alice"})())
+    assert str(config.expand("~/.config/jukebox/config.toml")) == "/home/alice/.config/jukebox/config.toml"
+    assert str(config.expand("/etc/x")) == "/etc/x"
+    monkeypatch.setattr(os, "geteuid", lambda: 1000)             # not root: normal behaviour
+    assert config.expand("~/x") == config.Path("~/x").expanduser()
+
+
+def test_setup_apply_without_root_explains(tmp_path, monkeypatch, capsys):
+    from jukebox import boot
+    from jukebox.cli import main
+    cfg = tmp_path / "c.toml"
+    cfg.write_text('[boot]\naudio = "hifiberry-miniamp"\n')
+    txt = tmp_path / "config.txt"
+    txt.write_text("dtparam=audio=on\n")
+
+    def deny(path, text):
+        raise PermissionError(13, "Permission denied", str(path) + ".jukebox.bak")
+    monkeypatch.setattr(boot, "write_config", deny)
+    assert main(["-c", str(cfg), "setup", "--apply", "--config-txt", str(txt),
+                 "--modules-file", str(tmp_path / "m.conf")]) == 1
+    out = capsys.readouterr().out
+    assert "needs root" in out and "-m jukebox" in out and "setup --apply" in out
