@@ -16,6 +16,8 @@ One Python process, configuration in TOML. No PHP, no MPD, no Mopidy and no shel
 - **Volume potentiometer** on an ADS1115 (I2C).
 - **Overlays:** `jukebox setup` maintains one marked block in `config.txt` (HiFiBerry MiniAmp profile, SPI,
   I2C), with a diff and a backup.
+- **Web interface** (optional, no password): assign cards by putting them on the reader and pasting a Spotify link;
+  basic controls.
 - **Per-box customisation** without code changes: pinout and readers in `config.toml`, sounds per event,
   LED animations in your own `hooks.py`.
 

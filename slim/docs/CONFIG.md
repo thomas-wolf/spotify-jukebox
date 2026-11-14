@@ -143,6 +143,28 @@ The position of the potentiometer at startup does not change the volume; only a 
 percent does. You tune `full_scale` with `jukebox adc-check`: turn the potentiometer to both ends and enter
 the raw value at the top end. The default applies to a potentiometer wired to 3.3 V in the +-4.096 V range.
 
+### `[web]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | `true` to start the web interface |
+| `host` | `0.0.0.0` | Address to listen on. `127.0.0.1` makes it reachable from the box itself only. |
+| `port` | `8080` | Port |
+
+The page shows what is playing (with previous, play/pause, next, stop and volume), the ID of the last card
+that was presented, a form to assign a card (Spotify link, local folder or action) and the list of all cards
+with search, edit, delete and a test button.
+
+- **No authentication.** Anybody who can reach the port can change cards and control playback. Use it in a
+  trusted home network only.
+- Changes are active immediately and are written to `cards.toml`. That rewrites the file: **comments in it are
+  lost**. The first rewrite keeps the old file as `cards.toml.jukebox.bak`.
+- A Spotify link pasted into the form is converted to the `spotify:<type>:<id>` form.
+- The list of local folders in the form shows folders under `[local] root` (three levels deep) that contain
+  audio files.
+- Changing a request needs the content type `application/json`, so a foreign web page cannot change cards just
+  by sending a form.
+
 ### `[sounds]`
 
 | Key | Default | Meaning |

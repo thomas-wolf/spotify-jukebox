@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import subprocess
+import threading
 import time
 from typing import Any, Callable
 
@@ -30,6 +31,7 @@ class App:
     ) -> None:
         self.cfg, self.cards, self.players, self.bus = cfg, cards, players, bus
         self._cards_ci = {k.lower(): v for k, v in cards.items()}
+        self._cards_lock = threading.Lock()
         self._clock, self._run = clock, run
         audio = cfg.section("audio")
         self.max_volume: int = audio["max_volume"]
@@ -66,6 +68,22 @@ class App:
             self.do_action(event.data["name"], **event.data.get("args", {}))
 
     # -- cards ---------------------------------------------------------------
+    def set_card(self, card: Card) -> None:
+        """Add or replace a card; safe to call from another thread (the web UI)."""
+        with self._cards_lock:
+            for key in [k for k in self.cards if k.lower() == card.id.lower()]:
+                del self.cards[key]
+            self.cards[card.id] = card
+            self._cards_ci = {k.lower(): v for k, v in self.cards.items()}
+
+    def remove_card(self, card_id: str) -> bool:
+        with self._cards_lock:
+            keys = [k for k in self.cards if k.lower() == card_id.lower()]
+            for key in keys:
+                del self.cards[key]
+            self._cards_ci = {k.lower(): v for k, v in self.cards.items()}
+        return bool(keys)
+
     def on_card(self, card_id: str) -> None:
         card = self._cards_ci.get(card_id.lower())
         if card is None:

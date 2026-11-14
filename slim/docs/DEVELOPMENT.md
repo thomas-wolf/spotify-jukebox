@@ -18,7 +18,9 @@
 src/jukebox/
   cli.py          commands (run, setup, cards, spotify-check, adc-check) and wiring
   app.py          cards and actions, volume logic
-  config.py       config.toml and cards.toml
+  config.py       config.toml and cards.toml (reading and writing)
+  importer.py     import of Phoniebox v2 cards
+  web.py, _page.py  web interface (standard library, one HTML page)
   events.py       EventBus
   hooks.py        event sounds and hooks.py
   boot.py         config.txt maintenance (overlays)
@@ -41,7 +43,7 @@ pytest
 The tests need no hardware, no mpv and no go-librespot. `tests/fakes.py` contains stand-ins for players,
 mpv and the clock. Covered: configuration, card logic, volume, choosing and switching players, resolving local
 paths (including protection against `..`), resume, button and encoder logic, parsing RDM6300 frames,
-`config.txt` maintenance and hooks.
+`config.txt` maintenance, hooks, the v2 importer and the web interface (against a real local HTTP server).
 
 **Not** tested, because hardware or programs are needed: `GpiodBackend`, `MpvClient`, `Ads1115`, the evdev
 reader, opening the serial port and the real HTTP against go-librespot. These are the thin layers that have to

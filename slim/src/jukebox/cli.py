@@ -74,12 +74,21 @@ def start_inputs(cfg, app):
 
 
 def cmd_run(args) -> int:
-    cfg, app, _ = build(args.config)
+    cfg, app, cards_path = build(args.config)
     install_sounds(app)
     threads = start_inputs(cfg, app)
     hooks = cfg.section("hooks").get("file")
     if hooks:
         load_user_hooks(app, (cfg.path.parent / hooks) if cfg.path else hooks)
+    web = None
+    web_cfg = cfg.section("web")
+    if web_cfg["enabled"]:
+        from .web import Web
+        try:
+            web = Web(app, cards_path, expand(cfg.section("local")["root"]), web_cfg["host"], web_cfg["port"])
+            web.start()
+        except OSError as exc:
+            log.error("web interface disabled: %s", exc)
     signal.signal(signal.SIGTERM, lambda *_: app.bus.stop())
     signal.signal(signal.SIGINT, lambda *_: app.bus.stop())
     app.start()
@@ -89,6 +98,8 @@ def cmd_run(args) -> int:
     finally:
         for t in threads:
             t.stop()
+        if web:
+            web.stop()
         app.players.close()
     return 0
 

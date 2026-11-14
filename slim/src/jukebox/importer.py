@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+
+from .config import render_cards
 from pathlib import Path
 
 CONTROL_ACTIONS: dict[str, tuple[str, dict]] = {
@@ -127,18 +129,5 @@ def _resolve(card_id: str, folder: str, folders: Path | None, res: ImportResult)
     return Entry(card_id, name=folder, play=f"folder:{folder}")
 
 
-def _q(s: str) -> str:
-    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
-
-
 def render(entries: list[Entry]) -> str:
-    out: list[str] = []
-    for e in entries:
-        out.append(f"[cards.{_q(e.id)}]")
-        if e.name:
-            out.append(f"name = {_q(e.name)}")
-        out.append(f"play = {_q(e.play)}" if e.play else f"action = {_q(e.action or '')}")
-        if e.args:
-            out.append("args = { " + ", ".join(f"{k} = {v}" for k, v in e.args.items()) + " }")
-        out.append("")
-    return "\n".join(out)
+    return render_cards(entries)

@@ -19,6 +19,7 @@ DEFAULTS: dict[str, Any] = {
     "spotify": {"enabled": True, "api_url": "http://127.0.0.1:3678"},
     "local": {"enabled": True, "root": "~/music", "mpv": "mpv"},
     "sounds": {"command": ["mpv", "--no-video", "--really-quiet"]},
+    "web": {"enabled": False, "host": "0.0.0.0", "port": 8080},
     "system": {"shutdown_command": ["systemctl", "poweroff"]},
 }
 
@@ -136,3 +137,42 @@ def add_card(path: str | Path, card_id: str, *, name: str = "",
     lines.append(f"play = {q(play)}" if play else f"action = {q(action or '')}")
     with open(p, "a", encoding="utf-8") as fh:
         fh.write("\n".join(lines) + "\n")
+
+
+def _q(s: str) -> str:
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _val(v) -> str:
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return repr(v)
+    return _q(str(v))
+
+
+def render_cards(cards) -> str:
+    """cards.toml text for objects with id, name, play, action, args."""
+    out: list[str] = []
+    for c in cards:
+        out.append(f"[cards.{_q(c.id)}]")
+        if c.name:
+            out.append(f"name = {_q(c.name)}")
+        out.append(f"play = {_q(c.play)}" if c.play else f"action = {_q(c.action or '')}")
+        if c.args:
+            out.append("args = { " + ", ".join(f"{k} = {_val(v)}" for k, v in c.args.items()) + " }")
+        out.append("")
+    return "\n".join(out)
+
+
+def save_cards(path: str | Path, cards) -> None:
+    """Rewrite cards.toml atomically. Comments are lost; the first rewrite keeps a .jukebox.bak copy."""
+    p = expand(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if p.exists():
+        bak = p.with_name(p.name + ".jukebox.bak")
+        if not bak.exists():
+            bak.write_bytes(p.read_bytes())
+    tmp = p.with_name(p.name + ".tmp")
+    tmp.write_text("# managed by jukebox (comments are not kept)\n\n" + render_cards(cards), encoding="utf-8")
+    tmp.replace(p)

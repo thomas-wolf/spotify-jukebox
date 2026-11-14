@@ -8,6 +8,7 @@ The branch `rewrite/slim-core` replaces the Spotify edition with a slim rewrite 
 - one Python process, configuration in TOML, no PHP, MPD, Mopidy or shell scripts
 - Spotify through [go-librespot](https://github.com/devgianlu/go-librespot) (Premium required), local folders through mpv
 - USB and RDM6300 card readers, GPIO buttons, rotary encoders, LEDs, volume potentiometer (ADS1115)
+- a small web interface for assigning cards and basic controls (optional, no password)
 - device tree overlays (HiFiBerry MiniAmp, SPI, I2C) maintained by `jukebox setup`
 - per-box pinout, startup sounds and LED animations without touching the code
 - card IDs compatible with Phoniebox v2, so existing cards keep working
