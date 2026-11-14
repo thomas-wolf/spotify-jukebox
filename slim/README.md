@@ -30,7 +30,7 @@ and `python3-libgpiod` come from apt and are needed only for USB readers and GPI
 |---|---|
 | Configuration, cards, actions, events, player selection, local playback, `config.txt` handling, hooks | tested (65 tests, no hardware needed) |
 | Button, encoder, RDM6300 and potentiometer logic | tested against fakes |
-| go-librespot REST endpoints (`players/spotify.py`) | **unverified.** Only the existence of a REST API is confirmed. Check against go-librespot's `api-spec.yml`; `jukebox spotify-check` helps. |
+| go-librespot REST calls (`players/spotify.py`) | endpoints and fields match go-librespot's `api-spec.yml` (v0.10.5). **Not yet run against a real daemon** from this code; `jukebox spotify-check` helps. |
 | libgpiod glue, mpv glue, ADS1115, evdev, UART | **not yet run on hardware** |
 | ILI9341 display driver | not written (interface exists) |
 | Cover art and titles from Spotify | not wired up (go-librespot provides them over its WebSocket `/events`) |

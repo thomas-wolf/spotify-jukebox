@@ -65,11 +65,18 @@ sudo systemctl daemon-reload && sudo systemctl restart go-librespot
 Check `systemctl status go-librespot`; the go-librespot configuration must contain `server.enabled: true`.
 `server.port` and `[spotify] api_url` must match.
 
-**The daemon runs, but the card starts nothing:** The jukebox log then shows something like
-`go-librespot POST /player/play: HTTP 404`. The endpoints in `src/jukebox/players/spotify.py` (`ENDPOINTS`)
-are my assumption and have not been checked against go-librespot's specification. Compare them with the file
-`api-spec.yml` in the go-librespot repository and adjust the table. The request field names (`uri`,
-`volume`, `position`) come from the same assumption.
+**The daemon runs, but the card starts nothing:** Collect three things:
+
+```
+curl -s localhost:3678/                 # {"playback_ready": true} when go-librespot is ready
+curl -si localhost:3678/status | head   # 204 = no active session
+curl -si -X POST -H 'Content-Type: application/json' -d '{"uri":"spotify:track:4uLU6hMCjMI75M1A2tKUQC"}' localhost:3678/player/play
+```
+
+and the logs of both services (`journalctl -u jukebox -u go-librespot -n 60`). A line like
+`go-librespot POST /player/play: HTTP 400` in the jukebox log means go-librespot rejected the request. The
+endpoints in `src/jukebox/players/spotify.py` (`ENDPOINTS`) match go-librespot's `api-spec.yml`, so the cause is
+more likely the login (not done, expired) or the audio output.
 
 **Login errors (`INVALID_CREDENTIALS`, `login5`):** A report from August 2026 describes go-librespot
 0.7.1 on Volumio aborting with this message when logging in by token, but working in plain zeroconf mode.

@@ -3,10 +3,10 @@
 go-librespot registers itself as a Spotify Connect device and exposes a REST
 API on localhost, so commands do not go through Spotify's Web API.
 
-!!! The endpoint table below is NOT verified yet. The go-librespot README only
-!!! confirms that a REST API and WebSocket events exist; the endpoints are in
-!!! its api-spec.yml. Check ENDPOINTS against that file (or run
-!!! ``jukebox spotify-check`` on the box) before relying on this backend.
+Endpoints and request fields were checked against go-librespot's api-spec.yml (release v0.10.5, November
+2026): POST /player/play {uri}, /player/pause, /player/resume, /player/next, /player/prev,
+/player/seek {position (ms), relative}, /player/volume {volume}, GET /status (204 without a session).
+Not yet run against a real daemon from this code.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from .base import Player, PlayerError
 
 log = logging.getLogger(__name__)
 
-# name -> (HTTP method, path).  UNVERIFIED, see module docstring.
+# name -> (HTTP method, path), as in api-spec.yml.
 ENDPOINTS: dict[str, tuple[str, str]] = {
     "status": ("GET", "/status"),
     "play": ("POST", "/player/play"),
@@ -104,5 +104,5 @@ class SpotifyPlayer(Player):
         except PlayerError:
             return self._playing
         if "paused" in status:
-            self._playing = not status["paused"]
+            self._playing = not status["paused"] and not status.get("stopped", False)
         return self._playing

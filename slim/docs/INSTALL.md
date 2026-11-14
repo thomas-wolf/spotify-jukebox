@@ -137,10 +137,9 @@ No sound? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 /opt/jukebox/venv/bin/jukebox spotify-check
 ```
 
-Output without `FAILED` means the daemon answers. **Important:** The endpoints in `players/spotify.py` do not
-come from go-librespot's specification, they are my assumption **(unverified)**. If `spotify-check` fails or
-nothing happens when you put a card on the reader, compare the `ENDPOINTS` table with the file
-`api-spec.yml` in the go-librespot repository and adjust it. It is a one-place change.
+Output without `FAILED` means the daemon answers. The calls the jukebox makes match go-librespot's
+`api-spec.yml` (v0.10.5), but they have not been run against a real daemon yet. If nothing happens when you put a
+card on the reader, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md#spotify).
 
 ## 7. Set up the service
 

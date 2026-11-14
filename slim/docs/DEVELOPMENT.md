@@ -71,7 +71,7 @@ be tried on a real box first.
 
 | Topic | Status |
 |---|---|
-| Check the go-librespot endpoints against `api-spec.yml`, measure latency card -> sound | most important next step, needs a real box |
+| Run the Spotify player against a real go-librespot (endpoints already match `api-spec.yml`), measure latency card -> sound | most important next step, needs a real box |
 | Cover and title from go-librespot (WebSocket `/events`) into the `track` event | open, otherwise the display stays empty |
 | ILI9341 driver over SPI (`spidev`, Pillow) | open, needs resolution, rotation, DC/RESET pins |
 | Import of v2 cards (`shared/shortcuts`, `spotify.txt`, `rfid_trigger_play.conf`) | possible, see [MIGRATION.md](MIGRATION.md) |

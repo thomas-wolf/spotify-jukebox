@@ -13,7 +13,7 @@ The branch `rewrite/slim-core` replaces the Spotify edition with a slim rewrite 
 - per-box pinout, startup sounds and LED animations without touching the code
 - card IDs compatible with Phoniebox v2, so existing cards keep working
 
-Some parts are not verified or not written yet (go-librespot REST endpoints, hardware glue, display driver).
+Some parts are not verified or not written yet (hardware glue, a real run against go-librespot, display driver).
 The status table in [`slim/README.md`](slim/README.md#status) lists them.
 
 ## Documentation
