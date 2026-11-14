@@ -35,6 +35,10 @@ and `python3-libgpiod` come from apt and are needed only for USB readers and GPI
 | ILI9341 display driver | not written (interface exists) |
 | Cover art and titles from Spotify | not wired up (go-librespot provides them over its WebSocket `/events`) |
 
+**Known risk:** Spotify currently refuses audio keys to some accounts through the librespot family (go-librespot
+issue 279). If your account is affected, Spotify cards will not play; local folders still work. See
+[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#spotify).
+
 Everything marked "unverified" is marked the same way in the documents.
 
 ## Quick start

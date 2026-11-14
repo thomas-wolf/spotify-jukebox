@@ -78,6 +78,20 @@ and the logs of both services (`journalctl -u jukebox -u go-librespot -n 60`). A
 endpoints in `src/jukebox/players/spotify.py` (`ENDPOINTS`) match go-librespot's `api-spec.yml`, so the cause is
 more likely the login (not done, expired) or the audio output.
 
+**Log shows `failed retrieving aes key with code 1` / `Spotify refused the audio key`:** The jukebox did its job:
+go-librespot received the play request, logged in, and then Spotify refused to hand out the decryption key for the
+tracks, so every track is skipped. This is a known problem of the librespot family, open in
+[go-librespot issue 279](https://github.com/devgianlu/go-librespot/issues/279) (see also issue 235 and
+librespot issue 1649). Reports say Spotify refuses the key per account, also for Premium accounts (Duo and
+family plans are mentioned), and that it does not matter where the player runs. Nothing in this jukebox can fix it.
+What you can try (none of it is a confirmed fix):
+
+1. Update go-librespot and read the current state of issue 279; fixes would appear there first.
+2. Try the same box with another Spotify account (for example a plain individual Premium account) to see
+   whether the refusal follows the account.
+3. Check in the Spotify app that the account really is Premium and not in a restricted state.
+4. Use local folders for the cards that matter (`folder:...`) until Spotify works again.
+
 **Login errors (`INVALID_CREDENTIALS`, `login5`):** A report from August 2026 describes go-librespot
 0.7.1 on Volumio aborting with this message when logging in by token, but working in plain zeroconf mode.
 In the Mopidy forum users reported the same error with the Spotify plugin. So this error belongs to the family
