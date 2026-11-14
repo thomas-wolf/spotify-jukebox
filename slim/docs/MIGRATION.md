@@ -33,6 +33,47 @@ Two edge cases:
   Card IDs containing y or z (unusual for hex IDs) are now spelled differently.
 - The jukebox compares IDs case-insensitively.
 
+## Importing the cards automatically
+
+`jukebox import-v2` reads your v2 data and writes `cards.toml`. You need the files, not the running v2 box:
+a copy of the folders `shared/shortcuts` and `shared/audiofolders` (or just the folders that contain a
+`spotify.txt`) and, for control cards, `settings/rfid_trigger_play.conf`. If you keep them in a Dropbox, it
+is enough to point the command at the folder that contains them. It looks for `shared/shortcuts`,
+`shared/audiofolders` and `settings/rfid_trigger_play.conf` below the folder you give it, or for
+`shortcuts/`, `audiofolders/` and `rfid_trigger_play.conf` directly in it.
+
+```
+/opt/jukebox/venv/bin/jukebox import-v2 ~/Dropbox/phoniebox          # dry run, only reports
+/opt/jukebox/venv/bin/jukebox import-v2 ~/Dropbox/phoniebox --apply  # appends to cards.toml
+sudo systemctl restart jukebox
+```
+
+The dry run prints how many cards it found, how many are new, and for every card it had to skip the ID and
+the reason. Cards that already exist in `cards.toml` are never changed, so you can run the import repeatedly.
+
+What the import does with each kind of card:
+
+| v2 | Result |
+|---|---|
+| `spotify.txt` with `spotify:...`, `spotify:user:NAME:playlist:ID` or an `open.spotify.com` link | `play = "spotify:<type>:<id>"` |
+| Folder with audio files | `play = "folder:<name>"`. You still copy the files to `[local] root`, with the same folder names. |
+| Control cards from `rfid_trigger_play.conf` | `action = ...` as in the table below. Unset entries (`%CMD...%`) are ignored. |
+| Card ID never assigned (v2 wrote a shortcut with the ID as content on first use) | ignored, counted in the report |
+| `podcast.txt`, `livestream.txt`, `url.txt`, `youtube.txt` | skipped, listed in the report |
+| Folder missing in the copy | skipped, listed in the report |
+| Control cards without an equivalent (random, timers, WLAN, ...) | skipped, listed in the report |
+
+Check these things after the import, because the importer cannot know them:
+
+- The IDs have to match what your reader produces. For the RDM6300 keep `id_format = "raw"` (see above);
+  that is what v2 used unless you changed `numberformat`. Put one old card on the reader. If the log says
+  `unknown card ...` although the card is in `cards.toml`, the format differs.
+- Spotify links in the old Mopidy format are converted, but whether go-librespot plays every type
+  (playlists, albums and tracks are the normal case; shows and episodes are untested) is not verified.
+- Local folders: check that the folder names under `[local] root` match exactly, including upper and lower case.
+
+The manual route below describes the same mapping and is useful for edge cases.
+
 ## Cards and folders
 
 v2 stores a card in two parts (paths are relative to the v2 installation; the root is in

@@ -183,6 +183,9 @@ sudo systemctl restart jukebox
 
 Cards are read at startup. Restart the service after every change to `cards.toml`.
 
+You already have cards in use with Phoniebox v2? Do not add them one by one: `jukebox import-v2` imports
+them all at once, see [MIGRATION.md](MIGRATION.md).
+
 You find the Spotify URI in the Spotify app under "Share" -> "Copy link". `https://open.spotify.com/playlist/ABC123?si=...`
 becomes `spotify:playlist:ABC123`. Local folders live under the `root` from the configuration (default
 `~/music`) and are written as `folder:<relative path>`.
@@ -192,6 +195,49 @@ becomes `spotify:playlist:ABC123`. Local folders live under the `root` from the 
 Every box has its own `config.toml` (pinout, readers, sounds, `hooks.py`). The repository and the code are
 the same everywhere. A new box is: steps 1 to 8, then copy `config.toml` and `cards.toml` from an existing box
 and adjust the hardware sections.
+
+## 10. Optional: read-only system
+
+A jukebox in a child's room gets switched off by pulling the plug. A read-only root filesystem keeps the SD
+card from being damaged by that, and it makes the box start the same way every time.
+
+Raspberry Pi OS has an overlay file system for this in `raspi-config` (Performance Options -> Overlay File
+System; non-interactively `sudo raspi-config nonint enable_overlayfs`). The root partition is then
+mounted read-only and all writes go to RAM and are lost at the next reboot. The menu names and the option for a
+read-only boot partition may differ between releases **(check on your system)**.
+
+What this means for the jukebox:
+
+| What is written | Where | What to do |
+|---|---|---|
+| Resume position of local folders (`resume.json`) | `[box] data_dir` | put `data_dir` on a writable partition, or accept that the box starts from the beginning of a folder after every power-off |
+| go-librespot login (stored credentials) | its config folder (`-config_dir` in the unit) | it would be lost at every reboot, and you would have to log in again. Keep this folder on the writable partition as well **(which files it writes there: check in go-librespot's README)** |
+| `cards.toml`, `config.toml` | `~/.config/jukebox/` | change them only in maintenance mode (below) |
+| `config.txt` | boot partition | run `jukebox setup --apply` before you switch the overlay on |
+| Logs (`journalctl`) | RAM | gone after a reboot. Fine for normal operation; for debugging, see maintenance mode |
+
+**Writable partition for state.** The simplest way is a third partition on the SD card (or a small USB stick),
+mounted at `/data` through `/etc/fstab` with `defaults,noatime`. Then:
+
+```toml
+[box]
+data_dir = "/data/jukebox"
+```
+
+and in `go-librespot.service` `-config_dir /data/go-librespot`. Create the folders and give them to the service
+user (`sudo install -d -o pi -g pi /data/jukebox /data/go-librespot`). A separate partition is the only part
+that is not read-only, so a hard power-off can still damage that one in theory, but it holds only a few small files.
+
+**Maintenance mode.** To change cards or update, switch the overlay off, restart, work, and switch it on again:
+
+```
+sudo raspi-config nonint disable_overlayfs && sudo reboot
+# ... edit cards.toml, jukebox import-v2, update ...
+sudo raspi-config nonint enable_overlayfs && sudo reboot
+```
+
+Before you do that on a box with hundreds of cards, try the whole cycle once with a box you can afford to
+reinstall.
 
 ## Updating
 

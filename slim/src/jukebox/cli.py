@@ -10,6 +10,7 @@ from pathlib import Path
 
 from . import boot
 from .app import App
+from . import importer
 from .config import ConfigError, add_card, expand, load_cards, load_config
 from .events import EventBus
 from .hooks import install_sounds, load_user_hooks
@@ -104,6 +105,31 @@ def cmd_cards(args) -> int:
     return 0
 
 
+def cmd_import_v2(args) -> int:
+    cfg = load_config(args.config)
+    cards_path = cfg.path.with_name("cards.toml") if cfg.path else expand("~/.config/jukebox/cards.toml")
+    try:
+        res = importer.convert(Path(args.source).expanduser())
+    except FileNotFoundError as exc:
+        print(f"error: {exc}")
+        return 1
+    existing = {k.lower() for k in load_cards(cards_path)}
+    fresh = [e for e in res.entries if e.id.lower() not in existing]
+    dup = len(res.entries) - len(fresh)
+    print(f"{len(res.entries)} cards found: {len(fresh)} new, {dup} already in {cards_path}")
+    print(f"{len(res.unused)} ids in v2 were never assigned (ignored)")
+    for card_id, why in res.skipped:
+        print(f"skipped {card_id}: {why}")
+    if not args.apply:
+        print("dry run; add --apply to write the cards")
+        return 0
+    cards_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(cards_path, "a", encoding="utf-8") as fh:
+        fh.write("\n" + importer.render(fresh))
+    print(f"written to {cards_path}; restart the service")
+    return 0
+
+
 def cmd_setup(args) -> int:
     cfg = load_config(args.config)
     plan = boot.plan_from_config(cfg.section("boot"))
@@ -181,6 +207,10 @@ def main(argv: list[str] | None = None) -> int:
     target.add_argument("--play", help="spotify:... | folder:path | file:path")
     target.add_argument("--action")
     cards.set_defaults(fn=cmd_cards)
+    imp = sub.add_parser("import-v2", help="import cards from a Phoniebox v2 copy (dry run by default)")
+    imp.add_argument("source", help="v2 root, its shared/ folder, or a folder with copies of shortcuts/ and audiofolders/")
+    imp.add_argument("--apply", action="store_true")
+    imp.set_defaults(fn=cmd_import_v2)
     setup = sub.add_parser("setup", help="write overlays to config.txt (dry run by default)")
     setup.add_argument("--apply", action="store_true")
     setup.add_argument("--config-txt", help="override the config.txt path")

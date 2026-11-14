@@ -202,7 +202,7 @@ args = { seconds = 30 }
 ```
 
 Exactly one of `play` or `action` per card. IDs are compared case-insensitively. You can also add cards by
-command: `jukebox cards add ID --play ... | --action ... [--name ...]`.
+command: `jukebox cards add ID --play ... | --action ... [--name ...]`. Many cards from a Phoniebox v2 setup: `jukebox import-v2`, see [MIGRATION.md](MIGRATION.md).
 
 **Targets (`play`)**
 
