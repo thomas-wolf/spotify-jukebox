@@ -8,7 +8,8 @@ Type=simple
 User=pi
 SupplementaryGroups=audio
 # Adjust the binary path (the name is in the unpacked release archive)
-ExecStart=/usr/local/bin/go-librespot -config_dir /home/pi/.config/go-librespot
+ExecStart=/usr/local/bin/go-librespot
+# The config folder defaults to ~/.config/go-librespot of the service user (the -config_dir flag did not parse in v0.10.5)
 Restart=on-failure
 RestartSec=5
 

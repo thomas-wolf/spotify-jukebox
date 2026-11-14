@@ -116,7 +116,8 @@ No sound? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
    mkdir -p ~/.config/go-librespot
    cp ~/spotify-jukebox/slim/packaging/go-librespot-config.yml ~/.config/go-librespot/config.yml
    ```
-   The important parts are `credentials.type: device_auth` (login with a code, no browser needed on the
+   go-librespot reads this folder by default (`~/.config/go-librespot` of the service user), so the service
+   needs no option for it. The important parts are `credentials.type: device_auth` (login with a code, no browser needed on the
    box) and `server.enabled: true`. The REST API then listens on `localhost:3678`.
 4. Set up the service:
    ```

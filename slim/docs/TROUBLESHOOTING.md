@@ -49,6 +49,16 @@ sudo sed -i "s|/home/pi|$HOME|g; s|^User=pi|User=$USER|" /etc/systemd/system/go-
 sudo systemctl daemon-reload && sudo systemctl restart go-librespot jukebox
 ```
 
+## go-librespot: `invalid config override format: onfig_dir`
+
+The unit passes `-config_dir ...` and go-librespot v0.10.5 reads it as `-c onfig_dir`. Remove that option from
+`ExecStart`; the default folder `~/.config/go-librespot` of the service user is what the guide uses anyway:
+
+```
+sudo sed -i 's| -config_dir [^ ]*||' /etc/systemd/system/go-librespot.service
+sudo systemctl daemon-reload && sudo systemctl restart go-librespot
+```
+
 ## Spotify
 
 **`jukebox spotify-check` reports `FAILED: go-librespot not reachable`:**
@@ -68,7 +78,7 @@ of login problems of the librespot projects, not to this jukebox. What helps:
 
 1. Update go-librespot to the latest version.
 2. Log in again: stop the service, remove the stored credentials in the go-librespot configuration folder
-   (which file is named in go-librespot's README **(not verified)**), start it and repeat the code login
+   (per go-librespot's README the login and player state are in `state.json` there, **not checked on a box**; the `lockfile` next to it only prevents a second instance), start it and repeat the code login
    at spotify.com/pair.
 3. For diagnosis only, try `credentials.type: zeroconf` and select the box from the Spotify app.
 
