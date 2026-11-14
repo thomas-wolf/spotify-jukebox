@@ -1,46 +1,43 @@
-# Spotify-Jukebox
+# Spotify jukebox
 
-Eine RFID-Jukebox für den Raspberry Pi: Karte auflegen, Musik spielt. Das ist die schlanke
-Neufassung der Spotify-Edition von Phoniebox v2 (Ausgangspunkt: `RPi-Jukebox-RFID` 2.10).
+An RFID jukebox for the Raspberry Pi: put a card on the reader, music plays. This is a slim rewrite of the
+Spotify edition of Phoniebox v2 (starting point: `RPi-Jukebox-RFID` 2.10).
 
-Ein einziger Python-Prozess, Konfiguration in TOML. Kein PHP, kein MPD, kein Mopidy und keine
-Shell-Skripte im Kern.
+One Python process, configuration in TOML. No PHP, no MPD, no Mopidy and no shell scripts in the core.
 
-## Was sie kann
+## What it does
 
-- **Spotify** über einen lokalen [go-librespot](https://github.com/devgianlu/go-librespot)-Daemon.
-  Er meldet sich als Spotify-Connect-Gerät an und bietet eine REST-API auf `localhost`.
-  Spotify Premium ist nötig.
-- **Lokale Ordner** über mpv, mit Wiederaufnahme an der zuletzt gespielten Stelle.
-- **Kartenleser:** USB-Reader (Tastatur-Emulation) und RDM6300 (UART). Die Karten-IDs sind mit
-  Phoniebox v2 kompatibel, bestehende Karten funktionieren weiter.
-- **GPIO:** Tasten (kurz, lang, Wiederholung), Drehencoder, LEDs über libgpiod.
-- **Lautstärke-Poti** am ADS1115 (I2C).
-- **Overlays:** `jukebox setup` pflegt einen markierten Block in der `config.txt`
-  (Profil für den HiFiBerry MiniAmp, SPI, I2C), mit Diff und Backup.
-- **Pro Box anpassbar** ohne Codeänderung: Pinbelegung und Reader in `config.toml`, Startsounds pro
-  Ereignis, LED-Animationen in einer eigenen `hooks.py`.
+- **Spotify** through a local [go-librespot](https://github.com/devgianlu/go-librespot) daemon. It registers
+  as a Spotify Connect device and offers a REST API on `localhost`. Spotify Premium is required.
+- **Local folders** through mpv, resuming where you left off.
+- **Card readers:** USB readers (keyboard emulation) and RDM6300 (UART). Card IDs are compatible with
+  Phoniebox v2, so existing cards keep working.
+- **GPIO:** buttons (short, hold, repeat), rotary encoders and LEDs through libgpiod.
+- **Volume potentiometer** on an ADS1115 (I2C).
+- **Overlays:** `jukebox setup` maintains one marked block in `config.txt` (HiFiBerry MiniAmp profile, SPI,
+  I2C), with a diff and a backup.
+- **Per-box customisation** without code changes: pinout and readers in `config.toml`, sounds per event,
+  LED animations in your own `hooks.py`.
 
-Zur Laufzeit braucht der Kern nur Python ≥ 3.11 und die Programme `mpv` und `go-librespot`.
-`python3-evdev` und `python3-libgpiod` kommen aus apt und werden nur für USB-Reader bzw. GPIO benötigt.
+At runtime the core needs only Python >= 3.11 plus the programs `mpv` and `go-librespot`. `python3-evdev`
+and `python3-libgpiod` come from apt and are needed only for USB readers and GPIO respectively.
 
-## Stand
+## Status
 
-| Teil | Zustand |
+| Part | State |
 |---|---|
-| Konfiguration, Karten, Aktionen, Ereignisse, Player-Auswahl, lokale Wiedergabe, `config.txt`-Pflege, Hooks | getestet (65 Tests ohne Hardware) |
-| Tasten-, Encoder-, RDM6300-, Poti-Logik | getestet gegen Attrappen |
-| REST-Endpunkte von go-librespot (`players/spotify.py`) | **ungeprüft.** Bestätigt ist nur, dass es eine REST-API gibt. Mit `jukebox spotify-check` und der `api-spec.yml` von go-librespot gegenprüfen. |
-| libgpiod-Anbindung, mpv-Anbindung, ADS1115, evdev, UART | **noch nicht auf Hardware gelaufen** |
-| ILI9341-Display-Treiber | nicht geschrieben (Schnittstelle vorhanden) |
-| Cover und Titel aus Spotify | nicht angebunden (go-librespot liefert sie über WebSocket `/events`) |
+| Configuration, cards, actions, events, player selection, local playback, `config.txt` handling, hooks | tested (65 tests, no hardware needed) |
+| Button, encoder, RDM6300 and potentiometer logic | tested against fakes |
+| go-librespot REST endpoints (`players/spotify.py`) | **unverified.** Only the existence of a REST API is confirmed. Check against go-librespot's `api-spec.yml`; `jukebox spotify-check` helps. |
+| libgpiod glue, mpv glue, ADS1115, evdev, UART | **not yet run on hardware** |
+| ILI9341 display driver | not written (interface exists) |
+| Cover art and titles from Spotify | not wired up (go-librespot provides them over its WebSocket `/events`) |
 
-Alles, was als „ungeprüft" markiert ist, ist auch in den Dokumenten so gekennzeichnet.
+Everything marked "unverified" is marked the same way in the documents.
 
-## Schnellstart
+## Quick start
 
-Die vollständige Anleitung steht in [docs/INSTALL.md](docs/INSTALL.md). Kurzfassung auf einem Pi mit
-Raspberry Pi OS (Trixie):
+The full guide is [docs/INSTALL.md](docs/INSTALL.md). Short version on a Pi running Raspberry Pi OS (Trixie):
 
 ```
 sudo apt install -y python3-venv python3-libgpiod python3-evdev mpv alsa-utils git
@@ -49,26 +46,26 @@ cd spotify-jukebox/slim
 sudo python3 -m venv --system-site-packages /opt/jukebox/venv
 sudo /opt/jukebox/venv/bin/pip install .
 mkdir -p ~/.config/jukebox && cp examples/config.toml examples/cards.toml ~/.config/jukebox/
-/opt/jukebox/venv/bin/jukebox setup        # zeigt die geplante Änderung der config.txt
+/opt/jukebox/venv/bin/jukebox setup        # shows the planned config.txt change
 ```
 
-Danach go-librespot einrichten, Karten anlegen und den Dienst aktivieren (siehe Installationsanleitung).
+Then set up go-librespot, add cards and enable the service (see the installation guide).
 
-## Dokumentation
+## Documentation
 
-| Dokument | Inhalt |
+| Document | Contents |
 |---|---|
-| [docs/INSTALL.md](docs/INSTALL.md) | Schritt für Schritt vom leeren Pi zur laufenden Box |
-| [docs/CONFIG.md](docs/CONFIG.md) | Alle Einstellungen in `config.toml` und `cards.toml`, alle Aktionen |
-| [docs/HARDWARE.md](docs/HARDWARE.md) | MiniAmp, Overlays, Pinbelegung, RDM6300, ADS1115, Display |
-| [docs/MIGRATION.md](docs/MIGRATION.md) | Umzug von Phoniebox v2: Karten, Ordner, Steuerkarten |
-| [docs/HOOKS.md](docs/HOOKS.md) | Ereignisse, Startsounds, LED-Animationen pro Box |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Fehlersuche |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Aufbau, Tests, neue Reader und Player |
+| [docs/INSTALL.md](docs/INSTALL.md) | Step by step from a blank Pi to a working box |
+| [docs/CONFIG.md](docs/CONFIG.md) | Every setting in `config.toml` and `cards.toml`, every action |
+| [docs/HARDWARE.md](docs/HARDWARE.md) | MiniAmp, overlays, pin assignment, RDM6300, ADS1115, display |
+| [docs/MIGRATION.md](docs/MIGRATION.md) | Moving from Phoniebox v2: cards, folders, control cards |
+| [docs/HOOKS.md](docs/HOOKS.md) | Events, startup sounds, per-box LED animations |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Troubleshooting |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Structure, tests, adding readers and players |
 
-## Lizenz und Herkunft
+## License and origin
 
-Dieses Verzeichnis ist eine Neuentwicklung neben dem v2-Code des Repositorys. Das Projekt
-Phoniebox/RPi-Jukebox-RFID steht unter der MIT-Lizenz; die Lizenzdatei des Repositorys gilt weiter.
-Spotify ist eine Marke von Spotify AB. Die Anbindung nutzt das inoffizielle Protokoll der
-librespot-Familie und ist kein von Spotify unterstütztes Produkt.
+This directory is a new development next to the v2 code of the repository. The Phoniebox/RPi-Jukebox-RFID
+project is MIT licensed; the repository's license file continues to apply. Spotify is a trademark of
+Spotify AB. The integration uses the unofficial protocol of the librespot family and is not a product
+supported by Spotify.

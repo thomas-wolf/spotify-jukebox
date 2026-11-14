@@ -1,5 +1,5 @@
 [Unit]
-Description=go-librespot (Spotify-Connect-Empfaenger)
+Description=go-librespot (Spotify Connect receiver)
 After=sound.target network-online.target
 Wants=network-online.target
 
@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=pi
 SupplementaryGroups=audio
-# Pfad zum Binary anpassen (Name steht im entpackten Release-Archiv)
+# Adjust the binary path (the name is in the unpacked release archive)
 ExecStart=/usr/local/bin/go-librespot -config_dir /home/pi/.config/go-librespot
 Restart=on-failure
 RestartSec=5

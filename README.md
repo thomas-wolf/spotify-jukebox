@@ -1,7 +1,7 @@
-> **Neu auf diesem Branch (`rewrite/slim-core`):** Im Ordner [`slim/`](slim/README.md) liegt eine schlanke
-> Neufassung der Spotify-Edition: ein Python-Prozess, TOML-Konfiguration, Spotify über go-librespot,
-> lokale Ordner über mpv. Installation und Dokumentation stehen in [`slim/docs/`](slim/docs/INSTALL.md).
-> Der restliche Inhalt dieses Repositorys ist der unveränderte Phoniebox-v2-Code.
+> **New on this branch (`rewrite/slim-core`):** The folder [`slim/`](slim/README.md) holds a slim rewrite
+> of the Spotify Edition: one Python process, TOML configuration, Spotify through go-librespot,
+> local folders through mpv. Installation and documentation are in [`slim/docs/`](slim/docs/INSTALL.md).
+> The rest of this repository is the unchanged Phoniebox v2 code.
 
 # Phoniebox: the RPi-Jukebox-RFID
 

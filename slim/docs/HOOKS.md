@@ -1,40 +1,39 @@
-# Ereignisse, Sounds und Hooks
+# Events, sounds and hooks
 
-Alles, was sich von Box zu Box unterscheidet (Startsound, LED-Animationen, eigene Reaktionen), gehört
-in die `config.toml` und in eine optionale `hooks.py`, nicht in den Code.
+Everything that differs from box to box (startup sound, LED animations, custom reactions) belongs in
+`config.toml` and an optional `hooks.py`, not in the code.
 
-## Ereignisse
+## Events
 
-Die Jukebox meldet ihr Geschehen als Ereignisse. Hooks und Sounds hören darauf.
+The jukebox reports what happens as events. Hooks and sounds listen to them.
 
-| Ereignis | Wann | Daten |
+| Event | When | Data |
 |---|---|---|
-| `boot` | Die Box ist gestartet | |
-| `card` | Eine Karte wurde aufgelegt | `id` |
-| `card_unknown` | Die Karte steht nicht in `cards.toml` | `id` |
-| `action` | Eine Aktion wurde ausgelöst (Taste, Encoder, Poti) | `name`, `args` |
-| `playing` | Wiedergabe läuft | `target` und `name` beim Start per Karte, sonst oft leer |
-| `paused` | Wiedergabe pausiert | `target`, kann fehlen |
-| `stopped` | Wiedergabe gestoppt | |
-| `volume` | Lautstärke geändert | `value` (0 bis `max_volume`) |
-| `track` | Titelinfos (für das Display) | `title`, `artist`, `cover_url`. **Wird noch nicht gesendet**, siehe unten |
-| `shutdown` | Die Box fährt herunter | |
-| `error` | Ein Player meldet einen Fehler | `message` |
+| `boot` | The box has started | |
+| `card` | A card was presented | `id` |
+| `card_unknown` | The card is not in `cards.toml` | `id` |
+| `action` | An action was triggered (button, encoder, potentiometer) | `name`, `args` |
+| `playing` | Playback is running | `target` and `name` when started by a card, otherwise often empty |
+| `paused` | Playback paused | `target`, may be missing |
+| `stopped` | Playback stopped | |
+| `volume` | Volume changed | `value` (0 to `max_volume`) |
+| `track` | Track info (for the display) | `title`, `artist`, `cover_url`. **Not sent yet**, see below |
+| `shutdown` | The box is shutting down | |
+| `error` | A player reports an error | `message` |
 
-`*` abonniert alle Ereignisse. Zugriff auf fehlende Daten immer mit `event.data.get("name")`.
+`*` subscribes to all events. Always read data that may be missing with `event.data.get("name")`.
 
-Die Wiedergabe-Ereignisse beschreiben, was die Jukebox **angefordert** hat. Beendet go-librespot einen Titel
-von selbst oder spielt jemand über die Spotify-App, melden sie das nicht. Dafür müssten die WebSocket-Ereignisse
-von go-librespot angebunden werden (`/events`: `playing`, `paused`, `metadata`, `volume`, …). Das ist
-noch nicht umgesetzt.
+The playback events describe what the jukebox **requested**. If go-librespot finishes a track on its own or
+someone plays through the Spotify app, they do not report it. That would require hooking up go-librespot's
+WebSocket events (`/events`: `playing`, `paused`, `metadata`, `volume`, ...). That is not implemented yet.
 
-## Startsounds und Ereignis-Sounds
+## Startup sounds and event sounds
 
-Ohne Code, direkt in der `config.toml`:
+No code needed, directly in `config.toml`:
 
 ```toml
 [sounds]
-command = ["mpv", "--no-video", "--really-quiet"]     # optional, ist der Standard
+command = ["mpv", "--no-video", "--really-quiet"]     # optional, this is the default
 
 [sounds.events]
 boot = "~/sounds/startup.mp3"
@@ -43,47 +42,47 @@ card_unknown = "~/sounds/error.mp3"
 shutdown = "~/sounds/shutdown.mp3"
 ```
 
-Jede Box hat ihre eigenen Dateien. Fehlt eine Datei, steht eine Warnung im Log.
-Der Sound wird im Hintergrund gestartet und blockiert nichts.
+Each box has its own files. If a file is missing there is a warning in the log.
+The sound is started in the background and blocks nothing.
 
 ## hooks.py
 
-Eine Python-Datei neben der `config.toml`:
+A Python file next to `config.toml`:
 
 ```toml
 [hooks]
 file = "hooks.py"
 ```
 
-Sie muss eine Funktion `setup(app)` haben. Darin abonnierst du Ereignisse:
+It must have a function `setup(app)`. In it you subscribe to events:
 
 ```python
 def setup(app):
     def on_unknown(event):
-        print("Neue Karte:", event.data["id"])
+        print("New card:", event.data["id"])
 
     app.bus.subscribe("card_unknown", on_unknown)
 ```
 
-Was du über `app` erreichst:
+What you can reach through `app`:
 
-| Zugriff | Bedeutung |
+| Access | Meaning |
 |---|---|
-| `app.bus.subscribe(name, fn)` | Auf ein Ereignis reagieren (`"*"` für alle) |
-| `app.bus.post(name, **daten)` | Ein eigenes Ereignis auslösen, auch für andere Hooks |
-| `app.leds["status"]` | Eine LED aus `[[gpio.led]]` mit `.on()`, `.off()`, `.set(bool)` |
-| `app.do_action(name, **args)` | Eine Aktion auslösen, z. B. `app.do_action("next")` |
-| `app.players.volume`, `.is_playing()`, `.current_target` | Zustand lesen |
-| `app.cfg.section("box")` | Konfiguration lesen, auch eigene Abschnitte |
+| `app.bus.subscribe(name, fn)` | React to an event (`"*"` for all) |
+| `app.bus.post(name, **data)` | Raise your own event, also for other hooks |
+| `app.leds["status"]` | An LED from `[[gpio.led]]` with `.on()`, `.off()`, `.set(bool)` |
+| `app.do_action(name, **args)` | Trigger an action, e.g. `app.do_action("next")` |
+| `app.players.volume`, `.is_playing()`, `.current_target` | Read state |
+| `app.cfg.section("box")` | Read configuration, including your own sections |
 
-**Wichtig:** Handler laufen im Hauptablauf der Box. Ein Handler, der wartet (`time.sleep`, lange
-Schleifen), hält Karten und Tasten an. Animationen gehören in einen eigenen Thread, wie im Beispiel unten.
-Ein Hook, der einen Fehler wirft, wird protokolliert und übersprungen. Er kann die Wiedergabe nicht anhalten.
-`app.leds` ist leer, wenn kein GPIO konfiguriert ist. Prüfe das im Hook (`app.leds.get("status")`).
+**Important:** handlers run in the box's main loop. A handler that waits (`time.sleep`, long loops) holds up
+cards and buttons. Animations belong in a thread of their own, as in the example below.
+A hook that raises an error is logged and skipped. It cannot stop playback.
+`app.leds` is empty when no GPIO is configured. Check for that in the hook (`app.leds.get("status")`).
 
-### Beispiel: LED blinkt, solange Musik läuft
+### Example: LED blinks while music is playing
 
-Siehe `examples/hooks.py`:
+See `examples/hooks.py`:
 
 ```python
 import threading, time
@@ -115,17 +114,17 @@ def setup(app):
     app.bus.subscribe("stopped", on_idle)
 ```
 
-Für aufwendigere Animationen (Pulsieren per PWM, mehrere LEDs) ist `hooks.py` der richtige Ort. Die LED-Klasse
-kann bisher nur an und aus. Weiche Übergänge musst du per schnellem Umschalten selbst bauen.
+`hooks.py` is the right place for more elaborate animations (pulsing by PWM, several LEDs). The LED class can
+only do on and off so far. You have to build soft transitions yourself by switching quickly.
 
-### Eigene Aktionen
+### Custom actions
 
-Braucht eine Taste oder Karte eine Aktion, die es nicht gibt, lege sie in `hooks.py` an:
+If a button or card needs an action that does not exist, define it in `hooks.py`:
 
 ```python
 def setup(app):
-    app.actions["nachtmodus"] = lambda: app.set_volume(10)
+    app.actions["night_mode"] = lambda: app.set_volume(10)
 ```
 
-und in der `config.toml` `action = "nachtmodus"`. `app.actions` ist die Tabelle, aus der Tasten, Encoder
-und Karten ihre Aktion auswählen.
+and put `action = "night_mode"` in `config.toml`. `app.actions` is the table from which buttons, encoders
+and cards pick their action.

@@ -1,23 +1,22 @@
-# Hardware und Overlays
+# Hardware and overlays
 
 ## HiFiBerry MiniAmp
 
-- Overlay: `dtoverlay=hifiberry-dac`. Dazu muss die Onboard-Audioausgabe aus
-  (`dtparam=audio=on` entfernen oder auskommentieren). Beides macht `jukebox setup` für das Profil
-  `hifiberry-miniamp`.
-- Der MiniAmp hat **keinen Hardware-Mixer**. Die Lautstärke regeln deshalb go-librespot und mpv in der
-  Software. Das passt zur Lautstärkelogik der Jukebox, es gibt keine ALSA-Softvol-Konfiguration zu pflegen.
-- Der DAC belegt die I2S-Pins GPIO 18 bis 21. Diese Pins darf keine Taste und keine LED nutzen.
-- Nach dem Neustart zeigt `aplay -l` eine Karte `sndrpihifiberry`.
+- Overlay: `dtoverlay=hifiberry-dac`. The on-board audio output must be off as well (remove or comment out
+  `dtparam=audio=on`). `jukebox setup` does both for the `hifiberry-miniamp` profile.
+- The MiniAmp has **no hardware mixer**. Volume is therefore controlled in software by go-librespot and mpv.
+  That fits the jukebox's volume logic; there is no ALSA softvol configuration to maintain.
+- The DAC occupies the I2S pins GPIO 18 to 21. No button or LED may use these pins.
+- After the reboot `aplay -l` shows a card `sndrpihifiberry`.
 
-Ob go-librespot ohne weitere Einstellung (`audio_device: default`) auf dem DAC ausgibt, hängt davon ab, dass
-der DAC die einzige Karte ist. Mit abgeschaltetem Onboard-Audio sollte das der Fall sein
-**(auf der Box prüfen)**. Sonst trage in `go-librespot/config.yml` den ALSA-Namen aus `aplay -L` ein.
+Whether go-librespot plays on the DAC without further settings (`audio_device: default`) depends on the DAC
+being the only card. With the on-board audio switched off that should be the case **(check on the box)**.
+Otherwise enter the ALSA name from `aplay -L` in `go-librespot/config.yml`.
 
-### Overlays und Pi-Versionen
+### Overlays and Pi versions
 
-Overlays hängen vom Pi-Modell und Kernel ab. Deshalb liegt die Auswahl in der `config.toml` jeder Box
-(`[boot]`) und nicht im Code:
+Overlays depend on the Pi model and the kernel. That is why the choice lives in each box's `config.toml`
+(`[boot]`) and not in the code:
 
 ```toml
 [boot]
@@ -25,12 +24,12 @@ audio = "hifiberry-miniamp"
 spi = true
 i2c = true
 extra = [
-  "dtoverlay=irgendwas",
-  { model = "pi5", line = "dtparam=pciex1" },   # gilt nur auf dem Pi 5
+  "dtoverlay=something",
+  { model = "pi5", line = "dtparam=pciex1" },   # applies on the Pi 5 only
 ]
 ```
 
-`jukebox setup` schreibt alles in einen markierten Block der `config.txt`:
+`jukebox setup` writes everything into one marked block of `config.txt`:
 
 ```
 # >>> jukebox managed block (do not edit) >>>
@@ -39,94 +38,93 @@ dtparam=spi=on
 # <<< jukebox managed block <<<
 ```
 
-- Der Befehl ist **idempotent**: Mehrfaches Ausführen ergibt dasselbe, Änderungen in der `config.toml` ersetzen den Block.
-- Zeilen außerhalb des Blocks bleiben unberührt, abgesehen vom Auskommentieren von `dtparam=audio=on`.
-- Vor der ersten Änderung entsteht **einmalig** `config.txt.jukebox.bak`.
-- Den Pfad findet das Tool selbst: `/boot/firmware/config.txt` (aktuelles Raspberry Pi OS), sonst `/boot/config.txt`.
-- Mit `i2c = true` schreibt es außerdem `/etc/modules-load.d/jukebox.conf` mit `i2c-dev`, damit `/dev/i2c-1` entsteht.
-- Ohne `--apply` zeigt es nur den Diff.
+- The command is **idempotent**: running it repeatedly gives the same result; changes in `config.toml` replace the block.
+- Lines outside the block are left alone, apart from commenting out `dtparam=audio=on`.
+- Before the first change, `config.txt.jukebox.bak` is created **once**.
+- The tool finds the path itself: `/boot/firmware/config.txt` (current Raspberry Pi OS), otherwise `/boot/config.txt`.
+- With `i2c = true` it also writes `/etc/modules-load.d/jukebox.conf` containing `i2c-dev`, so that `/dev/i2c-1` exists.
+- Without `--apply` it only shows the diff.
 
-Andere Audio-Hardware: ein weiteres Profil ist eine Zeile in `AUDIO_PRESETS` in `src/jukebox/boot.py`,
-oder du setzt `audio` weg und trägst das Overlay unter `extra` ein.
+Other audio hardware: another profile is one line in `AUDIO_PRESETS` in `src/jukebox/boot.py`, or leave
+`audio` out and put the overlay in `extra`.
 
-## Pinbelegung (BCM)
+## Pin assignment (BCM)
 
-Diese Pins sind durch Hardware oder Overlays vergeben. Die Beispielkonfiguration meidet sie.
+These pins are taken by hardware or overlays. The example configuration avoids them.
 
-| Pins | Belegt durch | Hinweis |
+| Pins | Used by | Note |
 |---|---|---|
-| 18, 19, 20, 21 | I2S des MiniAmp | nicht verwenden |
-| 14 (TX), 15 (RX) | UART (RDM6300) | nur, wenn der RDM6300 benutzt wird |
-| 2 (SDA), 3 (SCL) | I2C (ADS1115) | nur mit Poti. **GPIO 3 war in v2 oft der Shutdown-Taster. Mit I2C geht das nicht.** |
-| 7, 8, 9, 10, 11 | SPI0 (Display) | nur mit Display |
-| 17, 25 | Display DC und RESET | Vorschlag für den ILI9341 (Treiber noch nicht geschrieben) |
+| 18, 19, 20, 21 | I2S of the MiniAmp | do not use |
+| 14 (TX), 15 (RX) | UART (RDM6300) | only if the RDM6300 is used |
+| 2 (SDA), 3 (SCL) | I2C (ADS1115) | only with the potentiometer. **GPIO 3 was often the shutdown button in v2. That does not work with I2C.** |
+| 7, 8, 9, 10, 11 | SPI0 (display) | only with a display |
+| 17, 25 | Display DC and RESET | suggestion for the ILI9341 (driver not written yet) |
 
-Frei und im Beispiel verwendet: 5, 22, 23, 24, 26, 27.
+Free and used in the example: 5, 22, 23, 24, 26, 27.
 
-## Tasten, Encoder, LEDs
+## Buttons, encoders, LEDs
 
-- Taster gegen Masse schalten und `pull = "up"` lassen (Standard). Der interne Pull-up reicht.
-- Drehencoder: gemeinsamer Pin an Masse, A und B an zwei GPIOs. Dreht er falsch herum, tausche
-  `cw` und `ccw` in der Konfiguration.
-- LED: GPIO → Vorwiderstand (z. B. 330 Ω) → LED → Masse. Gesteuert wird sie nur über Hooks, siehe [HOOKS.md](HOOKS.md).
-- Der Dienst läuft als Benutzer in der Gruppe `gpio`. Pins, die ein anderer Prozess hält (etwa ein noch
-  laufender alter Phoniebox-Dienst), lassen sich nicht öffnen.
+- Wire buttons to ground and leave `pull = "up"` (the default). The internal pull-up is enough.
+- Rotary encoder: common pin to ground, A and B to two GPIOs. If it turns the wrong way, swap `cw` and
+  `ccw` in the configuration.
+- LED: GPIO -> series resistor (e.g. 330 ohm) -> LED -> ground. It is driven only through hooks, see [HOOKS.md](HOOKS.md).
+- The service runs as a user in the group `gpio`. Pins held by another process (for example an old Phoniebox
+  service that is still running) cannot be opened.
 
-## RDM6300 (125-kHz-Reader)
+## RDM6300 (125 kHz reader)
 
-Verkabelung:
+Wiring:
 
 | RDM6300 | Raspberry Pi |
 |---|---|
-| 5V | 5 V (Pin 2 oder 4) |
+| 5V | 5 V (pin 2 or 4) |
 | GND | GND |
-| TX | RXD, GPIO 15 (Pin 10) |
+| TX | RXD, GPIO 15 (pin 10) |
 
-**Pegel:** Der Reader wird mit 5 V versorgt. Ob sein TX-Ausgang bei deinem Modul 3,3 V liefert, hängt vom Modul ab.
-Miss nach oder setze einen Pegelwandler bzw. Spannungsteiler ein, bevor du ihn an den Pi anschließt. Die
-GPIO-Eingänge des Pi vertragen 3,3 V.
+**Voltage level:** The reader is powered with 5 V. Whether its TX output is 3.3 V depends on your module.
+Measure it, or use a level shifter or voltage divider before connecting it to the Pi. The Pi's GPIO inputs
+tolerate 3.3 V.
 
-Serielle Schnittstelle freischalten: `sudo raspi-config` → Interface Options → Serial Port. Auf die Frage
-nach der Login-Shell „Nein", auf die Frage nach der seriellen Hardware „Ja" **(Menütext ungeprüft)**. Danach
-neu starten. Der Port heißt dann `/dev/serial0`.
+Enable the serial port: `sudo raspi-config` -> Interface Options -> Serial Port. Answer "No" to the login
+shell question and "Yes" to the serial hardware question **(menu text unverified)**. Then reboot. The port is
+then called `/dev/serial0`.
 
-Schnelltest: `sudo cat /dev/serial0` zeigt beim Auflegen einer Karte Zeichen an (Binärzeichen mit dem
-Text der Karten-ID dazwischen). Auf Modellen mit Bluetooth kann `/dev/serial0` auf die Mini-UART zeigen. Bei
-9600 Baud sollte das reichen **(ungeprüft)**.
+Quick test: `sudo cat /dev/serial0` shows characters when you put a card on the reader (binary characters
+with the text of the card ID in between). On models with Bluetooth, `/dev/serial0` may point to the mini UART.
+At 9600 baud that should be enough **(unverified)**.
 
-Das Format der Karten-ID stellt `id_format` ein, siehe [CONFIG.md](CONFIG.md). Für bestehende v2-Karten
-bleibt es bei `raw`.
+The `id_format` setting controls the card ID format, see [CONFIG.md](CONFIG.md). For existing v2 cards keep `raw`.
 
-## USB-Reader
+## USB reader
 
-Funktioniert, wenn der Reader sich wie eine Tastatur meldet und die Karten-ID mit Enter abschließt. Den
-Gerätenamen für `device_name` zeigt:
+Works if the reader identifies itself as a keyboard and ends the card ID with Enter. The device name for
+`device_name` is shown by:
 
 ```
 python3 -c "import evdev; [print(evdev.InputDevice(p).name) for p in evdev.list_devices()]"
 ```
 
-Nicht unterstützt sind bisher RC522 und PN532 (SPI/I2C), die v2 kannte.
+RC522 and PN532 (SPI/I2C), which v2 supported, are not supported yet.
 
-## Lautstärke-Poti mit ADS1115
+## Volume potentiometer with ADS1115
 
-| ADS1115 | Anschluss |
+| ADS1115 | Connection |
 |---|---|
-| VDD | 3,3 V |
+| VDD | 3.3 V |
 | GND | GND |
-| SDA | GPIO 2 (Pin 3) |
-| SCL | GPIO 3 (Pin 5) |
-| ADDR | GND → Adresse `0x48` |
-| A0 | Schleifer des Potis |
+| SDA | GPIO 2 (pin 3) |
+| SCL | GPIO 3 (pin 5) |
+| ADDR | GND -> address `0x48` |
+| A0 | wiper of the potentiometer |
 
-Die beiden äußeren Anschlüsse des Potis gehen an 3,3 V und GND. In der `config.toml`: `[adc] enabled = true`
-und `[boot] i2c = true`, dann `jukebox setup --apply` und neu starten. Ob der Chip antwortet, zeigt
-`sudo apt install -y i2c-tools && i2cdetect -y 1` (erwartet `48`). Die Kalibrierung macht
-`jukebox adc-check`, siehe [CONFIG.md](CONFIG.md).
+The two outer terminals of the potentiometer go to 3.3 V and GND. In `config.toml`: `[adc] enabled = true`
+and `[boot] i2c = true`, then `jukebox setup --apply` and reboot. Whether the chip answers is shown by
+`sudo apt install -y i2c-tools && i2cdetect -y 1` (expect `48`). Calibration is done with
+`jukebox adc-check`, see [CONFIG.md](CONFIG.md).
 
-## Display (ILI9341 über SPI)
+## Display (ILI9341 over SPI)
 
-**Noch nicht umgesetzt.** Vorhanden ist nur die Schnittstelle (`src/jukebox/display/`): Ein Treiber bekommt
-Titel und Cover-URL über das Ereignis `track`. Offen sind der Treiber selbst und die Anbindung der
-Cover-Daten von go-librespot (WebSocket `/events` liefert `album_cover_url`). Für den Treiber brauche ich
-Auflösung, Drehung und die Pins für DC und RESET.
+**Not implemented yet.** Only the interface exists (`src/jukebox/display/`): a driver receives title and cover
+URL through the `track` event. Still open are the driver itself and wiring up the cover data from go-librespot
+(the WebSocket `/events` provides `album_cover_url`). For the driver I need resolution, rotation and the pins
+for DC and RESET.

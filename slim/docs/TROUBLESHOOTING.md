@@ -1,106 +1,106 @@
-# Fehlersuche
+# Troubleshooting
 
-Zuerst die Logs ansehen:
+Look at the logs first:
 
 ```
-journalctl -u jukebox -f          # die Jukebox
-journalctl -u go-librespot -f     # Spotify-Daemon
-/opt/jukebox/venv/bin/jukebox -v run     # im Vordergrund mit Debug-Meldungen (Dienst vorher stoppen)
+journalctl -u jukebox -f          # the jukebox
+journalctl -u go-librespot -f     # Spotify daemon
+/opt/jukebox/venv/bin/jukebox -v run     # in the foreground with debug messages (stop the service first)
 ```
 
-## Kein Ton
+## No sound
 
-1. Gibt es die Soundkarte? `aplay -l` muss `sndrpihifiberry` zeigen. Wenn nicht, steht das Overlay nicht in der
-   `config.txt` oder es wurde nicht neu gestartet: `grep -n hifiberry /boot/firmware/config.txt`
-   (bei älterem System `/boot/config.txt`).
-2. Läuft das Onboard-Audio noch? `dtparam=audio=on` muss ausgeschaltet sein. `jukebox setup` kommentiert die
-   Zeile aus.
-3. Funktioniert die Karte generell? `speaker-test -t sine -f 440 -l 1`.
-4. Ist die Lautstärke 0 oder stumm? Das Log zeigt `volume`-Ereignisse. `start_volume` in der `config.toml`.
-5. Lokale Dateien gehen nicht? `mpv --no-video /pfad/datei.mp3` direkt ausprobieren.
-6. Spotify spielt in der App, aber nicht auf der Box? Prüfe `audio_device` in der go-librespot-Konfiguration
-   (`aplay -L` listet die Namen).
+1. Is the sound card there? `aplay -l` must show `sndrpihifiberry`. If not, the overlay is not in
+   `config.txt` or the box was not rebooted: `grep -n hifiberry /boot/firmware/config.txt`
+   (on an older system `/boot/config.txt`).
+2. Is the on-board audio still running? `dtparam=audio=on` must be switched off. `jukebox setup` comments the
+   line out.
+3. Does the card work at all? `speaker-test -t sine -f 440 -l 1`.
+4. Is the volume 0 or muted? The log shows `volume` events. See `start_volume` in `config.toml`.
+5. Local files do not play? Try `mpv --no-video /path/file.mp3` directly.
+6. Spotify plays in the app but not on the box? Check `audio_device` in the go-librespot configuration
+   (`aplay -L` lists the names).
 
-## Karte wird nicht erkannt
+## Card is not recognised
 
-- Im Log steht `unknown card <ID>`: Die Karte ist nicht angelegt. ID kopieren und
-  `jukebox cards add <ID> --play ...`. Danach den Dienst neu starten, denn `cards.toml` wird beim Start gelesen.
-- Die ID sieht anders aus als in v2: bei RDM6300 `id_format` prüfen (Standard `raw`).
-- Gar keine Meldung beim Auflegen: siehe „Reader findet nichts".
+- The log says `unknown card <ID>`: the card has not been added. Copy the ID and run
+  `jukebox cards add <ID> --play ...`. Then restart the service, because `cards.toml` is read at startup.
+- The ID looks different from v2: for the RDM6300 check `id_format` (default `raw`).
+- No message at all when presenting a card: see "Reader finds nothing".
 
-## Reader findet nichts
+## Reader finds nothing
 
-**USB:** Der Dienstbenutzer muss in der Gruppe `input` sein (`groups`). `device_name` muss in
-einem Gerätenamen vorkommen (Befehl in [HARDWARE.md](HARDWARE.md)). Im Log steht alle fünf Sekunden
-`USB reader ... not found`, solange er fehlt. Andere Programme, die den Reader ebenfalls greifen (der alte
-Phoniebox-Dienst), blockieren ihn.
+**USB:** The service user must be in the group `input` (`groups`). `device_name` must occur in a device
+name (command in [HARDWARE.md](HARDWARE.md)). While the reader is missing, the log shows
+`USB reader ... not found` every five seconds. Other programs that also grab the reader (the old Phoniebox
+service) block it.
 
-**RDM6300:** Ist die serielle Schnittstelle freigeschaltet (Login-Shell aus, Hardware an)? `ls -l /dev/serial0`.
-Der Benutzer braucht die Gruppe `dialout`. `sudo cat /dev/serial0` muss beim Auflegen einer Karte Zeichen
-zeigen. Passiert nichts, prüfe Verkabelung (TX des Readers an RX des Pi) und Spannung.
+**RDM6300:** Is the serial port enabled (login shell off, hardware on)? `ls -l /dev/serial0`.
+The user needs the group `dialout`. `sudo cat /dev/serial0` must show characters when a card is presented.
+If nothing happens, check the wiring (reader TX to Pi RX) and the voltage.
 
 ## Spotify
 
-**`jukebox spotify-check` meldet `FAILED: go-librespot not reachable`:**
-`systemctl status go-librespot` prüfen, in der go-librespot-Konfiguration muss `server.enabled: true` stehen.
-`server.port` und `[spotify] api_url` müssen übereinstimmen.
+**`jukebox spotify-check` reports `FAILED: go-librespot not reachable`:**
+Check `systemctl status go-librespot`; the go-librespot configuration must contain `server.enabled: true`.
+`server.port` and `[spotify] api_url` must match.
 
-**Der Daemon läuft, aber die Karte startet nichts:** Im Log der Jukebox steht dann etwas wie
-`go-librespot POST /player/play: HTTP 404`. Die Endpunkte in `src/jukebox/players/spotify.py` (`ENDPOINTS`)
-sind meine Annahme und nicht aus der Spezifikation von go-librespot geprüft. Vergleiche sie mit der Datei
-`api-spec.yml` im go-librespot-Repository und passe die Tabelle an. Auch die Feldnamen der Anfragen (`uri`,
-`volume`, `position`) stammen aus derselben Annahme.
+**The daemon runs, but the card starts nothing:** The jukebox log then shows something like
+`go-librespot POST /player/play: HTTP 404`. The endpoints in `src/jukebox/players/spotify.py` (`ENDPOINTS`)
+are my assumption and have not been checked against go-librespot's specification. Compare them with the file
+`api-spec.yml` in the go-librespot repository and adjust the table. The request field names (`uri`,
+`volume`, `position`) come from the same assumption.
 
-**Anmeldefehler (`INVALID_CREDENTIALS`, `login5`):** Ein Bericht vom August 2026 beschreibt, dass go-librespot
-0.7.1 unter Volumio mit dieser Meldung abbrach, wenn die Anmeldung per Token erfolgte, im reinen Zeroconf-Modus
-aber lief. Im Mopidy-Forum meldeten Nutzer denselben Fehler mit dem Spotify-Plugin. Dieser Fehler gehört also
-zur Familie der Anmeldeprobleme der librespot-Projekte, nicht zu dieser Jukebox. Was hilft:
+**Login errors (`INVALID_CREDENTIALS`, `login5`):** A report from August 2026 describes go-librespot
+0.7.1 on Volumio aborting with this message when logging in by token, but working in plain zeroconf mode.
+In the Mopidy forum users reported the same error with the Spotify plugin. So this error belongs to the family
+of login problems of the librespot projects, not to this jukebox. What helps:
 
-1. go-librespot auf die neueste Version aktualisieren.
-2. Neu anmelden: den Dienst stoppen, die gespeicherten Zugangsdaten im go-librespot-Konfigurationsordner
-   entfernen (welche Datei, steht im README von go-librespot **(nicht geprüft)**), starten und den Code-Login
-   auf spotify.com/pair wiederholen.
-3. Nur zur Diagnose `credentials.type: zeroconf` ausprobieren und die Box aus der Spotify-App heraus wählen.
+1. Update go-librespot to the latest version.
+2. Log in again: stop the service, remove the stored credentials in the go-librespot configuration folder
+   (which file is named in go-librespot's README **(not verified)**), start it and repeat the code login
+   at spotify.com/pair.
+3. For diagnosis only, try `credentials.type: zeroconf` and select the box from the Spotify app.
 
-**Spielt nicht, obwohl die Anmeldung stimmt:** Spotify Premium wird vorausgesetzt.
+**Does not play although the login is fine:** Spotify Premium is required.
 
-## GPIO und Tasten
+## GPIO and buttons
 
-- `ModuleNotFoundError: gpiod` oder `AttributeError: ... request_lines`: Es ist `python3-libgpiod` 1.x installiert
-  oder das venv sieht die apt-Pakete nicht. Prüfe `python3 -c "import gpiod; print(gpiod.request_lines)"`. Auf
-  Bookworm gibt es 2.x nur über `bookworm-backports`. Das venv braucht `--system-site-packages`.
-- `Permission denied`: Benutzer in die Gruppe `gpio`, danach neu anmelden bzw. den Dienst neu starten.
-- `Device or resource busy`: Der Pin wird schon benutzt, etwa von einem noch laufenden alten Phoniebox-Dienst oder
-  einem Overlay. `gpioinfo` zeigt die Besitzer der Leitungen.
-- Taste löst mehrfach aus oder gar nicht: `pull` prüfen. Taster gegen Masse brauchen `pull = "up"`.
-- Encoder zählt rückwärts: `cw` und `ccw` tauschen.
-- Das Log meldet `unknown action`: Tippfehler im Namen. Die Namen stehen in [CONFIG.md](CONFIG.md).
+- `ModuleNotFoundError: gpiod` or `AttributeError: ... request_lines`: `python3-libgpiod` 1.x is installed,
+  or the venv cannot see the apt packages. Check `python3 -c "import gpiod; print(gpiod.request_lines)"`. On
+  Bookworm 2.x is only available through `bookworm-backports`. The venv needs `--system-site-packages`.
+- `Permission denied`: add the user to the group `gpio`, then log in again or restart the service.
+- `Device or resource busy`: the pin is already in use, for example by an old Phoniebox service that is still
+  running, or by an overlay. `gpioinfo` shows who owns the lines.
+- A button fires several times or not at all: check `pull`. Buttons to ground need `pull = "up"`.
+- The encoder counts backwards: swap `cw` and `ccw`.
+- The log reports `unknown action`: typo in the name. The names are listed in [CONFIG.md](CONFIG.md).
 
-## Poti
+## Potentiometer
 
-- `/dev/i2c-1` fehlt: I2C ist nicht aktiv. `[boot] i2c = true`, `jukebox setup --apply`, neu starten. Das Modul
-  `i2c-dev` kommt aus `/etc/modules-load.d/jukebox.conf`.
-- `i2cdetect -y 1` zeigt `48` nicht: Verkabelung und ADDR-Pin prüfen.
-- Lautstärke erreicht 100 % nicht oder zu früh: `jukebox adc-check` und `full_scale` anpassen.
-- Die Lautstärke springt nach dem Start nicht auf die Potistellung. Das ist Absicht, erst eine Bewegung
-  zählt.
+- `/dev/i2c-1` is missing: I2C is not enabled. `[boot] i2c = true`, `jukebox setup --apply`, reboot. The module
+  `i2c-dev` comes from `/etc/modules-load.d/jukebox.conf`.
+- `i2cdetect -y 1` does not show `48`: check the wiring and the ADDR pin.
+- Volume does not reach 100 % or reaches it too early: run `jukebox adc-check` and adjust `full_scale`.
+- The volume does not jump to the potentiometer position after startup. That is intentional; only a move
+  counts.
 
-## Herunterfahren geht nicht
+## Shutdown does not work
 
-Der Dienst darf `systemctl poweroff` oft nicht ausführen. Lege die sudo-Regel an und stelle
-`shutdown_command` um (siehe [INSTALL.md](INSTALL.md) Schritt 7).
+The service often is not allowed to run `systemctl poweroff`. Create the sudo rule and change
+`shutdown_command` (see [INSTALL.md](INSTALL.md) step 7).
 
-## Die `config.txt` zurücksetzen
+## Resetting `config.txt`
 
-Beim ersten `jukebox setup --apply` entsteht `config.txt.jukebox.bak` neben der `config.txt`. Zurück:
+The first `jukebox setup --apply` creates `config.txt.jukebox.bak` next to `config.txt`. To go back:
 
 ```
 sudo cp /boot/firmware/config.txt.jukebox.bak /boot/firmware/config.txt
 ```
 
-(bei älterem System unter `/boot/`). Die Datei `/etc/modules-load.d/jukebox.conf` kannst du einfach löschen.
+(on an older system under `/boot/`). You can simply delete the file `/etc/modules-load.d/jukebox.conf`.
 
-## Fehler melden
+## Reporting problems
 
-Gib bei einem Problem diese Angaben mit: Raspberry-Pi-Modell, `cat /etc/os-release`, `uname -m`, Auszüge aus
-`journalctl -u jukebox` und `journalctl -u go-librespot`, deine `config.toml` ohne persönliche Daten.
+With a problem, include: Raspberry Pi model, `cat /etc/os-release`, `uname -m`, excerpts from
+`journalctl -u jukebox` and `journalctl -u go-librespot`, and your `config.toml` without personal data.
