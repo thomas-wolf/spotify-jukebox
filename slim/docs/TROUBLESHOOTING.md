@@ -92,6 +92,10 @@ What you can try (none of it is a confirmed fix):
 3. Check in the Spotify app that the account really is Premium and not in a restricted state.
 4. Use local folders for the cards that matter (`folder:...`) until Spotify works again.
 
+On the author's box, one account of a family plan was refused and another account played, so the refusal does
+follow the account. Playlists of another account play as long as that account can open them (public playlists,
+playlists you follow); private playlists of the account you do not log in with will not.
+
 **Login errors (`INVALID_CREDENTIALS`, `login5`):** A report from August 2026 describes go-librespot
 0.7.1 on Volumio aborting with this message when logging in by token, but working in plain zeroconf mode.
 In the Mopidy forum users reported the same error with the Spotify plugin. So this error belongs to the family
