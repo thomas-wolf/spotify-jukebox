@@ -21,8 +21,8 @@ there is no binary, you have to build the program yourself.
 ## 1. Prepare the system
 
 Use the Raspberry Pi Imager to write Raspberry Pi OS Lite (Trixie) to the SD card. In the Imager settings,
-set hostname, user, Wi-Fi and SSH. This guide assumes the user `pi`. If your user has another name, replace
-`pi` in the commands and in the files under `packaging/`.
+set hostname, user, Wi-Fi and SSH. The commands below use the user you are logged in as (`$USER`). The service files in `packaging/`
+name the user `pi`; the commands that install them replace it with your user and home folder.
 
 ```
 sudo apt update && sudo apt full-upgrade -y
@@ -120,7 +120,8 @@ No sound? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
    box) and `server.enabled: true`. The REST API then listens on `localhost:3678`.
 4. Set up the service:
    ```
-   sudo cp ~/spotify-jukebox/slim/packaging/go-librespot.service /etc/systemd/system/
+   sed "s|/home/pi|$HOME|g; s|^User=pi|User=$USER|" ~/spotify-jukebox/slim/packaging/go-librespot.service \
+     | sudo tee /etc/systemd/system/go-librespot.service >/dev/null
    sudo systemctl daemon-reload
    sudo systemctl enable --now go-librespot
    journalctl -u go-librespot -f
@@ -145,13 +146,14 @@ nothing happens when you put a card on the reader, compare the `ENDPOINTS` table
 Hardware permissions:
 
 ```
-sudo usermod -aG audio,gpio,i2c,spi,dialout,input pi
+sudo usermod -aG audio,gpio,i2c,spi,dialout,input "$USER"
 ```
 
 Install and start the service:
 
 ```
-sudo cp ~/spotify-jukebox/slim/packaging/jukebox.service /etc/systemd/system/
+sed "s|/home/pi|$HOME|g; s|^User=pi|User=$USER|" ~/spotify-jukebox/slim/packaging/jukebox.service \
+  | sudo tee /etc/systemd/system/jukebox.service >/dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable --now jukebox
 journalctl -u jukebox -f
@@ -167,7 +169,7 @@ To try things out you can start the box in the foreground first (Ctrl-C ends it)
 specifically for the user:
 
 ```
-echo 'pi ALL=NOPASSWD: /usr/bin/systemctl poweroff' | sudo tee /etc/sudoers.d/jukebox
+echo "$USER ALL=NOPASSWD: /usr/bin/systemctl poweroff" | sudo tee /etc/sudoers.d/jukebox
 sudo chmod 440 /etc/sudoers.d/jukebox
 ```
 

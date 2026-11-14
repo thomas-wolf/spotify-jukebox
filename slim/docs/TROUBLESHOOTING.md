@@ -39,6 +39,16 @@ service) block it.
 The user needs the group `dialout`. `sudo cat /dev/serial0` must show characters when a card is presented.
 If nothing happens, check the wiring (reader TX to Pi RX) and the voltage.
 
+## Service does not start: `status=217/USER`
+
+The unit file names a user that does not exist (the templates say `pi`). Check with
+`grep -n 'User=\|/home' /etc/systemd/system/{go-librespot,jukebox}.service` and fix both files:
+
+```
+sudo sed -i "s|/home/pi|$HOME|g; s|^User=pi|User=$USER|" /etc/systemd/system/go-librespot.service /etc/systemd/system/jukebox.service
+sudo systemctl daemon-reload && sudo systemctl restart go-librespot jukebox
+```
+
 ## Spotify
 
 **`jukebox spotify-check` reports `FAILED: go-librespot not reachable`:**
