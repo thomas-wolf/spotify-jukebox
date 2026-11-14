@@ -1,0 +1,19 @@
+# Card id -> what it does. Exactly one of `play` or `action` per card.
+# Add cards with:  jukebox cards add 0415026F42 --play spotify:playlist:... --name "Bedtime"
+# Unknown cards are logged (event "card_unknown"), so scan one and add it.
+
+[cards."0415026F42"]
+name = "Bedtime"
+play = "spotify:playlist:37i9dQZF1DX0UrRvztWcAU"
+
+[cards."0415026F43"]
+name = "Audiobook"
+play = "folder:audiobooks/pumuckl"
+
+[cards."0415026F50"]
+name = "Volume up"
+action = "volume_up"
+
+[cards."0415026F51"]
+name = "Stop"
+action = "stop"

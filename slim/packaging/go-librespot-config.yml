@@ -1,0 +1,10 @@
+# Copy to ~/.config/go-librespot/config.yml
+# Keys taken from the go-librespot README (device_name, credentials, server).
+# Further audio options (device, volume) are in its README; verify them there.
+
+device_name: Jukebox
+credentials:
+  type: interactive   # one-time login through the printed link; credentials are stored afterwards
+server:
+  enabled: true
+  port: 3678

@@ -1,0 +1,17 @@
+[Unit]
+Description=Spotify jukebox
+After=sound.target network-online.target go-librespot.service
+Wants=network-online.target go-librespot.service
+
+[Service]
+Type=simple
+User=pi
+SupplementaryGroups=audio gpio i2c spi dialout input
+ExecStart=/usr/local/bin/jukebox -c /home/pi/.config/jukebox/config.toml run
+Restart=on-failure
+RestartSec=3
+# Needs permission to power off; allow it with a polkit rule or sudoers entry
+# for `systemctl poweroff` if shutdown cards/buttons should work.
+
+[Install]
+WantedBy=multi-user.target

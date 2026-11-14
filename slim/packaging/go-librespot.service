@@ -1,0 +1,15 @@
+[Unit]
+Description=go-librespot (Spotify Connect receiver)
+After=sound.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+SupplementaryGroups=audio
+ExecStart=/usr/local/bin/go-librespot -config_dir /home/pi/.config/go-librespot
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spotify-jukebox"
+version = "3.0.0.dev0"
+description = "Slim RFID jukebox for the Raspberry Pi: Spotify (go-librespot) plus local folders"
+requires-python = ">=3.11"
+dependencies = []  # core uses only the standard library
+
+[project.optional-dependencies]
+usb = ["evdev"]      # keyboard-style USB RFID readers
+gpio = ["gpiod"]     # buttons, rotary encoders, LEDs (libgpiod v2 bindings)
+display = ["spidev", "pillow"]
+dev = ["pytest"]
+
+[project.scripts]
+jukebox = "jukebox.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,138 @@
+"""Loading of config.toml (hardware, per box) and cards.toml (card -> action)."""
+
+from __future__ import annotations
+
+import tomllib
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+DEFAULTS: dict[str, Any] = {
+    "box": {"name": "jukebox", "data_dir": "~/.local/share/jukebox"},
+    "audio": {"start_volume": 30, "max_volume": 80, "volume_step": 5},
+    "cards": {
+        # What happens when the same card is presented again:
+        # toggle (pause/resume), ignore, restart, next
+        "same_card": "toggle",
+        "same_card_delay": 3.0,
+    },
+    "spotify": {"enabled": True, "api_url": "http://127.0.0.1:3678"},
+    "local": {"enabled": True, "root": "~/music", "mpv": "mpv"},
+    "sounds": {"command": ["mpv", "--no-video", "--really-quiet"]},
+    "system": {"shutdown_command": ["systemctl", "poweroff"]},
+}
+
+
+class ConfigError(ValueError):
+    pass
+
+
+def _merge(base: dict, over: dict) -> dict:
+    out = dict(base)
+    for key, value in over.items():
+        if isinstance(value, dict) and isinstance(out.get(key), dict):
+            out[key] = _merge(out[key], value)
+        else:
+            out[key] = value
+    return out
+
+
+def expand(path: str | Path) -> Path:
+    return Path(path).expanduser()
+
+
+@dataclass
+class Config:
+    raw: dict[str, Any]
+    path: Path | None = None
+
+    def section(self, name: str) -> dict[str, Any]:
+        value = self.raw.get(name, {})
+        if not isinstance(value, dict):
+            raise ConfigError(f"[{name}] must be a table")
+        return value
+
+    @property
+    def data_dir(self) -> Path:
+        return expand(self.section("box")["data_dir"])
+
+    def hardware_list(self, *keys: str) -> list[dict[str, Any]]:
+        node: Any = self.raw
+        for key in keys:
+            node = node.get(key, {}) if isinstance(node, dict) else {}
+        return node if isinstance(node, list) else []
+
+
+def load_config(path: str | Path | None = None) -> Config:
+    raw: dict[str, Any] = {}
+    p = expand(path) if path else None
+    if p is not None:
+        try:
+            with open(p, "rb") as fh:
+                raw = tomllib.load(fh)
+        except FileNotFoundError:
+            raise ConfigError(f"config file not found: {p}") from None
+        except tomllib.TOMLDecodeError as exc:
+            raise ConfigError(f"{p}: {exc}") from exc
+    cfg = Config(_merge(DEFAULTS, raw), p)
+    audio = cfg.section("audio")
+    for key in ("start_volume", "max_volume", "volume_step"):
+        if not isinstance(audio[key], int) or not 0 <= audio[key] <= 100:
+            raise ConfigError(f"[audio] {key} must be an integer 0..100")
+    if cfg.section("cards")["same_card"] not in ("toggle", "ignore", "restart", "next"):
+        raise ConfigError("[cards] same_card must be toggle, ignore, restart or next")
+    return cfg
+
+
+@dataclass
+class Card:
+    id: str
+    name: str = ""
+    play: str | None = None      # spotify:... | folder:relative/path | file:path
+    action: str | None = None    # volume_up, next, shutdown, ...
+    args: dict[str, Any] = field(default_factory=dict)
+
+
+def load_cards(path: str | Path) -> dict[str, Card]:
+    p = expand(path)
+    if not p.exists():
+        return {}
+    try:
+        with open(p, "rb") as fh:
+            raw = tomllib.load(fh)
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(f"{p}: {exc}") from exc
+    cards: dict[str, Card] = {}
+    for card_id, entry in raw.get("cards", {}).items():
+        if not isinstance(entry, dict):
+            raise ConfigError(f"{p}: card {card_id!r} must be a table")
+        play, action = entry.get("play"), entry.get("action")
+        if bool(play) == bool(action):
+            raise ConfigError(f"{p}: card {card_id!r} needs exactly one of play/action")
+        cards[str(card_id)] = Card(
+            id=str(card_id),
+            name=entry.get("name", ""),
+            play=play,
+            action=action,
+            args=entry.get("args", {}),
+        )
+    return cards
+
+
+def add_card(path: str | Path, card_id: str, *, name: str = "",
+             play: str | None = None, action: str | None = None) -> None:
+    """Append a card entry to cards.toml (no TOML writer needed for this shape)."""
+    if bool(play) == bool(action):
+        raise ConfigError("give exactly one of play/action")
+    p = expand(path)
+    if card_id in load_cards(p):
+        raise ConfigError(f"card {card_id} already exists")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    def q(s: str) -> str:
+        return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    lines = [f"\n[cards.{q(card_id)}]"]
+    if name:
+        lines.append(f"name = {q(name)}")
+    lines.append(f"play = {q(play)}" if play else f"action = {q(action or '')}")
+    with open(p, "a", encoding="utf-8") as fh:
+        fh.write("\n".join(lines) + "\n")

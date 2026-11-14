@@ -1,0 +1,84 @@
+# Per-box configuration. Copy to ~/.config/jukebox/config.toml and adjust.
+# Everything that differs between your boxes (pinout, readers, sounds, hooks)
+# lives here, never in the code.
+
+[box]
+name = "kitchen"
+
+[audio]
+start_volume = 30
+max_volume = 80          # hard cap, also applies to the knob
+volume_step = 5
+
+[cards]
+same_card = "toggle"     # toggle | ignore | restart | next
+same_card_delay = 3.0
+
+[spotify]
+enabled = true
+api_url = "http://127.0.0.1:3678"   # go-librespot REST API (see packaging/)
+
+[local]
+enabled = true
+root = "~/music"
+
+# --- readers ---------------------------------------------------------------
+[readers.usb]
+enabled = false
+device_name = "RFID"          # substring of the evdev device name
+
+[readers.rdm6300]
+enabled = true
+port = "/dev/serial0"
+id_format = "hex"             # hex = 10 digits, dec = number printed on the tag
+
+# --- GPIO (BCM numbers). Remove what this box does not have. ----------------
+[gpio]
+chip = "/dev/gpiochip0"
+
+[[gpio.button]]
+pin = 26
+action = "next"
+
+[[gpio.button]]
+pin = 20
+action = "prev"
+
+[[gpio.button]]
+pin = 3
+action = "play_pause"
+hold_action = "shutdown"
+hold_time = 2.0
+
+[[gpio.rotary]]
+pin_a = 22
+pin_b = 23
+cw = "volume_up"
+ccw = "volume_down"
+
+[[gpio.led]]
+name = "status"
+pin = 14
+
+# --- potentiometer on an ADS1115 --------------------------------------------
+[adc]
+enabled = false
+bus = 1
+address = 0x48
+channel = 0
+full_scale = 26400            # calibrate with: jukebox adc-check
+
+# --- sounds and hooks ---------------------------------------------------------
+[sounds.events]
+boot = "~/sounds/startup.mp3"
+shutdown = "~/sounds/shutdown.mp3"
+
+[hooks]
+file = "hooks.py"             # optional, relative to this file
+
+# --- device tree overlays, applied by: jukebox setup --apply -------------------
+[boot]
+audio = "hifiberry-miniamp"   # dtoverlay=hifiberry-dac, on-board audio off
+spi = true                    # ILI9341 display
+i2c = false                   # true when an ADS1115 is attached
+# extra = ["dtoverlay=something", { model = "pi5", line = "dtparam=pciex1" }]
