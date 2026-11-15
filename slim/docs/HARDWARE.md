@@ -23,6 +23,8 @@ Overlays depend on the Pi model and the kernel. That is why the choice lives in 
 audio = "hifiberry-miniamp"
 spi = true
 i2c = true
+uart = true                 # enable_uart=1, for the RDM6300 on the serial port
+power = "onoff-shim"        # Pimoroni OnOff SHIM, see below
 extra = [
   "dtoverlay=something",
   { model = "pi5", line = "dtparam=pciex1" },   # applies on the Pi 5 only
@@ -94,6 +96,32 @@ with the text of the card ID in between). On models with Bluetooth, `/dev/serial
 At 9600 baud that should be enough **(unverified)**.
 
 The `id_format` setting controls the card ID format, see [CONFIG.md](CONFIG.md). For existing v2 cards keep `raw`.
+
+Serial console: `jukebox setup` writes `enable_uart=1` (`uart = true`), but the login shell on the serial port
+must be off as well. `sudo raspi-config nonint do_serial_cons 1` does that **(command unverified, the menu route
+above is the safe one)**.
+
+**Card IDs on the UART reader:** the RDM6300 reports the same 125 kHz chips as the USB reader, but the ID can be
+written differently. Before trusting `id_format = "raw"`, put a card that is already in your v2 list on the
+reader. The web interface (or `jukebox cards`) shows the ID that arrived. If it differs from the entry in the
+old `shortcuts` file, try `dec`, `float` or `hex` until it matches, see [CONFIG.md](CONFIG.md).
+
+## Pimoroni OnOff SHIM
+
+The SHIM's button is on GPIO 17 (pin 11) and the power-off signal on GPIO 4 (pin 7). `power = "onoff-shim"`
+writes `dtoverlay=gpio-poweroff,gpiopin=4,active_low=1,input=1` so that the SHIM cuts the power after the Pi has
+halted (line taken from Pimoroni's forum, **not verified on this box**). The button stays with the jukebox:
+
+```toml
+[[gpio.button]]
+pin = 17
+hold_action = "shutdown"
+hold_time = 2.0
+```
+
+A short press does nothing, holding for 2 seconds shuts down. Do **not** also use the `gpio-shutdown` overlay on
+GPIO 17, it would hold the pin and the jukebox could no longer open it. If `cleanshutd` (Pimoroni's daemon) is
+still installed from v2, remove it, it uses the same pins.
 
 ## USB reader
 
@@ -167,7 +195,7 @@ other pinouts; only that file is specific to it.
 | Display MOSI / MISO / SCLK | 19 / 21 / 23 | 10 / 9 / 11 | SPI0 |
 | RDM6300 (reader) | 8 / 10 | 14 / 15 | UART, `/dev/serial0` |
 | Amplifier (MiniAmp) | 12, 35, 40 (+ 17 power) | 18, 19, 21 | I2S |
-| SHIM power-off signal | 7 | 4 | not used by the jukebox |
+| SHIM power-off signal | 7 | 4 | `[boot] power = "onoff-shim"` |
 
 The pins match the v2 `gpio.ini` of this box (shutdown 17, encoder 6/5, prev/next 20/26, mute 13, pause 12,
 horse sound 16).
@@ -179,7 +207,7 @@ Things to check on that box:
 - **GPIO 2 (red button LED)** is the I2C SDA pin with a fixed pull-up on the board. It works as an output
   while `i2c = false`.
 - **GPIO 4** belongs to the SHIM. Do not assign it to anything else.
-- The RDM6300's TX goes to the Pi's RX (pin 10, GPIO 15).
+- The reader is a serial (UART) module in the roof, assumed to be an RDM6300. Its TX goes to the Pi's RX (pin 10, GPIO 15). Check the card IDs, see above.
 
 ## Checking the pins
 

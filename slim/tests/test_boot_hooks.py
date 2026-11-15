@@ -164,3 +164,11 @@ def test_setup_apply_without_root_explains(tmp_path, monkeypatch, capsys):
                  "--modules-file", str(tmp_path / "m.conf")]) == 1
     out = capsys.readouterr().out
     assert "needs root" in out and "-m jukebox" in out and "setup --apply" in out
+
+
+def test_power_and_uart_presets():
+    p = plan(power="onoff-shim", uart=True)
+    assert "dtoverlay=gpio-poweroff,gpiopin=4,active_low=1,input=1" in p.lines
+    assert "enable_uart=1" in p.lines
+    with pytest.raises(boot.BootConfigError):
+        plan(power="nope")

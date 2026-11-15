@@ -74,6 +74,8 @@ def check_pins(cfg: Config) -> PinReport:
             hardware[pin] = f"I2S {name} (audio overlay)"
     elif boot.get("audio") == "pirate-audio":
         hardware[25] = "pirate-audio amplifier"
+    if boot.get("power") == "onoff-shim":
+        hardware[4] = "OnOff SHIM power-off signal"
     for pin, why in gpio.get("reserved", {}).items():
         if str(pin).isdigit():
             hardware[int(pin)] = f"reserved: {why}"

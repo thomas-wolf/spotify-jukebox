@@ -39,9 +39,6 @@ id_format = "raw"             # raw | dec | float | hex; raw/dec/float = same id
 [gpio]
 chip = "/dev/gpiochip0"
 
-[gpio.reserved]            # pins that belong to other hardware (checked by `jukebox pins`)
-4 = "OnOff SHIM power-off signal"
-
 [[gpio.button]]            # top, blue (pin 37)
 pin = 26
 action = "next"
@@ -141,6 +138,8 @@ file = "hooks.py"             # optional, relative to this file
 # --- device tree overlays, applied by: jukebox setup --apply -------------------
 [boot]
 audio = "hifiberry-miniamp"   # dtoverlay=hifiberry-dac, on-board audio off
+power = "onoff-shim"          # Pimoroni OnOff SHIM: GPIO 4 cuts the power after shutdown
+uart = true                   # RDM6300 on the serial port (enable_uart=1)
 spi = true                    # ILI9341 display
 i2c = false                   # true when an ADS1115 is attached
 # extra = ["dtoverlay=something", { model = "pi5", line = "dtparam=pciex1" }]

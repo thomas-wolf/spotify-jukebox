@@ -283,6 +283,8 @@ Read only by `jukebox setup`, not during normal operation.
 | `audio` | Audio profile: `hifiberry-miniamp`, `hifiberry-dac` (both `dtoverlay=hifiberry-dac`) or `pirate-audio` (additionally `gpio=25=op,dh`, as in the v2 script). All switch `dtparam=audio=on` off. |
 | `spi` | `true` writes `dtparam=spi=on` (for the display) |
 | `i2c` | `true` writes `dtparam=i2c_arm=on` (for the ADS1115) |
+| `uart` | `true` writes `enable_uart=1` (for the RDM6300) |
+| `power` | `"onoff-shim"`: overlay that lets the Pimoroni OnOff SHIM cut the power after shutdown |
 | `extra` | More lines. Either text or `{ model = "pi5", line = "..." }` for lines that apply to one Pi model only (config.txt filter `[pi5]`) |
 
 Details and background in [HARDWARE.md](HARDWARE.md).

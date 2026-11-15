@@ -44,3 +44,8 @@ def test_display_pins_and_bad_pin(tmp_path):
     cfg = cfg_from(tmp_path, '[display]\nenabled = true\ndc = 10\nreset = 40\n')
     msgs = [p.message for p in check_pins(cfg).errors]
     assert any("MOSI" in m for m in msgs) and any("not usable" in m for m in msgs)
+
+
+def test_onoff_shim_reserves_gpio4(tmp_path):
+    cfg = cfg_from(tmp_path, '[boot]\npower = "onoff-shim"\n[[gpio.button]]\npin = 4\naction = "next"\n')
+    assert any("SHIM" in p.message for p in check_pins(cfg).errors)

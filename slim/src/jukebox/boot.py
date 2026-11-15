@@ -34,6 +34,14 @@ AUDIO_PRESETS: dict[str, dict[str, list[str]]] = {
 }
 
 
+# Power hardware. The OnOff SHIM cuts the power after a halt when GPIO 4 is pulled low by gpio-poweroff.
+# The button on GPIO 17 stays with the jukebox ([[gpio.button]] with hold_action = "shutdown"), so the
+# gpio-shutdown overlay is deliberately not used (it would hold the pin).
+POWER_PRESETS: dict[str, list[str]] = {
+    "onoff-shim": ["dtoverlay=gpio-poweroff,gpiopin=4,active_low=1,input=1"],
+}
+
+
 class BootConfigError(ValueError):
     pass
 
@@ -55,6 +63,14 @@ def plan_from_config(boot: dict[str, Any]) -> BootPlan:
                 f"unknown audio preset {preset!r}; known: {', '.join(sorted(AUDIO_PRESETS))}")
         plan.lines += AUDIO_PRESETS[preset]["lines"]
         plan.comment_out += AUDIO_PRESETS[preset]["comment_out"]
+    power = boot.get("power")
+    if power:
+        if power not in POWER_PRESETS:
+            raise BootConfigError(
+                f"unknown power preset {power!r}; known: {', '.join(sorted(POWER_PRESETS))}")
+        plan.lines += POWER_PRESETS[power]
+    if boot.get("uart"):
+        plan.lines.append("enable_uart=1")
     if boot.get("spi"):
         plan.lines.append("dtparam=spi=on")
     if boot.get("i2c"):
