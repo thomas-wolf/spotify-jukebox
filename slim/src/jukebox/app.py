@@ -76,6 +76,12 @@ class App:
             self.cards[card.id] = card
             self._cards_ci = {k.lower(): v for k, v in self.cards.items()}
 
+    def replace_cards(self, cards: dict[str, Card]) -> None:
+        """Swap in a whole new card set (after a sync); thread safe like set_card."""
+        with self._cards_lock:
+            self.cards = dict(cards)
+            self._cards_ci = {k.lower(): v for k, v in self.cards.items()}
+
     def remove_card(self, card_id: str) -> bool:
         with self._cards_lock:
             keys = [k for k in self.cards if k.lower() == card_id.lower()]

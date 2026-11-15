@@ -24,6 +24,7 @@ DEFAULTS: dict[str, Any] = {
     "display": {"enabled": False},
     # Cover art for local files (needs [display] enabled): picture in the folder, else search on Spotify
     "covers": {"spotify_search": True, "write_to_folder": True},
+    "sync": {"enabled": False},
     "web": {"enabled": False, "host": "0.0.0.0", "port": 8080},
     "system": {"shutdown_command": ["systemctl", "poweroff"]},
 }

@@ -9,6 +9,7 @@ One Python process, configuration in TOML. No PHP, no MPD, no Mopidy and no shel
 
 - **Spotify** through a local [go-librespot](https://github.com/devgianlu/go-librespot) daemon. It registers
   as a Spotify Connect device and offers a REST API on `localhost`. Spotify Premium is required.
+- **Cloud sync** of cards, config and music with Dropbox, OneDrive and others through rclone.
 - **Local folders** through mpv, resuming where you left off, and **web radio** streams (`stream:` cards).
 - **Card readers:** USB readers (keyboard emulation) and RDM6300 (UART). Card IDs are compatible with
   Phoniebox v2, so existing cards keep working.
@@ -63,6 +64,7 @@ Then set up go-librespot, add cards and enable the service (see the installation
 |---|---|
 | [docs/INSTALL.md](docs/INSTALL.md) | Step by step from a blank Pi to a working box |
 | [docs/CONFIG.md](docs/CONFIG.md) | Every setting in `config.toml` and `cards.toml`, every action |
+| [docs/SYNC.md](docs/SYNC.md) | Cards, config and music from and to Dropbox/OneDrive |
 | [docs/HARDWARE.md](docs/HARDWARE.md) | MiniAmp, overlays, pin assignment, RDM6300, ADS1115, display |
 | [docs/MIGRATION.md](docs/MIGRATION.md) | Moving from Phoniebox v2: cards, folders, control cards |
 | [docs/HOOKS.md](docs/HOOKS.md) | Events, startup sounds, per-box LED animations |

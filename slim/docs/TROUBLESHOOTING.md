@@ -135,6 +135,17 @@ of login problems of the librespot projects, not to this jukebox. What helps:
 The service often is not allowed to run `systemctl poweroff`. Create the sudo rule and change
 `shutdown_command` (see [INSTALL.md](INSTALL.md) step 7).
 
+## Cloud sync
+
+- `jukebox sync --check` says what is wrong: rclone missing (`sudo apt install rclone`), or the remote is not
+  reachable (log in again with `rclone config`, see [SYNC.md](SYNC.md)).
+- Run `jukebox sync --dry-run` to see what would happen without changing anything.
+- Cards come back after being deleted, or vanish: with `cards = "both"` a card deleted on only one side is deleted
+  on the other at the next sync, and a card changed on both sides keeps the cloud version. Check
+  `journalctl -u jukebox | grep sync` and the backup `cards.toml.sync.bak`.
+- The sync runs as the user of the service, so the rclone login (`~/.config/rclone/rclone.conf`) must belong to
+  that user, not to root.
+
 ## Resetting `config.txt`
 
 The first `jukebox setup --apply` creates `config.txt.jukebox.bak` next to `config.txt`. To go back:

@@ -27,6 +27,7 @@ src/jukebox/
   players/        base (interface), router, spotify, local
   inputs/         usb_reader, rdm6300, gpio, adc
   players/trackinfo.py  title/artist/cover of Spotify tracks (polls /status) and of local files (via mpv)
+  sync.py         cloud sync through rclone (card merge, config and music pull, background thread)
   covers.py       cover art for local files: folder picture, Spotify search, cache
   display/        layout (pure), settings, renderer (Pillow), ILI9341 driver, worker thread
 tests/            pytest, no hardware needed
@@ -45,7 +46,7 @@ pytest
 The tests need no hardware, no mpv and no go-librespot. `tests/fakes.py` contains stand-ins for players,
 mpv and the clock. Covered: configuration, card logic, volume, choosing and switching players, resolving local
 paths (including protection against `..`), resume, button and encoder logic, parsing RDM6300 frames,
-`config.txt` maintenance, hooks, the v2 importer and the web interface (against a real local HTTP server).
+`config.txt` maintenance, hooks, the v2 importer, cloud sync (against a fake rclone) and the web interface (against a real local HTTP server).
 
 **Not** tested, because hardware or programs are needed: `GpiodBackend`, `MpvClient`, `Ads1115`, the evdev
 reader, opening the serial port and the real HTTP against go-librespot. These are the thin layers that have to

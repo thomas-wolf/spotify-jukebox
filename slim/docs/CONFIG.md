@@ -206,6 +206,22 @@ The search uses the token of the go-librespot session (`POST /token`), so no dev
 this token is accepted by Spotify's search is **unverified**. Spotify's Web API terms on storing album pictures
 were not reviewed; the saved pictures stay on your box.
 
+### `[sync]`
+
+Keeps cards, configuration and music in sync with a cloud folder through rclone. Everything is described in
+[SYNC.md](SYNC.md).
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | Run the sync in the background |
+| `remote` | | rclone remote and folder, e.g. `"dropbox:Jukebox"` (required) |
+| `interval_minutes` | `30` | How often to sync |
+| `cards` | `both` | `both`, `pull`, `push`, `off` |
+| `config` | `pull` | `pull` or `off` |
+| `music` | `pull` | `pull` or `off` |
+
+More keys (`delete`, `bwlimit`, `cards_per_box`, `first_run_delay`, `rclone`, `rclone_config`) in SYNC.md.
+
 ### `[web]`
 
 | Key | Default | Meaning |

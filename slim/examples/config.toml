@@ -91,6 +91,16 @@ background = "average"       # average colour of the cover, blur, or a color lik
 spotify_search = true        # no cover.jpg in the folder: search the album on Spotify
 write_to_folder = true       # and save it there as cover.jpg
 
+[sync]                       # cards, config and music from/to Dropbox, OneDrive, ... through rclone
+enabled = false
+remote = "dropbox:Jukebox"   # an rclone remote (set up with `rclone config`) and a folder in it
+interval_minutes = 30
+cards = "both"               # cards.toml: both, pull (cloud wins), push, off
+config = "pull"              # <remote>/boxes/<box name>/ -> this folder (config.toml, hooks.py, sounds/)
+music = "pull"               # <remote>/music/ -> [local] root
+# delete = false             # true: music also loses files that were removed in the cloud
+# bwlimit = "2M"             # limit for the music download
+
 [web]
 enabled = true            # no password: trusted home network only
 port = 8080

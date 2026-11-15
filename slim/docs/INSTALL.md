@@ -225,6 +225,11 @@ immediately, no restart. See [CONFIG.md](CONFIG.md#web) for details.
 **There is no password.** Everybody in your network can change cards and control the box. Do not forward the
 port to the internet.
 
+## 11. Cloud synchronisation (optional)
+
+To keep cards, configuration and music in Dropbox or OneDrive and share them between boxes, see
+[SYNC.md](SYNC.md). It needs `rclone` (`sudo apt install rclone`).
+
 ## Updating
 
 ```

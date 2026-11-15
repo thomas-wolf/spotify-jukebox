@@ -9,6 +9,7 @@ The branch `rewrite/slim-core` replaces the Spotify edition with a slim rewrite 
 - Spotify through [go-librespot](https://github.com/devgianlu/go-librespot) (Premium required), local folders and web radio through mpv
 - USB and RDM6300 card readers, GPIO buttons, rotary encoders, LEDs, volume potentiometer (ADS1115)
 - cover display (ILI9341) with configurable pins, rotation and hidden edges
+- cloud sync of cards, config and music (Dropbox, OneDrive, ... through rclone)
 - a small web interface for assigning cards and basic controls (optional, no password)
 - device tree overlays (HiFiBerry MiniAmp, SPI, I2C) maintained by `jukebox setup`
 - per-box pinout, startup sounds and LED animations without touching the code
@@ -23,6 +24,7 @@ The status table in [`slim/README.md`](slim/README.md#status) lists them.
 |---|---|
 | [slim/README.md](slim/README.md) | Overview, status, quick start |
 | [slim/docs/INSTALL.md](slim/docs/INSTALL.md) | From a blank Pi to a working box |
+| [slim/docs/SYNC.md](slim/docs/SYNC.md) | Cards, config and music through Dropbox/OneDrive |
 | [slim/docs/CONFIG.md](slim/docs/CONFIG.md) | All settings and actions |
 | [slim/docs/HARDWARE.md](slim/docs/HARDWARE.md) | Overlays, pins, readers, potentiometer |
 | [slim/docs/MIGRATION.md](slim/docs/MIGRATION.md) | Moving cards and settings over from v2 |

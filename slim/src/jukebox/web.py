@@ -143,6 +143,7 @@ class Web:
 
     def save(self) -> None:
         save_cards(self.cards_path, self.app.cards.values())
+        self.app.bus.post(ev.CARDS_SAVED)
 
     # -- http ------------------------------------------------------------------
     def _handler(self):

@@ -73,6 +73,55 @@ def start_inputs(cfg, app):
     return threads
 
 
+def build_syncer(cfg, cards_path):
+    from .config import ConfigError
+    from .sync import Syncer, SyncSettings
+    try:
+        settings = SyncSettings.from_section(cfg.section("sync"))
+    except ConfigError as exc:
+        log.error("sync disabled: %s", exc)
+        return None
+    config_dir = cfg.path.parent if cfg.path else expand("~/.config/jukebox")
+    return Syncer(settings, cfg.section("box")["name"], config_dir, cards_path,
+                  expand(cfg.section("local")["root"]), cfg.data_dir)
+
+
+def cmd_sync(args) -> int:
+    cfg = load_config(args.config)
+    cards_path = cfg.path.with_name("cards.toml") if cfg.path else expand("~/.config/jukebox/cards.toml")
+    if not cfg.section("sync").get("remote"):
+        print('error: [sync] remote is not set (for example remote = "dropbox:Jukebox")')
+        return 1
+    syncer = build_syncer(cfg, cards_path)
+    if syncer is None:
+        return 1
+    from .sync import SyncError
+    if args.check:
+        try:
+            print(syncer.rclone.check("version").splitlines()[0])
+            syncer.rclone.check("lsf", syncer.s.remote, "--max-depth", "1")
+            print(f"ok: {syncer.s.remote} is reachable")
+        except SyncError as exc:
+            print(f"FAILED: {exc}")
+            return 1
+        return 0
+    parts = tuple(p for p in args.only.split(",") if p) if args.only else ("cards", "config", "music")
+    bad = [p for p in parts if p not in ("cards", "config", "music")]
+    if bad:
+        print(f"error: unknown part {bad[0]!r} (cards, config, music)")
+        return 1
+    res = syncer.run_once(parts, dry_run=args.dry_run)
+    for m in res.messages:
+        print(m)
+    for e in res.errors:
+        print(f"error: {e}")
+    if args.dry_run:
+        print("dry run: nothing was changed")
+    elif res.cards_changed:
+        print("cards changed: restart the service (or wait for the next sync of the running box)")
+    return 1 if res.errors else 0
+
+
 def cmd_run(args) -> int:
     cfg, app, cards_path = build(args.config)
     install_sounds(app)
@@ -105,6 +154,15 @@ def cmd_run(args) -> int:
             local_poller = LocalTrackPoller(app.bus, local_player, resolver, expand(cfg.section("local")["root"]))
             local_poller.start()
             threads.append(local_poller)
+    if cfg.section("sync").get("enabled"):
+        from .sync import SyncThread
+        syncer = build_syncer(cfg, cards_path)
+        if syncer is not None:
+            from . import events as ev
+            app.bus.subscribe(ev.CARDS_CHANGED, lambda _e: app.replace_cards(load_cards(cards_path)))
+            sync_thread = SyncThread(syncer, app.bus)
+            sync_thread.start()
+            threads.append(sync_thread)
     web = None
     web_cfg = cfg.section("web")
     if web_cfg["enabled"]:
@@ -291,6 +349,11 @@ def main(argv: list[str] | None = None) -> int:
     imp.add_argument("source", help="v2 root, its shared/ folder, or a folder with copies of shortcuts/ and audiofolders/")
     imp.add_argument("--apply", action="store_true")
     imp.set_defaults(fn=cmd_import_v2)
+    sy = sub.add_parser("sync", help="synchronise cards, config and music with the cloud (rclone) once")
+    sy.add_argument("--dry-run", action="store_true", help="show what would be done")
+    sy.add_argument("--check", action="store_true", help="only test that rclone and the remote work")
+    sy.add_argument("--only", metavar="PARTS", help="comma separated: cards,config,music")
+    sy.set_defaults(fn=cmd_sync)
     dt = sub.add_parser("display-test", help="show a calibration picture (rotation, covered edges)")
     dt.add_argument("--save", metavar="PNG", help="write the picture to a file instead of the panel")
     dt.add_argument("--cover", metavar="IMAGE", help="use this picture as the cover")
