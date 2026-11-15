@@ -32,6 +32,6 @@ Symlinks keep the box in step with the repository. Use `cp` instead if the box h
 ## Private files: by convention in `~/.config/jukebox/`
 
 Everything that must not be in the repository goes into the configuration folder on the box, never into
-`boxes/`. Currently the boot / idle picture: `~/.config/jukebox/idle.jpg` (or `.png`, `.jpeg`, `.webp`), found
-automatically. With cloud sync (`config = "pull"`) the file may also live in the cloud under
+`boxes/`. Currently: the boot / idle picture `~/.config/jukebox/idle.jpg` (or `.png`, `.jpeg`, `.webp`), the startup sound
+`startup.mp3` and the shutdown sound `shutdown.mp3` (also `.ogg`, `.wav`, `.flac`, `.m4a`). They are found automatically. With cloud sync (`config = "pull"`) the file may also live in the cloud under
 `<remote>/boxes/<name>/idle.jpg` and is copied there.

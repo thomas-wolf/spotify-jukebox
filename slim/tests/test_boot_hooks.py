@@ -189,3 +189,19 @@ def test_relative_sound_path_is_next_to_the_real_config_file(tmp_path):
     install_sounds(app, popen=lambda cmd, **kw: launched.append(cmd))
     app.bus.dispatch(Event("boot"))
     assert launched == [["mpv", "--no-video", "--really-quiet", str(real / "sounds" / "start.mp3")]]
+
+
+def test_conventional_sound_files_in_the_config_folder(tmp_path):
+    cfg_dir = tmp_path / "home"
+    cfg_dir.mkdir()
+    (cfg_dir / "startup.mp3").write_text("x")
+    (cfg_dir / "shutdown.ogg").write_text("x")
+    app = make_app()
+    app.cfg.path = cfg_dir / "config.toml"
+    app.cfg.raw["sounds"]["events"] = {"shutdown": str(tmp_path / "own.mp3")}   # explicit entry wins
+    (tmp_path / "own.mp3").write_text("x")
+    launched = []
+    install_sounds(app, popen=lambda cmd, **kw: launched.append(cmd[-1]))
+    app.bus.dispatch(Event("boot"))
+    app.bus.dispatch(Event("shutdown"))
+    assert launched == [str(cfg_dir / "startup.mp3"), str(tmp_path / "own.mp3")]

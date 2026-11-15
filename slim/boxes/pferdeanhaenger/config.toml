@@ -103,8 +103,7 @@ full_scale = 26400            # calibrate with: jukebox adc-check
 
 # --- sounds and hooks ---------------------------------------------------------
 [sounds.events]
-boot = "sounds/startup.mp3"      # relative to this file (pferdesound1.mp3 from the old private repo)
-# shutdown = "sounds/shutdown.mp3"
+# Sounds by convention: ~/.config/jukebox/startup.mp3 (boot) and shutdown.mp3. Private files, not in this repository.
 
 [display]                    # ILI9341 on SPI; set up with `jukebox display-test`
 enabled = true
