@@ -172,3 +172,20 @@ def test_power_and_uart_presets():
     assert "enable_uart=1" in p.lines
     with pytest.raises(boot.BootConfigError):
         plan(power="nope")
+
+
+def test_relative_sound_path_is_next_to_the_real_config_file(tmp_path):
+    real = tmp_path / "box"
+    (real / "sounds").mkdir(parents=True)
+    (real / "sounds" / "start.mp3").write_text("x")
+    (real / "config.toml").write_text("")
+    link_dir = tmp_path / "home"
+    link_dir.mkdir()
+    (link_dir / "config.toml").symlink_to(real / "config.toml")
+    app = make_app()
+    app.cfg.path = link_dir / "config.toml"
+    app.cfg.raw["sounds"]["events"] = {"boot": "sounds/start.mp3"}
+    launched = []
+    install_sounds(app, popen=lambda cmd, **kw: launched.append(cmd))
+    app.bus.dispatch(Event("boot"))
+    assert launched == [["mpv", "--no-video", "--really-quiet", str(real / "sounds" / "start.mp3")]]

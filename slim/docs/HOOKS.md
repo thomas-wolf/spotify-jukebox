@@ -42,7 +42,7 @@ card_unknown = "~/sounds/error.mp3"
 shutdown = "~/sounds/shutdown.mp3"
 ```
 
-Each box has its own files. If a file is missing there is a warning in the log.
+Relative paths are taken relative to the real `config.toml` (a link is followed), so a box folder in the repository can carry its own `sounds/`. Each box has its own files. If a file is missing there is a warning in the log.
 The sound is started in the background and blocks nothing.
 
 ## hooks.py

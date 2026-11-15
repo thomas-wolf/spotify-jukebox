@@ -31,8 +31,12 @@ def install_sounds(app: App, popen: Callable[..., Any] = subprocess.Popen) -> No
     """Play a file for an event: [sounds.events] boot = "/path/start.mp3"."""
     sounds = app.cfg.section("sounds")
     command = list(sounds["command"])
+    cfg_path = getattr(app.cfg, "path", None)
+    base = cfg_path.resolve().parent if cfg_path else Path.cwd()  # next to the real file, also when linked
     for event_name, file in sounds.get("events", {}).items():
         path = expand(file)
+        if not path.is_absolute():
+            path = base / path  # relative paths: next to config.toml
 
         def play(_event: Event, path: Path = path) -> None:
             if not path.is_file():
