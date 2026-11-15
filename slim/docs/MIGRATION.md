@@ -1,7 +1,7 @@
 # Migrating from Phoniebox v2
 
 This page describes how to carry existing cards and settings over from the v2 Spotify Edition.
-There is no import tool yet. The migration is manual work, but manageable.
+`jukebox import-v2` converts the cards (see below); the rest is a few manual steps.
 
 ## Switch off the old services
 
