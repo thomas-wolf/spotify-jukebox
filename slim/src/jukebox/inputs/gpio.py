@@ -135,18 +135,51 @@ class GpiodBackend:
 
         self._gpiod, self._Value = gpiod, Value
         self._in = self._out = None
+        self.failed: dict[int, str] = {}
+        bias = {"up": Bias.PULL_UP, "down": Bias.PULL_DOWN, "none": Bias.DISABLED}
+
+        def in_settings(pin: int, debounce: bool):
+            extra = {"debounce_period": timedelta(milliseconds=3)} if debounce else {}
+            return gpiod.LineSettings(direction=Direction.INPUT, bias=bias[inputs[pin]],
+                                      edge_detection=Edge.BOTH, **extra)
+
+        def out_settings(pin: int, debounce: bool):
+            return gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE)
+
         if inputs:
-            bias = {"up": Bias.PULL_UP, "down": Bias.PULL_DOWN, "none": Bias.DISABLED}
-            self._in = gpiod.request_lines(chip, consumer="jukebox", config={
-                pin: gpiod.LineSettings(direction=Direction.INPUT, bias=bias[pull],
-                                        edge_detection=Edge.BOTH,
-                                        debounce_period=timedelta(milliseconds=3))
-                for pin, pull in inputs.items()})
+            self._in = self._request(chip, list(inputs), in_settings)
         if outputs:
-            self._out = gpiod.request_lines(chip, consumer="jukebox", config={
-                pin: gpiod.LineSettings(direction=Direction.OUTPUT,
-                                        output_value=Value.INACTIVE)
-                for pin in outputs})
+            self._out = self._request(chip, outputs, out_settings)
+
+    def _request(self, chip, pins, settings):
+        """Request all pins at once. If that fails, find out which pin is the culprit (first with, then
+        without kernel debounce), log it and carry on with the others instead of stopping the box."""
+        gpiod = self._gpiod
+        try:
+            return gpiod.request_lines(chip, consumer="jukebox",
+                                       config={p: settings(p, True) for p in pins})
+        except (ValueError, OSError) as exc:
+            log.warning("GPIO request failed (%s), trying the pins one by one", exc)
+        use: dict[int, bool] = {}
+        for pin in pins:
+            for debounce in (True, False):
+                try:
+                    gpiod.request_lines(chip, consumer="jukebox-probe",
+                                        config={pin: settings(pin, debounce)}).release()
+                except (ValueError, OSError) as exc:
+                    last = exc
+                    continue
+                use[pin] = debounce
+                if not debounce:
+                    log.warning("GPIO %d works only without debounce", pin)
+                break
+            else:
+                self.failed[pin] = str(last)
+                log.error("GPIO %d cannot be used and is skipped: %s", pin, last)
+        if not use:
+            return None
+        return gpiod.request_lines(chip, consumer="jukebox",
+                                   config={p: settings(p, d) for p, d in use.items()})
 
     def read_edges(self, timeout: float) -> list[tuple[int, int]]:
         if self._in is None:
@@ -159,7 +192,7 @@ class GpiodBackend:
                 for e in self._in.read_edge_events()]
 
     def set_output(self, pin: int, value: bool) -> None:
-        if self._out is not None:
+        if self._out is not None and pin not in self.failed:
             self._out.set_value(pin, self._Value.ACTIVE if value else self._Value.INACTIVE)
 
     def close(self) -> None:
