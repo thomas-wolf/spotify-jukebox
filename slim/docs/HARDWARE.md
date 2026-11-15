@@ -156,16 +156,21 @@ other pinouts; only that file is specific to it.
 |---|---|---|---|
 | Button top blue (next) | 37 | 26 | `gpio.button` next |
 | Button top green (prev) | 38 | 20 | `gpio.button` prev |
-| Button top yellow (play/pause, hold = shutdown) | 32 | 12 | `gpio.button` |
+| Button top yellow (pause) | 32 | 12 | `gpio.button` play_pause |
+| SHIM button (shutdown, hold 2 s) | 11 | 17 | `gpio.button`, hold only |
 | Encoder CLK / DT / push | 31 / 29 / 33 | 6 / 5 / 13 | `gpio.rotary`, button `mute` |
+| Back button (horse sound) | 36 | 16 | `pferdesound`, see `hooks_pferdeanhaenger.py` |
 | LED top red | 18 | 24 | `status` |
 | LEDs back white / red | 13 / 16 | 27 / 23 | `back_white`, `back_red` |
-| Button LEDs white / red | 36 / 3 | 16 / 2 | `button_white`, `button_red` |
+| Button LED red | 3 | 2 | `button_red` |
 | Display DC / RESET / CS | 15 / 22 / 24 | 22 / 25 / 8 | `[display]` dc=22, reset=25 |
 | Display MOSI / MISO / SCLK | 19 / 21 / 23 | 10 / 9 / 11 | SPI0 |
 | RDM6300 (reader) | 8 / 10 | 14 / 15 | UART, `/dev/serial0` |
 | Amplifier (MiniAmp) | 12, 35, 40 (+ 17 power) | 18, 19, 21 | I2S |
-| SHIM (likely OnOff SHIM) | 2, 6, 7, 11 | 4, 17 | not used by the jukebox |
+| SHIM power-off signal | 7 | 4 | not used by the jukebox |
+
+The pins match the v2 `gpio.ini` of this box (shutdown 17, encoder 6/5, prev/next 20/26, mute 13, pause 12,
+horse sound 16).
 
 Things to check on that box:
 
@@ -173,5 +178,5 @@ Things to check on that box:
   does nothing, move it to a free pin.
 - **GPIO 2 (red button LED)** is the I2C SDA pin with a fixed pull-up on the board. It works as an output
   while `i2c = false`.
-- **GPIO 4 and 17** belong to the SHIM. Do not assign them to anything else.
+- **GPIO 4** belongs to the SHIM. Do not assign it to anything else.
 - The RDM6300's TX goes to the Pi's RX (pin 10, GPIO 15).

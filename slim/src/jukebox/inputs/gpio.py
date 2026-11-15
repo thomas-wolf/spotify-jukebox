@@ -48,7 +48,7 @@ Emit = Callable[[str, dict[str, Any]], None]
 
 
 class Button:
-    def __init__(self, emit: Emit, *, pull: str = "up", action: str,
+    def __init__(self, emit: Emit, *, pull: str = "up", action: str | None = None,
                  args: dict[str, Any] | None = None, hold_action: str | None = None,
                  hold_time: float = 1.0, repeat: bool = False,
                  repeat_interval: float = 0.3) -> None:
@@ -64,20 +64,20 @@ class Button:
         pressed = level == self.active_level
         if pressed and self._pressed_at is None:
             self._pressed_at, self._hold_fired = now, False
-            if self.repeat:
+            if self.repeat and self.action:
                 self.emit(self.action, self.args)
                 self._next_repeat = now + self.repeat_interval * 2  # longer first pause
-            elif not self.hold_action:
+            elif not self.hold_action and self.action:
                 self.emit(self.action, self.args)
         elif not pressed and self._pressed_at is not None:
-            if self.hold_action and not self._hold_fired:
-                self.emit(self.action, self.args)  # short press
+            if self.hold_action and not self._hold_fired and self.action:
+                self.emit(self.action, self.args)  # short press (no action: only the hold counts)
             self._pressed_at = None
 
     def tick(self, now: float) -> None:
         if self._pressed_at is None:
             return
-        if self.repeat and now >= self._next_repeat:
+        if self.repeat and self.action and now >= self._next_repeat:
             self.emit(self.action, self.args)
             self._next_repeat = now + self.repeat_interval
         if self.hold_action and not self._hold_fired and now - self._pressed_at >= self.hold_time:
@@ -203,7 +203,7 @@ class GpioInputs(threading.Thread):
         for c in gpio_cfg.get("button", []):
             pulls[c["pin"]] = c.get("pull", "up")
             self._buttons[c["pin"]] = Button(
-                emit, pull=c.get("pull", "up"), action=c["action"], args=c.get("args"),
+                emit, pull=c.get("pull", "up"), action=c.get("action"), args=c.get("args"),
                 hold_action=c.get("hold_action"), hold_time=c.get("hold_time", 1.0),
                 repeat=c.get("repeat", False))
         for c in gpio_cfg.get("rotary", []):

@@ -47,15 +47,22 @@ action = "next"
 pin = 20
 action = "prev"
 
-[[gpio.button]]            # top, yellow (pin 32)
+[[gpio.button]]            # top, yellow (pin 32): pause
 pin = 12
 action = "play_pause"
+
+[[gpio.button]]            # SHIM button (pin 11): shutdown only when held, a short press does nothing
+pin = 17
 hold_action = "shutdown"
 hold_time = 2.0
 
-[[gpio.button]]            # push button of the rotary encoder (pin 33)
+[[gpio.button]]            # push button of the rotary encoder (pin 33): volume 0 / back
 pin = 13
 action = "mute"
+
+[[gpio.button]]            # back (pin 36): random horse sound, action defined in hooks.py
+pin = 16
+action = "pferdesound"
 
 [[gpio.rotary]]            # encoder CLK = pin 31, DT = pin 29
 pin_a = 6
@@ -75,11 +82,7 @@ pin = 27
 name = "back_red"
 pin = 23
 
-[[gpio.led]]               # button LEDs at the back (pin 36 white, pin 3 red)
-name = "button_white"
-pin = 16
-
-[[gpio.led]]
+[[gpio.led]]               # button LED at the back (pin 3, red)
 name = "button_red"
 pin = 2
 
@@ -125,6 +128,9 @@ music = "pull"               # <remote>/music/ -> [local] root
 [web]
 enabled = true            # no password: trusted home network only
 port = 8080
+
+[pferdesound]               # read by hooks.py
+folder = "~/sounds/pferd"
 
 [hooks]
 file = "hooks.py"             # optional, relative to this file
