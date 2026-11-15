@@ -80,6 +80,17 @@ def cmd_run(args) -> int:
     hooks = cfg.section("hooks").get("file")
     if hooks:
         load_user_hooks(app, (cfg.path.parent / hooks) if cfg.path else hooks)
+    display = None
+    if cfg.section("display").get("enabled"):
+        from .display import bind, build_display
+        display = build_display(cfg.section("display"))
+        bind(display, app.bus)
+        if cfg.section("spotify")["enabled"]:
+            from .players.spotify import http_transport
+            from .players.trackinfo import SpotifyTrackPoller
+            poller = SpotifyTrackPoller(app.bus, http_transport(cfg.section("spotify")["api_url"]))
+            poller.start()
+            threads.append(poller)
     web = None
     web_cfg = cfg.section("web")
     if web_cfg["enabled"]:
@@ -100,6 +111,8 @@ def cmd_run(args) -> int:
             t.stop()
         if web:
             web.stop()
+        if display:
+            display.close()
         app.players.close()
     return 0
 
@@ -138,6 +151,43 @@ def cmd_import_v2(args) -> int:
     with open(cards_path, "a", encoding="utf-8") as fh:
         fh.write("\n" + importer.render(fresh))
     print(f"written to {cards_path}; restart the service")
+    return 0
+
+
+def cmd_display_test(args) -> int:
+    """Draw a calibration picture: red = edge of the panel, green = visible area, yellow = corners."""
+    from .display.settings import DisplaySettings
+    cfg = load_config(args.config)
+    try:
+        settings = DisplaySettings.from_section(cfg.section("display"))
+        from .display.render import Renderer
+        renderer = Renderer(settings)
+        cover = None
+        if args.cover:
+            from PIL import Image
+            cover = Image.open(args.cover).convert("RGB")
+        picture = renderer.test_pattern(cover)
+    except (ConfigError, ImportError, OSError) as exc:
+        print(f"error: {exc}")
+        return 1
+    if args.save:
+        picture.save(args.save)
+        print(f"saved {args.save} ({picture.size[0]}x{picture.size[1]})")
+        return 0
+    from .display.ili9341 import ILI9341
+    try:
+        panel = ILI9341(settings)
+    except Exception as exc:
+        print(f"error: {exc}")
+        return 1
+    panel.show(picture)
+    print("test picture shown; press Ctrl-C to clear")
+    try:
+        signal.pause()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        panel.close()
     return 0
 
 
@@ -227,6 +277,10 @@ def main(argv: list[str] | None = None) -> int:
     imp.add_argument("source", help="v2 root, its shared/ folder, or a folder with copies of shortcuts/ and audiofolders/")
     imp.add_argument("--apply", action="store_true")
     imp.set_defaults(fn=cmd_import_v2)
+    dt = sub.add_parser("display-test", help="show a calibration picture (rotation, covered edges)")
+    dt.add_argument("--save", metavar="PNG", help="write the picture to a file instead of the panel")
+    dt.add_argument("--cover", metavar="IMAGE", help="use this picture as the cover")
+    dt.set_defaults(fn=cmd_display_test)
     setup = sub.add_parser("setup", help="write overlays to config.txt (dry run by default)")
     setup.add_argument("--apply", action="store_true")
     setup.add_argument("--config-txt", help="override the config.txt path")

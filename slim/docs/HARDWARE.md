@@ -124,7 +124,25 @@ and `[boot] i2c = true`, then `jukebox setup --apply` and reboot. Whether the ch
 
 ## Display (ILI9341 over SPI)
 
-**Not implemented yet.** Only the interface exists (`src/jukebox/display/`): a driver receives title and cover
-URL through the `track` event. Still open are the driver itself and wiring up the cover data from go-librespot
-(the WebSocket `/events` provides `album_cover_url`). For the driver I need resolution, rotation and the pins
-for DC and RESET.
+Settings in [CONFIG.md](CONFIG.md#display). Everything is configurable: pins, rotation, the edges hidden by
+the housing, and how the cover is arranged.
+
+Wiring (BCM numbers, the data lines are fixed by the SPI0 bus):
+
+| Display | Raspberry Pi |
+|---|---|
+| VCC | 3.3 V |
+| GND | GND |
+| CS | GPIO 8 (CE0) |
+| SCK | GPIO 11 |
+| MOSI (SDI) | GPIO 10 |
+| DC | `dc` (default GPIO 25) |
+| RESET | `reset` (default GPIO 17) |
+| LED / backlight | 3.3 V, or a GPIO (`backlight`) if the box should switch it |
+
+MISO (GPIO 9) is not needed. Enable SPI with `[boot] spi = true` and `jukebox setup --apply`.
+Packages: `sudo apt install -y python3-pil python3-spidev`. Test: `jukebox display-test`.
+
+**Not yet run on a real panel.** The initialisation sequence and the rotation values are written from memory of the
+Adafruit ILI9341 library. If the picture is mirrored, upside down or shows colour errors (red and blue swapped),
+tell me what you see.

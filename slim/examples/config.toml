@@ -75,6 +75,18 @@ full_scale = 26400            # calibrate with: jukebox adc-check
 boot = "~/sounds/startup.mp3"
 shutdown = "~/sounds/shutdown.mp3"
 
+[display]                    # ILI9341 on SPI; set up with `jukebox display-test`
+enabled = false
+rotation = 90                # 0, 90, 180, 270 (as you look at it)
+dc = 25                      # BCM pins for data/command and reset
+reset = 17
+# backlight = 24             # optional: pin that switches the backlight (leave out if it is always on)
+margins = { left = 0, top = 0, right = 0, bottom = 0 }   # pixels hidden by the housing, as you look at it
+layout = "auto"              # auto, split (cover + text), cover (cover alone)
+cover_side = "left"          # left, right (wide displays) or top, bottom (tall ones)
+cover_fit = "contain"        # contain: whole cover visible, cover: fill and crop
+background = "average"       # average colour of the cover, blur, or a color like "#101010"
+
 [web]
 enabled = true            # no password: trusted home network only
 port = 8080

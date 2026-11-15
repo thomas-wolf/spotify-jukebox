@@ -26,7 +26,8 @@ src/jukebox/
   boot.py         config.txt maintenance (overlays)
   players/        base (interface), router, spotify, local
   inputs/         usb_reader, rdm6300, gpio, adc
-  display/        interface, no driver yet
+  players/trackinfo.py  title/artist/cover of Spotify tracks (polls go-librespot /status)
+  display/        layout (pure), settings, renderer (Pillow), ILI9341 driver, worker thread
 tests/            pytest, no hardware needed
 packaging/        systemd units, go-librespot template
 examples/         config.toml, cards.toml, hooks.py
@@ -72,8 +73,7 @@ be tried on a real box first.
 | Topic | Status |
 |---|---|
 | Run the Spotify player against a real go-librespot (endpoints already match `api-spec.yml`), measure latency card -> sound | most important next step, needs a real box |
-| Cover and title from go-librespot (WebSocket `/events`) into the `track` event | open, otherwise the display stays empty |
-| ILI9341 driver over SPI (`spidev`, Pillow) | open, needs resolution, rotation, DC/RESET pins |
+| Hardware test of the display, tune `spi_speed_hz`; local cover art (embedded pictures) | open |
 | Import of v2 cards (`shared/shortcuts`, `spotify.txt`, `rfid_trigger_play.conf`) | possible, see [MIGRATION.md](MIGRATION.md) |
 | Reload `cards.toml` without a restart | open |
 | RC522 and PN532 readers | open |

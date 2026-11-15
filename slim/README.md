@@ -32,7 +32,7 @@ and `python3-libgpiod` come from apt and are needed only for USB readers and GPI
 | Button, encoder, RDM6300 and potentiometer logic | tested against fakes |
 | go-librespot REST calls (`players/spotify.py`) | endpoints and fields match go-librespot's `api-spec.yml` (v0.10.5). **Not yet run against a real daemon** from this code; `jukebox spotify-check` helps. |
 | libgpiod glue, mpv glue, ADS1115, evdev, UART | **not yet run on hardware** |
-| ILI9341 display driver | not written (interface exists) |
+| ILI9341 display (`display/`) | written, tested only without hardware (layout, colour conversion, command sequence against a fake SPI). Not run on a real panel. |
 | Cover art and titles from Spotify | not wired up (go-librespot provides them over its WebSocket `/events`) |
 
 **Known risk:** Spotify currently refuses audio keys to some accounts through the librespot family (go-librespot

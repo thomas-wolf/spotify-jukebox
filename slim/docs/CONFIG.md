@@ -143,6 +143,44 @@ The position of the potentiometer at startup does not change the volume; only a 
 percent does. You tune `full_scale` with `jukebox adc-check`: turn the potentiometer to both ends and enter
 the raw value at the top end. The default applies to a potentiometer wired to 3.3 V in the +-4.096 V range.
 
+### `[display]`
+
+Shows cover, title and artist on an ILI9341 panel (SPI). Needs `python3-pil` and `python3-spidev` from apt, plus
+`python3-libgpiod` 2.x. If anything is missing or the panel does not answer, the box logs an error and runs
+on without a display.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | `false` | `true` to activate |
+| `width`, `height` | `240`, `320` | Native size of the panel (portrait). Only change this for another panel size. |
+| `rotation` | `90` | `0`, `90`, `180`, `270`: how the picture is turned, so that it is upright in your housing |
+| `dc` | `25` | BCM pin for data/command |
+| `reset` | `17` | BCM pin for reset. `-1` if it is not wired (software reset) |
+| `backlight` | none | BCM pin that switches the backlight. Leave it out if the backlight is always on. |
+| `spi_bus`, `spi_device` | `0`, `0` | SPI bus and chip select (`/dev/spidev0.0`) |
+| `spi_speed_hz` | `32000000` | SPI clock. Lower it if the picture shows noise (unverified, depends on the wiring). |
+| `gpio_chip` | `/dev/gpiochip0` | GPIO chip for the pins above |
+| `margins` | all `0` | Pixels the housing hides: `{ left = 12, top = 10, right = 12, bottom = 10 }`. In the **rotated** picture, as you look at it. Nothing important is drawn there. |
+| `layout` | `auto` | `cover`: the cover alone fills the visible area. `split`: square cover plus text beside or below it. `auto`: split when the leftover space is big enough for text (wide displays), otherwise cover alone. |
+| `cover_side` | `left` | Which side the square cover goes in `split`: `left` or `right` (wide pictures), `top` or `bottom` (tall ones) |
+| `cover_fit` | `contain` | `contain`: the whole cover is visible, bars where the shape differs (4:3 cover in a square box). `cover`: the box is filled, the cover is cropped. |
+| `background` | `average` | What fills the free areas: `average` (darkened average colour of the cover), `blur` (blurred cover), or a fixed color like `"#101010"` |
+| `font` | built-in | Path of a TrueType font (the built-in one has no special characters beyond Latin) |
+| `title_size`, `artist_size` | `22`, `16` | Text sizes in pixels |
+
+A cover is usually square or 4:3. On a wide panel the square cover takes the left or right part of the visible
+area and the title goes next to it, so nothing is stretched and the hidden edges cost nothing. On a 4:3 panel
+the cover fills the picture.
+
+Adjusting it: run `jukebox display-test` on the box. The red frame is the edge of the panel, the green frame
+the visible area after `margins`, the yellow letters TL, TR, BL, BR mark the corners as drawn. Turn
+`rotation` until TL is at the top left of your housing, then raise `margins` until the green frame sits where
+the housing opens. `jukebox display-test --save test.png` writes the same picture to a file (no panel
+needed), `--cover file.jpg` tries your own cover.
+
+Cover, title and artist of Spotify tracks come from go-librespot's `/status` (polled every two seconds). For
+local folders the display shows the folder name; there is no cover art for them yet.
+
 ### `[web]`
 
 | Key | Default | Meaning |

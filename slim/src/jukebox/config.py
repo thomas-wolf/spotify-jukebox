@@ -21,6 +21,7 @@ DEFAULTS: dict[str, Any] = {
     "spotify": {"enabled": True, "api_url": "http://127.0.0.1:3678"},
     "local": {"enabled": True, "root": "~/music", "mpv": "mpv"},
     "sounds": {"command": ["mpv", "--no-video", "--really-quiet"]},
+    "display": {"enabled": False},
     "web": {"enabled": False, "host": "0.0.0.0", "port": 8080},
     "system": {"shutdown_command": ["systemctl", "poweroff"]},
 }

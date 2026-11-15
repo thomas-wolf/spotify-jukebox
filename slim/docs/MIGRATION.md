@@ -172,5 +172,5 @@ longer be used as a button.
 The new jukebox is a Spotify and local-files box, not a replacement for the whole v2 package. Not included:
 the v2 web interface (there is a small new one for cards and basic controls, see [CONFIG.md](CONFIG.md#web)), podcasts, livestreams and YouTube downloads, Samba share, WLAN hotspot, Bluetooth sink
 switching, automatic shutdown on inactivity (idle watchdog), recording, synchronisation, RC522 and PN532 RFID
-readers, and the HD44780 and MAX7219 displays. Some of that could be added as a separate building block, see
+readers, and the HD44780 and MAX7219 displays (an ILI9341 cover display is new). Some of that could be added as a separate building block, see
 [DEVELOPMENT.md](DEVELOPMENT.md).
