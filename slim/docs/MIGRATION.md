@@ -37,14 +37,16 @@ Two edge cases:
 
 `jukebox import-v2` reads your v2 data and writes `cards.toml`. You need the files, not the running v2 box:
 a copy of the folders `shared/shortcuts` and `shared/audiofolders` (or just the folders that contain a
-`spotify.txt`) and, for control cards, `settings/rfid_trigger_play.conf`. If you keep them in a Dropbox, it
-is enough to point the command at the folder that contains them. It looks for `shared/shortcuts`,
+`spotify.txt`) and, for control cards, `settings/rfid_trigger_play.conf`. If you keep them in a Dropbox, copy that folder to the box first
+(`rclone copy jukebox:Jukebox ~/phoniebox-copy`, with the remote name from your old sync script) and point the
+command at the copy. `cards.toml` is written next to the config file given with `-c`, so use
+`~/.config/jukebox/config.toml` and not the file in the repository. It looks for `shared/shortcuts`,
 `shared/audiofolders` and `settings/rfid_trigger_play.conf` below the folder you give it, or for
 `shortcuts/`, `audiofolders/` and `rfid_trigger_play.conf` directly in it.
 
 ```
-/opt/jukebox/venv/bin/jukebox import-v2 ~/Dropbox/phoniebox          # dry run, only reports
-/opt/jukebox/venv/bin/jukebox import-v2 ~/Dropbox/phoniebox --apply  # appends to cards.toml
+/opt/jukebox/venv/bin/jukebox -c ~/.config/jukebox/config.toml import-v2 ~/phoniebox-copy          # dry run, only reports
+/opt/jukebox/venv/bin/jukebox -c ~/.config/jukebox/config.toml import-v2 ~/phoniebox-copy --apply  # appends to cards.toml
 sudo systemctl restart jukebox
 ```
 
@@ -66,8 +68,9 @@ What the import does with each kind of card:
 
 Check these things after the import, because the importer cannot know them:
 
-- The IDs have to match what your reader produces. For the RDM6300 keep `id_format = "raw"` (see above);
-  that is what v2 used unless you changed `numberformat`. Put one old card on the reader. If the log says
+- The IDs have to match what your reader produces. For the RDM6300 use the `id_format` from the table above
+  that matches your v2 setup (`raw` for the stock v2 reader, `dec` for USB readers or a custom reader that
+  padded to 10 digits). Put one old card on the reader. If the log says
   `unknown card ...` although the card is in `cards.toml`, the format differs.
 - Spotify links in the old Mopidy format are converted, but whether go-librespot plays every type
   (playlists, albums and tracks are the normal case; shows and episodes are untested) is not verified.
