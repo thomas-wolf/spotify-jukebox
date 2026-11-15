@@ -234,7 +234,7 @@ To keep cards, configuration and music in Dropbox or OneDrive and share them bet
 
 ```
 cd ~/spotify-jukebox && git pull
-cd slim && rm -rf build src/*.egg-info
+cd slim && sudo rm -rf build src/*.egg-info
 sudo /opt/jukebox/venv/bin/pip install --upgrade --force-reinstall --no-deps .
 sudo systemctl restart jukebox
 ```
