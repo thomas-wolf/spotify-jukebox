@@ -13,7 +13,7 @@ boxes/<name>/
 ## Add a box
 
 1. Copy `examples/config.toml` to `boxes/<name>/config.toml`, set `[box] name`, fill in the pinout.
-2. `jukebox pins -c boxes/<name>/config.toml` must report no errors (the tests check this for every box).
+2. `jukebox -c boxes/<name>/config.toml pins` must report no errors (the tests check this for every box).
 3. Write the pin table into `boxes/<name>/README.md` (physical pin, BCM, part).
 
 ## Install on a box
