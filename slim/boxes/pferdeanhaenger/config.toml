@@ -74,13 +74,15 @@ ccw = "volume_down"
 name = "status"
 pin = 24
 
-[[gpio.led]]               # back (pin 13 white, pin 16 red)
+[[gpio.led]]               # back lights (pin 13 white, pin 16 red), always on as in v2 (led_buttons.py)
 name = "back_white"
 pin = 27
+on = true
 
 [[gpio.led]]
 name = "back_red"
 pin = 23
+on = true
 
 [[gpio.led]]               # button LED at the back (pin 3, red)
 name = "button_red"

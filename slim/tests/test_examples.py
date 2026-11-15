@@ -49,3 +49,24 @@ def test_hold_only_button_ignores_short_press():
     assert sent == []
     b.on_level(0, 1.0); b.tick(3.1); b.on_level(1, 3.2)
     assert sent == ["shutdown"]
+
+
+def test_led_with_on_is_lit_at_start():
+    from jukebox.events import EventBus
+    from jukebox.inputs.gpio import GpioInputs
+
+    class Backend:
+        def __init__(self, *a):
+            self.out = {}
+        def set_output(self, pin, on):
+            self.out[pin] = on
+        def read_edges(self, timeout):
+            return []
+
+    holder = {}
+    def factory(*a):
+        holder["b"] = Backend()
+        return holder["b"]
+
+    GpioInputs(EventBus(), {"led": [{"name": "a", "pin": 27, "on": True}, {"name": "b", "pin": 23}]}, backend_factory=factory)
+    assert holder["b"].out == {27: True}

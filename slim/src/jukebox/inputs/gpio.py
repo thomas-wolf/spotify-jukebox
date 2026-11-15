@@ -217,6 +217,8 @@ class GpioInputs(threading.Thread):
         self.backend = backend_factory(gpio_cfg.get("chip", "/dev/gpiochip0"), pulls, led_pins)
         for c in gpio_cfg.get("led", []):
             self.leds[c["name"]] = Led(self.backend, c["pin"])
+            if c.get("on"):
+                self.leds[c["name"]].on()  # permanently lit, e.g. decorative back lights
 
     def stop(self) -> None:
         self._halt.set()

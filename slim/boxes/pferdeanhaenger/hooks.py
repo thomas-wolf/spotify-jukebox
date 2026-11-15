@@ -15,6 +15,7 @@ def setup(app):
     cfg = app.cfg.section("pferdesound")
     folder = Path(str(cfg.get("folder", "~/sounds/pferd"))).expanduser()
     command = cfg.get("command", ["mpv", "--no-video", "--really-quiet"])
+    stop_playback = cfg.get("stop_playback", True)   # v2 stopped the music before the sound
     state = {"proc": None}
 
     def pferdesound():
@@ -25,6 +26,8 @@ def setup(app):
         proc = state["proc"]
         if proc is not None and proc.poll() is None:
             return  # still neighing
+        if stop_playback:
+            app.do_action("stop")
         state["proc"] = subprocess.Popen([*command, str(random.choice(files))])
 
     app.actions["pferdesound"] = pferdesound
