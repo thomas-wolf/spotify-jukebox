@@ -187,6 +187,21 @@ class LocalPlayer(Player):
     def is_playing(self) -> bool:
         return self._playing
 
+    def current_track(self) -> dict[str, Any] | None:
+        """File that mpv is playing now: path, title, artist, album (tags as mpv reads them), paused."""
+        try:
+            path = self._mpv.command("get_property", "path")
+            if not path:
+                return None
+            tags = self._mpv.command("get_property", "metadata") or {}
+            paused = bool(self._mpv.command("get_property", "pause"))
+        except PlayerError:
+            return None
+        low = {str(k).lower(): str(v) for k, v in tags.items()} if isinstance(tags, dict) else {}
+        return {"path": str(path), "title": low.get("title", ""),
+                "artist": low.get("artist") or low.get("album_artist") or low.get("albumartist") or "",
+                "album": low.get("album", ""), "paused": paused}
+
     def close(self) -> None:
         self._save_position()
         self._mpv.close()

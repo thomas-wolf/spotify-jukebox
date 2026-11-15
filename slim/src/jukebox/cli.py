@@ -91,6 +91,20 @@ def cmd_run(args) -> int:
             poller = SpotifyTrackPoller(app.bus, http_transport(cfg.section("spotify")["api_url"]))
             poller.start()
             threads.append(poller)
+        local_player = app.players.backend("folder")
+        if local_player is not None and hasattr(local_player, "current_track"):
+            from .covers import CoverResolver, SpotifySearch
+            from .players.trackinfo import LocalTrackPoller
+            covers_cfg = cfg.section("covers")
+            search = None
+            if covers_cfg["spotify_search"] and cfg.section("spotify")["enabled"]:
+                from .players.spotify import http_transport
+                call = http_transport(cfg.section("spotify")["api_url"])
+                search = SpotifySearch(lambda: (call("POST", "/token", None) or {}).get("token"))
+            resolver = CoverResolver(cfg.data_dir, search, write_to_folder=covers_cfg["write_to_folder"])
+            local_poller = LocalTrackPoller(app.bus, local_player, resolver, expand(cfg.section("local")["root"]))
+            local_poller.start()
+            threads.append(local_poller)
     web = None
     web_cfg = cfg.section("web")
     if web_cfg["enabled"]:

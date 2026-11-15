@@ -48,3 +48,55 @@ class SpotifyTrackPoller(threading.Thread):
 
     def stop(self) -> None:
         self._halt.set()
+
+
+class LocalTrackPoller(threading.Thread):
+    """Reports the local file that mpv plays as `track` events, with a cover picture if there is one:
+    first a picture in the folder, then (in a second event, once found) one from Spotify."""
+
+    def __init__(self, bus, player, resolver, root, interval: float = 2.0) -> None:
+        super().__init__(name="localtrackinfo", daemon=True)
+        from pathlib import Path
+        self.bus, self.player, self.resolver, self.interval = bus, player, resolver, interval
+        self.root = Path(root).resolve()
+        self._last: tuple[str, bool] | None = None
+        self._tried: set[str] = set()
+        self._halt = threading.Event()
+
+    def poll_once(self) -> None:
+        from pathlib import Path
+        info = self.player.current_track()
+        if not info:
+            self._last = None
+            return
+        playing = not info["paused"]
+        path = Path(info["path"])
+        key = (info["path"], playing)
+        if self._last is not None and self._last[0] == key[0] and not (playing and not self._last[1]):
+            self._last = key
+            return
+        self._last = key
+        folder = path.parent
+        title = info["title"] or path.stem
+        cover = self.resolver.lookup(folder)
+        self._post(title, info["artist"], cover, info["path"])
+        if cover is None and str(folder) not in self._tried:
+            self._tried.add(str(folder))
+            # without tags: folder name = album, the folder above it (inside the music root) = artist
+            parent = folder.parent.name if self.root in folder.parents and folder.parent != self.root else ""
+            found = self.resolver.fetch(folder, info["album"] or folder.name, info["artist"] or parent)
+            if found:
+                self._post(title, info["artist"], found, info["path"])
+
+    def _post(self, title, artist, cover, uri) -> None:
+        self.bus.post(ev.TRACK, title=title, artist=artist, cover_url=cover, uri=uri)
+
+    def run(self) -> None:
+        while not self._halt.wait(self.interval):
+            try:
+                self.poll_once()
+            except Exception:
+                log.exception("local track info failed")
+
+    def stop(self) -> None:
+        self._halt.set()

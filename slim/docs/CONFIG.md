@@ -178,8 +178,33 @@ the visible area after `margins`, the yellow letters TL, TR, BL, BR mark the cor
 the housing opens. `jukebox display-test --save test.png` writes the same picture to a file (no panel
 needed), `--cover file.jpg` tries your own cover.
 
-Cover, title and artist of Spotify tracks come from go-librespot's `/status` (polled every two seconds). For
-local folders the display shows the folder name; there is no cover art for them yet.
+**Where the cover comes from**
+
+- **Spotify:** Cover, title and artist come from go-librespot's `/status` (polled every two seconds).
+- **Local files:** In this order:
+  1. A picture in the folder of the file, found by name, upper or lower case: `cover`, `folder`, `front`,
+     `albumart`, `album` or `artwork`, as `.jpg`, `.jpeg`, `.png` or `.webp`.
+  2. A copy saved earlier (see 3).
+  3. Spotify: the album is searched by the tags of the file (album and artist; read from mpv), or, without tags,
+     by the folder name as album and the folder above it (inside the music root) as artist. A hit is only taken
+     when album name and artist match closely; a wrong cover is worse than none. The picture is saved as
+     `cover.jpg` in the folder, or in `[box] data_dir/covers/` if the folder is not writable or
+     `write_to_folder = false`.
+  4. Nothing found: no cover, the title is shown as text. "Spotify does not know it" is remembered for 30 days so
+     rare albums are not searched at every track. Failed searches (offline, not logged in) are retried.
+
+The title of a local file comes from its tags, otherwise from the file name.
+
+### `[covers]`
+
+| Key | Default | Meaning |
+|---|---|---|
+| `spotify_search` | `true` | Search missing covers of local files on Spotify (needs `[spotify]` enabled and go-librespot logged in) |
+| `write_to_folder` | `true` | Save the found picture as `cover.jpg` next to the music. `false`: keep it in the data folder. |
+
+The search uses the token of the go-librespot session (`POST /token`), so no developer account is needed. That
+this token is accepted by Spotify's search is **unverified**. Spotify's Web API terms on storing album pictures
+were not reviewed; the saved pictures stay on your box.
 
 ### `[web]`
 

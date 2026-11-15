@@ -17,6 +17,9 @@ class PlayerRouter:
         self._volume = 0
         self.current_target: str | None = None
 
+    def backend(self, scheme: str) -> Player | None:
+        return self._backends.get(scheme)
+
     def _backend_for(self, target: str) -> Player:
         scheme = target.partition(":")[0]
         try:

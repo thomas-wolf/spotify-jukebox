@@ -13,8 +13,12 @@ MAX_COVER_BYTES = 8 * 1024 * 1024
 
 
 def fetch_cover(url: str, timeout: float = 6.0) -> Image.Image:
+    if url.startswith("/") or url.startswith("file://"):               # a picture file on this box
+        img = Image.open(url[len("file://"):] if url.startswith("file://") else url)
+        img.load()
+        return img.convert("RGB")
     if not url.startswith(("http://", "https://")):
-        raise ValueError("cover URL must be http(s)")
+        raise ValueError("cover must be a file path or an http(s) URL")
     with urllib.request.urlopen(url, timeout=timeout) as resp:      # noqa: S310 (scheme checked above)
         data = resp.read(MAX_COVER_BYTES + 1)
     if len(data) > MAX_COVER_BYTES:
