@@ -100,6 +100,7 @@ class LocalPlayer(Player):
         self._root = root.resolve()
         self._state_file = state_file
         self._current: str | None = None
+        self._stream: str | None = None       # URL of the web radio / stream that is loaded
         self._playing = False
 
     # -- resume state ------------------------------------------------------
@@ -145,6 +146,8 @@ class LocalPlayer(Player):
         return files
 
     def play(self, target: str) -> None:
+        if target.startswith("stream:"):
+            return self._play_stream(target[len("stream:"):].strip())
         files = self.resolve(target)
         self._save_position()
         self._mpv.command("loadfile", str(files[0]), "replace")
@@ -156,14 +159,32 @@ class LocalPlayer(Player):
             self._mpv.command("seek", saved["time"], "absolute")
         self._mpv.command("set_property", "pause", False)
         self._current = target
+        self._stream = None
         self._playing = True
 
+    def _play_stream(self, url: str) -> None:
+        if not url.startswith(("http://", "https://")):
+            raise PlayerError(f"not a web stream URL: {url!r}")
+        self._save_position()                     # resume point of a folder that was playing before
+        self._mpv.command("loadfile", url, "replace")
+        self._mpv.command("set_property", "pause", False)
+        self._current, self._stream, self._playing = None, url, True
+
     def pause(self) -> None:
+        if self._stream:                          # a live stream cannot be paused: drop it, resume reloads it
+            self._mpv.command("stop")
+            self._playing = False
+            return
         self._mpv.command("set_property", "pause", True)
         self._save_position()
         self._playing = False
 
     def resume(self) -> None:
+        if self._stream:
+            self._mpv.command("loadfile", self._stream, "replace")
+            self._mpv.command("set_property", "pause", False)
+            self._playing = True
+            return
         self._mpv.command("set_property", "pause", False)
         self._playing = True
 
@@ -173,13 +194,16 @@ class LocalPlayer(Player):
         self._playing = False
 
     def next(self) -> None:
-        self._mpv.command("playlist-next", "weak")
+        if not self._stream:
+            self._mpv.command("playlist-next", "weak")
 
     def prev(self) -> None:
-        self._mpv.command("playlist-prev", "weak")
+        if not self._stream:
+            self._mpv.command("playlist-prev", "weak")
 
     def seek(self, seconds: float) -> None:
-        self._mpv.command("seek", seconds, "relative")
+        if not self._stream:
+            self._mpv.command("seek", seconds, "relative")
 
     def set_volume(self, volume: int) -> None:
         self._mpv.command("set_property", "volume", max(0, min(100, volume)))
@@ -198,6 +222,10 @@ class LocalPlayer(Player):
         except PlayerError:
             return None
         low = {str(k).lower(): str(v) for k, v in tags.items()} if isinstance(tags, dict) else {}
+        if str(path).startswith(("http://", "https://")):              # web radio: station and current song
+            return {"path": str(path), "stream": True, "paused": paused,
+                    "title": low.get("icy-title", "") or low.get("title", ""),
+                    "artist": low.get("icy-name", "") or low.get("name", ""), "album": ""}
         return {"path": str(path), "title": low.get("title", ""),
                 "artist": low.get("artist") or low.get("album_artist") or low.get("albumartist") or "",
                 "album": low.get("album", ""), "paused": paused}

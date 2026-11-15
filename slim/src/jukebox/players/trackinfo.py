@@ -61,15 +61,18 @@ class LocalTrackPoller(threading.Thread):
         self.root = Path(root).resolve()
         self._last: tuple[str, bool] | None = None
         self._tried: set[str] = set()
+        self._last_stream: tuple | None = None
         self._halt = threading.Event()
 
     def poll_once(self) -> None:
         from pathlib import Path
         info = self.player.current_track()
         if not info:
-            self._last = None
+            self._last = self._last_stream = None
             return
         playing = not info["paused"]
+        if info.get("stream"):
+            return self._stream(info, playing)
         path = Path(info["path"])
         key = (info["path"], playing)
         if self._last is not None and self._last[0] == key[0] and not (playing and not self._last[1]):
@@ -87,6 +90,15 @@ class LocalTrackPoller(threading.Thread):
             found = self.resolver.fetch(folder, info["album"] or folder.name, info["artist"] or parent)
             if found:
                 self._post(title, info["artist"], found, info["path"])
+
+    def _stream(self, info, playing: bool) -> None:
+        """Web radio: no cover; report again whenever the song (the stream's title) changes."""
+        key = (info["path"], playing, info["title"])
+        if key != self._last_stream:
+            self._last_stream = key
+            self._last = (info["path"], playing)
+            self._post(info["title"] or info["artist"] or info["path"], info["artist"] if info["title"] else "",
+                       None, info["path"])
 
     def _post(self, title, artist, cover, uri) -> None:
         self.bus.post(ev.TRACK, title=title, artist=artist, cover_url=cover, uri=uri)

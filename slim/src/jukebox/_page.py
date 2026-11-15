@@ -36,8 +36,10 @@ td.act{white-space:nowrap;text-align:right} input[type=range]{padding:0;flex:2}
   <div class="row"><select id="f-type">
     <option value="spotify">Play from Spotify (paste a link)</option>
     <option value="folder">Play a local folder</option>
+    <option value="stream">Play a web radio / stream</option>
     <option value="action">Run an action</option></select></div>
   <div class="row"><input id="f-spotify" placeholder="https://open.spotify.com/playlist/... or spotify:playlist:...">
+    <input id="f-stream" placeholder="https://... (address of the stream)" hidden>
     <input id="f-folder" list="folders" placeholder="folder under the music root" hidden>
     <select id="f-action" hidden></select><input id="f-arg" type="number" placeholder="value" hidden style="max-width:7rem;flex:none"></div>
   <datalist id="folders"></datalist>
@@ -63,20 +65,21 @@ $("vol").oninput = () => $("volv").textContent = $("vol").value;
 
 function show() {
   const t = $("f-type").value;
-  $("f-spotify").hidden = t !== "spotify"; $("f-folder").hidden = t !== "folder";
+  $("f-spotify").hidden = t !== "spotify"; $("f-folder").hidden = t !== "folder"; $("f-stream").hidden = t !== "stream";
   $("f-action").hidden = t !== "action";
   $("f-arg").hidden = !(t === "action" && ARG[$("f-action").value]);
   if (!$("f-arg").hidden) $("f-arg").placeholder = ARG[$("f-action").value][1];
 }
 $("f-type").onchange = $("f-action").onchange = show;
 
-function clearForm() { for (const i of ["f-id","f-name","f-spotify","f-folder","f-arg"]) $(i).value = ""; $("msg").textContent = ""; }
+function clearForm() { for (const i of ["f-id","f-name","f-spotify","f-folder","f-stream","f-arg"]) $(i).value = ""; $("msg").textContent = ""; }
 $("clear").onclick = clearForm;
 
 $("save").onclick = async () => {
   const t = $("f-type").value, body = {name: $("f-name").value};
   if (t === "spotify") body.play = $("f-spotify").value;
   else if (t === "folder") body.play = "folder:" + $("f-folder").value;
+  else if (t === "stream") body.play = "stream:" + $("f-stream").value;
   else { body.action = $("f-action").value; const a = ARG[body.action];
     if (a) { if ($("f-arg").value === "") { $("msg").textContent = "Value needed"; return; } body.args = {[a[0]]: +$("f-arg").value}; } }
   try { await post("/api/cards/" + encodeURIComponent($("f-id").value.trim()), body, "PUT");
@@ -88,6 +91,7 @@ function edit(c) {
   $("f-id").value = c.id; $("f-name").value = c.name || ""; $("msg").textContent = "";
   if (c.action) { $("f-type").value = "action"; $("f-action").value = c.action; const a = ARG[c.action]; $("f-arg").value = a ? (c.args[a[0]] ?? "") : ""; }
   else if (c.play.startsWith("spotify:")) { $("f-type").value = "spotify"; $("f-spotify").value = c.play; }
+  else if (c.play.startsWith("stream:")) { $("f-type").value = "stream"; $("f-stream").value = c.play.slice(7); }
   else { $("f-type").value = "folder"; $("f-folder").value = c.play.replace(/^(folder|file):/, ""); }
   show(); window.scrollTo({top: $("f-id").offsetTop - 80, behavior: "smooth"});
 }

@@ -6,7 +6,7 @@ This repository is a fork of [Phoniebox (RPi-Jukebox-RFID)](https://github.com/M
 The branch `rewrite/slim-core` replaces the Spotify edition with a slim rewrite in [`slim/`](slim/README.md):
 
 - one Python process, configuration in TOML, no PHP, MPD, Mopidy or shell scripts
-- Spotify through [go-librespot](https://github.com/devgianlu/go-librespot) (Premium required), local folders through mpv
+- Spotify through [go-librespot](https://github.com/devgianlu/go-librespot) (Premium required), local folders and web radio through mpv
 - USB and RDM6300 card readers, GPIO buttons, rotary encoders, LEDs, volume potentiometer (ADS1115)
 - cover display (ILI9341) with configurable pins, rotation and hidden edges
 - a small web interface for assigning cards and basic controls (optional, no password)

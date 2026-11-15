@@ -125,3 +125,11 @@ def test_list_folders(web):
     w, *_ = web
     assert jcall(w, "GET", "/api/folders")[1] == ["books/x"]
     assert list_folders(w.local_root / "nope") == []
+
+
+def test_web_accepts_streams_only_over_http(web):
+    w, app, *_ = web
+    assert jcall(w, "PUT", "/api/cards/R1", {"play": "stream:https://radio.example/live.mp3"})[0] == 200
+    assert app._cards_ci["r1"].play == "stream:https://radio.example/live.mp3"
+    for bad in ("stream:file:///etc/passwd", "stream:ftp://x", "stream:https://a b"):
+        assert jcall(w, "PUT", "/api/cards/R2", {"play": bad})[0] == 400

@@ -9,7 +9,7 @@ One Python process, configuration in TOML. No PHP, no MPD, no Mopidy and no shel
 
 - **Spotify** through a local [go-librespot](https://github.com/devgianlu/go-librespot) daemon. It registers
   as a Spotify Connect device and offers a REST API on `localhost`. Spotify Premium is required.
-- **Local folders** through mpv, resuming where you left off.
+- **Local folders** through mpv, resuming where you left off, and **web radio** streams (`stream:` cards).
 - **Card readers:** USB readers (keyboard emulation) and RDM6300 (UART). Card IDs are compatible with
   Phoniebox v2, so existing cards keep working.
 - **GPIO:** buttons (short, hold, repeat), rotary encoders and LEDs through libgpiod.

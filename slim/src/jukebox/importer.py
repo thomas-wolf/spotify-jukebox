@@ -17,7 +17,7 @@ CONTROL_ACTIONS: dict[str, tuple[str, dict]] = {
 for _v in (30, 50, 75, 80, 85, 90, 95, 100):
     CONTROL_ACTIONS[f"CMDVOL{_v}"] = ("volume_set", {"value": _v})
 
-SOURCE_FILES = {"podcast.txt": "podcast", "livestream.txt": "livestream", "url.txt": "url", "youtube.txt": "youtube"}
+SOURCE_FILES = {"podcast.txt": "podcast", "url.txt": "url", "youtube.txt": "youtube"}
 _SPOTIFY_URL = re.compile(r"https?://open\.spotify\.com/(?:intl-[a-z]+/)?(playlist|album|track|artist|show|episode)/([A-Za-z0-9]+)")
 _SPOTIFY_USER = re.compile(r"^spotify:user:[^:]+:playlist:([A-Za-z0-9]+)$")
 _CONF_LINE = re.compile(r'^\s*([A-Z0-9_]+)\s*=\s*"?([^"#]*?)"?\s*(?:#.*)?$')
@@ -122,6 +122,13 @@ def _resolve(card_id: str, folder: str, folders: Path | None, res: ImportResult)
             res.skipped.append((card_id, f"spotify.txt in {folder!r} is not a recognisable Spotify link"))
             return None
         return Entry(card_id, name=folder, play=uri)
+    live = d / "livestream.txt"
+    if live.exists():
+        url = (live.read_text(encoding="utf-8", errors="replace").strip().splitlines() or [""])[0].strip()
+        if url.startswith(("http://", "https://")) and " " not in url:
+            return Entry(card_id, name=folder, play=f"stream:{url}")
+        res.skipped.append((card_id, f"livestream.txt in {folder!r} does not contain a http(s) address"))
+        return None
     for fname, kind in SOURCE_FILES.items():
         if (d / fname).exists():
             res.skipped.append((card_id, f"{kind} folder {folder!r} is not supported"))

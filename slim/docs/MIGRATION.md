@@ -59,7 +59,8 @@ What the import does with each kind of card:
 | Folder with audio files | `play = "folder:<name>"`. You still copy the files to `[local] root`, with the same folder names. |
 | Control cards from `rfid_trigger_play.conf` | `action = ...` as in the table below. Unset entries (`%CMD...%`) are ignored. |
 | Card ID never assigned (v2 wrote a shortcut with the ID as content on first use) | ignored, counted in the report |
-| `podcast.txt`, `livestream.txt`, `url.txt`, `youtube.txt` | skipped, listed in the report |
+| `livestream.txt` with a http(s) address | `play = "stream:<address>"` |
+| `podcast.txt`, `url.txt`, `youtube.txt` | skipped, listed in the report |
 | Folder missing in the copy | skipped, listed in the report |
 | Control cards without an equivalent (random, timers, WLAN, ...) | skipped, listed in the report |
 
@@ -89,7 +90,8 @@ In `cards.toml` this becomes:
 |---|---|
 | Folder contains `spotify.txt` with `spotify:playlist:ID` | `play = "spotify:playlist:ID"` (same file content; v2 used the Mopidy format) |
 | Folder with audio files | `play = "folder:<folder name>"`, copy the files to `[local] root` |
-| `podcast.txt`, `livestream.txt`, `url.txt` | **not supported** |
+| `livestream.txt` with a http(s) address | `play = "stream:<address>"` (web radio) |
+| `podcast.txt`, `url.txt`, `youtube.txt` | **not supported** |
 
 Example: the file `shared/shortcuts/0123456789` contains `Good-Night`, and
 `shared/audiofolders/Good-Night/spotify.txt` contains `spotify:playlist:37i9dQZF1DX0UrRvztWcAU`. Then:
@@ -170,7 +172,7 @@ longer be used as a button.
 ## What is deliberately left out
 
 The new jukebox is a Spotify and local-files box, not a replacement for the whole v2 package. Not included:
-the v2 web interface (there is a small new one for cards and basic controls, see [CONFIG.md](CONFIG.md#web)), podcasts, livestreams and YouTube downloads, Samba share, WLAN hotspot, Bluetooth sink
+the v2 web interface (there is a small new one for cards and basic controls, see [CONFIG.md](CONFIG.md#web)), podcasts and YouTube downloads (web radio is supported through `stream:`), Samba share, WLAN hotspot, Bluetooth sink
 switching, automatic shutdown on inactivity (idle watchdog), recording, synchronisation, RC522 and PN532 RFID
 readers, and the HD44780 and MAX7219 displays (an ILI9341 cover display is new). Some of that could be added as a separate building block, see
 [DEVELOPMENT.md](DEVELOPMENT.md).

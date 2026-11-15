@@ -296,8 +296,26 @@ command: `jukebox cards add ID --play ... | --action ... [--name ...]`. Many car
 | `spotify:playlist:ID`, `spotify:album:ID`, `spotify:track:ID`, ... | Spotify URI |
 | `folder:relative/path` | Folder under `[local] root`, recursive, played with resume |
 | `file:relative/path.mp3` | A single file under `root` |
+| `stream:https://host/path` | A web radio or other stream, played by mpv (see below) |
 
-When switching between Spotify and local playback, the other player is stopped. Volume applies to both.
+**Web radio (`stream:`)**
+
+```toml
+[cards."0123456792"]
+name = "Bayern 2"
+play = "stream:http://br-br2-nord.cast.addradio.de/br/br2/nord/mp3/56/stream.mp3"
+```
+
+- Needs mpv, so `[local] enabled = true`. Only `http://` and `https://` addresses are accepted. mpv also reads
+  playlist addresses (`.m3u`, `.pls`); that is mpv's job and not tested here.
+- A live stream has no position: `next`, `prev` and `seek_*` do nothing. `pause` drops the stream and `resume`
+  loads it again, so you come back to the live programme, not to where you stopped.
+- With a display, the station name and the current song (the stream's own title information, if the station sends
+  it) are shown. There is no cover for streams. Which tag names mpv reports for the song title (`icy-title`) is
+  from memory and **unverified**.
+- The web interface (`[web]`) has its own choice "Play a web radio / stream" for the address.
+
+When switching between Spotify, local playback and streams, the other player is stopped. Volume applies to both.
 
 **Actions (`action`, also for buttons, encoders and hooks)**
 

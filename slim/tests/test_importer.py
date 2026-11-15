@@ -33,7 +33,7 @@ def test_convert(tmp_path):
     assert by["2222222222"].action == "volume_set" and by["2222222222"].args == {"value": 50}
     assert "0000000001" in res.unused
     reasons = dict(res.skipped)
-    assert "livestream" in reasons["0000000002"]
+    assert by["0000000002"].play == "stream:http://x"                   # livestream.txt becomes a web stream
     assert "not found" in reasons["0000000003"]
     assert "no equivalent" in reasons["3333333333"]
     assert "CMDSTOP" not in {e.name for e in res.entries}
@@ -57,3 +57,14 @@ def test_cli_apply_roundtrip(tmp_path, capsys):
 def test_normalize():
     assert importer.normalize_spotify("spotify:playlist:AB1") == "spotify:playlist:AB1"
     assert importer.normalize_spotify("nonsense") is None
+
+
+def test_livestream_cards_become_streams(tmp_path):
+    src = make_v2(tmp_path)
+    af = src / "shared" / "audiofolders"; sc = src / "shared" / "shortcuts"
+    (af / "Radio" / "livestream.txt").write_text("http://br-br2-nord.cast.addradio.de/br/br2/nord/mp3/56/stream.mp3\n")
+    (sc / "0000000005").write_text("Broken"); (af / "Broken").mkdir(); (af / "Broken" / "livestream.txt").write_text("not a url")
+    res = importer.convert(src)
+    by = {e.id: e for e in res.entries}
+    assert by["0000000002"].play == "stream:http://br-br2-nord.cast.addradio.de/br/br2/nord/mp3/56/stream.mp3"
+    assert "http(s)" in dict(res.skipped)["0000000005"]

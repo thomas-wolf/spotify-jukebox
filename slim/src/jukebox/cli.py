@@ -35,7 +35,7 @@ def build(cfg_path: str):
             from .players.local import LocalPlayer, MpvClient
             mpv = MpvClient(local["mpv"], cfg.section("audio")["start_volume"])
             player = LocalPlayer(mpv, expand(local["root"]), cfg.data_dir / "resume.json")
-            backends["folder"] = backends["file"] = player
+            backends["folder"] = backends["file"] = backends["stream"] = player
         except PlayerError as exc:
             log.error("local player disabled: %s", exc)
     app = App(cfg, load_cards(cards_path), PlayerRouter(backends), bus)

@@ -140,3 +140,44 @@ def test_router_survives_failing_old_backend():
     a.fail = True
     r.play("folder:y")                             # stop() on a fails, play goes on
     assert ("play", "folder:y") in b.calls
+
+
+# -- web radio -------------------------------------------------------------------
+def test_stream_playback(tmp_path):
+    mpv = FakeMpv()
+    player = LocalPlayer(mpv, tmp_path, tmp_path / "s.json")
+    player.play("stream:https://radio.example/live.mp3")
+    assert ("loadfile", "https://radio.example/live.mp3", "replace") in mpv.commands
+    assert player.is_playing()
+    n = len(mpv.commands)
+    player.next(); player.prev(); player.seek(15)                    # no meaning for a live stream
+    assert len(mpv.commands) == n
+    player.pause()                                                   # drops the stream ...
+    assert mpv.commands[-1] == ("stop",) and not player.is_playing()
+    player.resume()                                                  # ... and resume reloads it
+    assert ("loadfile", "https://radio.example/live.mp3", "replace") == mpv.commands[-2]
+    assert player.is_playing()
+
+
+def test_stream_rejects_other_schemes(tmp_path):
+    player = LocalPlayer(FakeMpv(), tmp_path, tmp_path / "s.json")
+    for bad in ("stream:file:///etc/passwd", "stream:rtsp://x", "stream:"):
+        with pytest.raises(PlayerError):
+            player.play(bad)
+
+
+def test_folder_after_stream_behaves_normally(tmp_path):
+    (tmp_path / "a").mkdir(); (tmp_path / "a" / "1.mp3").write_text("x")
+    mpv = FakeMpv()
+    player = LocalPlayer(mpv, tmp_path, tmp_path / "s.json")
+    player.play("stream:http://r/x")
+    player.play("folder:a")
+    player.seek(10)
+    assert ("seek", 10, "relative") in mpv.commands
+
+
+def test_current_track_of_a_stream(tmp_path):
+    mpv = FakeMpv()
+    mpv.props.update({"path": "http://r/x", "pause": False, "metadata": {"icy-title": "Band - Song", "icy-name": "Radio X"}})
+    info = LocalPlayer(mpv, tmp_path, tmp_path / "s.json").current_track()
+    assert info["stream"] and info["title"] == "Band - Song" and info["artist"] == "Radio X"

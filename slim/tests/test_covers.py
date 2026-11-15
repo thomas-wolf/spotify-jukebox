@@ -157,3 +157,18 @@ def test_renderer_fetch_reads_local_cover_file(tmp_path):
     assert fetch_cover(str(f)).size == (10, 10)
     with pytest.raises(ValueError):
         fetch_cover("ftp://x/y")
+
+
+def test_stream_poller_reports_song_changes_without_cover(tmp_path):
+    bus, seen = EventBus(), []
+    bus.subscribe("track", seen.append)
+    info = {"path": "http://r/x", "stream": True, "title": "Band - Song 1", "artist": "Radio X", "album": "", "paused": False}
+    s = FakeSearch("https://i/x")
+    poller = LocalTrackPoller(bus, FakePlayer(info), resolver(tmp_path, s), tmp_path)
+    poller.poll_once(); poller.poll_once()                       # unchanged: once
+    info["title"] = "Band - Song 2"; poller.poll_once()
+    info["title"] = ""; poller.poll_once()                       # no song title: station name
+    bus.drain(lambda e: None)
+    assert [(e.data["title"], e.data["artist"], e.data["cover_url"]) for e in seen] == [
+        ("Band - Song 1", "Radio X", None), ("Band - Song 2", "Radio X", None), ("Radio X", "", None)]
+    assert s.calls == 0                                          # a stream is never searched on Spotify

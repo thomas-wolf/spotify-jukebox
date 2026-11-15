@@ -55,8 +55,12 @@ def validate_card(actions, card_id: str, data: dict) -> Card:
         return Card(card_id, name, play=uri)
     scheme, _, rest = play.partition(":")
     rest = rest.strip()
+    if scheme == "stream":
+        if not rest.startswith(("http://", "https://")) or " " in rest:
+            raise BadRequest("a web stream needs a http:// or https:// address")
+        return Card(card_id, name, play=f"stream:{rest}")
     if scheme not in ("folder", "file") or rest.startswith("/"):
-        raise BadRequest("target must be a Spotify link, folder:<path> or file:<path>")
+        raise BadRequest("target must be a Spotify link, a web stream, folder:<path> or file:<path>")
     rest = rest.strip("/")
     if not rest or ".." in Path(rest).parts:
         raise BadRequest("target must be a Spotify link, folder:<path> or file:<path>")
