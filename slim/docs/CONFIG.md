@@ -350,3 +350,20 @@ When switching between Spotify, local playback and streams, the other player is 
 
 Unknown actions and wrong arguments are reported in the log and do not disturb operation. Player errors
 (for example go-librespot unreachable) are logged as well and raise the `error` event.
+
+## Local overrides
+
+If a file `config.local.toml` sits next to the configuration file, it is merged on top (tables are merged key by
+key, a list such as `[[gpio.button]]` is replaced as a whole). Use it for things that differ on one device without
+touching the file in the repository, for example a USB reader for a test:
+
+```toml
+[readers.rdm6300]
+enabled = false
+
+[readers.usb]
+enabled = true
+device_name = "SYC"
+```
+
+The file lives in `~/.config/jukebox/` next to the (linked) `config.toml`. It is not part of `boxes/`.

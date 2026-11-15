@@ -90,6 +90,14 @@ def load_config(path: str | Path | None = None) -> Config:
             raise ConfigError(f"config file not found: {p}") from None
         except tomllib.TOMLDecodeError as exc:
             raise ConfigError(f"{p}: {exc}") from exc
+    if p is not None:
+        local = p.with_name("config.local.toml")  # per-device overrides, not in git, next to the (linked) config
+        if local.is_file():
+            try:
+                with open(local, "rb") as fh:
+                    raw = _merge(raw, tomllib.load(fh))
+            except tomllib.TOMLDecodeError as exc:
+                raise ConfigError(f"{local}: {exc}") from exc
     cfg = Config(_merge(DEFAULTS, raw), p)
     audio = cfg.section("audio")
     for key in ("start_volume", "max_volume", "volume_step"):

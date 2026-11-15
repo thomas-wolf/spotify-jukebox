@@ -70,3 +70,14 @@ def test_led_with_on_is_lit_at_start():
 
     GpioInputs(EventBus(), {"led": [{"name": "a", "pin": 27, "on": True}, {"name": "b", "pin": 23}]}, backend_factory=factory)
     assert holder["b"].out == {27: True}
+
+
+def test_local_override_file_is_merged(tmp_path):
+    from jukebox.config import load_config
+
+    (tmp_path / "config.toml").write_text('[readers.rdm6300]\nenabled = true\n[box]\nname = "x"\n')
+    (tmp_path / "config.local.toml").write_text('[readers.rdm6300]\nenabled = false\n[readers.usb]\nenabled = true\ndevice_name = "RFID"\n')
+    cfg = load_config(tmp_path / "config.toml")
+    assert cfg.section("readers")["rdm6300"]["enabled"] is False
+    assert cfg.section("readers")["usb"]["device_name"] == "RFID"
+    assert cfg.section("box")["name"] == "x"
