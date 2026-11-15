@@ -35,6 +35,7 @@ id_format = "raw"             # raw | dec | float | hex; raw/dec/float = same id
 # --- GPIO (BCM numbers). Remove what this box does not have. ----------------
 # Reserved elsewhere: 14/15 UART (RDM6300), 2/3 I2C (ADS1115), 8-11 SPI (display),
 # 18-21 I2S (MiniAmp). See docs/HARDWARE.md.
+# A complete real-world pinout of one box: examples/pferdeanhaenger.toml
 [gpio]
 chip = "/dev/gpiochip0"
 

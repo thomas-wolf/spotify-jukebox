@@ -146,3 +146,32 @@ Packages: `sudo apt install -y python3-pil python3-spidev`. Test: `jukebox displ
 **Not yet run on a real panel.** The initialisation sequence and the rotation values are written from memory of the
 Adafruit ILI9341 library. If the picture is mirrored, upside down or shows colour errors (red and blue swapped),
 tell me what you see.
+
+## Example: one complete box ("Pferdeanhänger")
+
+`examples/pferdeanhaenger.toml` is the full pinout of one box (Marie's horse trailer). Other boxes have
+other pinouts; only that file is specific to it.
+
+| Part | Physical pin | BCM | In the config |
+|---|---|---|---|
+| Button top blue (next) | 37 | 26 | `gpio.button` next |
+| Button top green (prev) | 38 | 20 | `gpio.button` prev |
+| Button top yellow (play/pause, hold = shutdown) | 32 | 12 | `gpio.button` |
+| Encoder CLK / DT / push | 31 / 29 / 33 | 6 / 5 / 13 | `gpio.rotary`, button `mute` |
+| LED top red | 18 | 24 | `status` |
+| LEDs back white / red | 13 / 16 | 27 / 23 | `back_white`, `back_red` |
+| Button LEDs white / red | 36 / 3 | 16 / 2 | `button_white`, `button_red` |
+| Display DC / RESET / CS | 15 / 22 / 24 | 22 / 25 / 8 | `[display]` dc=22, reset=25 |
+| Display MOSI / MISO / SCLK | 19 / 21 / 23 | 10 / 9 / 11 | SPI0 |
+| RDM6300 (reader) | 8 / 10 | 14 / 15 | UART, `/dev/serial0` |
+| Amplifier (MiniAmp) | 12, 35, 40 (+ 17 power) | 18, 19, 21 | I2S |
+| SHIM (likely OnOff SHIM) | 2, 6, 7, 11 | 4, 17 | not used by the jukebox |
+
+Things to check on that box:
+
+- **GPIO 20 (prev button)** is the I2S data-in pin. The `hifiberry-dac` overlay may claim it. If the button
+  does nothing, move it to a free pin.
+- **GPIO 2 (red button LED)** is the I2C SDA pin with a fixed pull-up on the board. It works as an output
+  while `i2c = false`.
+- **GPIO 4 and 17** belong to the SHIM. Do not assign them to anything else.
+- The RDM6300's TX goes to the Pi's RX (pin 10, GPIO 15).
