@@ -87,6 +87,8 @@ layout = "auto"              # auto, split (cover + text), cover (cover alone)
 cover_side = "left"          # left, right (wide displays) or top, bottom (tall ones)
 cover_fit = "contain"        # contain: whole cover visible, cover: fill and crop
 background = "average"       # average colour of the cover, blur, or a color like "#101010"
+# idle_image = "idle.jpg"      # picture for boot and when nothing plays (relative to this file)
+# idle_on_pause = false
 
 [covers]                     # cover art for local files (needs [display])
 spotify_search = true        # no cover.jpg in the folder: search the album on Spotify

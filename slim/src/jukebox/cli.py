@@ -135,7 +135,7 @@ def cmd_run(args) -> int:
     display = None
     if cfg.section("display").get("enabled"):
         from .display import bind, build_display
-        display = build_display(cfg.section("display"))
+        display = build_display(cfg.section("display"), cfg.path.resolve().parent if cfg.path else None)
         bind(display, app.bus)
         if cfg.section("spotify")["enabled"]:
             from .players.spotify import http_transport

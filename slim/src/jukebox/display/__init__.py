@@ -13,12 +13,19 @@ log = logging.getLogger(__name__)
 
 class Display(Protocol):
     def show_track(self, title: str, artist: str = "", cover_url: str | None = None) -> None: ...
+    def show_idle(self) -> None: ...
     def clear(self) -> None: ...
     def close(self) -> None: ...
 
 
 class NullDisplay:
+    idle_picture = None
+    idle_on_pause = False
+
     def show_track(self, title: str, artist: str = "", cover_url: str | None = None) -> None:
+        pass
+
+    def show_idle(self) -> None:
         pass
 
     def clear(self) -> None:
@@ -32,8 +39,11 @@ class ScreenDisplay:
     """Renders in a worker thread, so downloading a cover never blocks cards or buttons.
     Only the newest request counts: if tracks change quickly, the older ones are dropped."""
 
-    def __init__(self, renderer, driver, fetch=None) -> None:
+    def __init__(self, renderer, driver, fetch=None, idle_picture: str | None = None) -> None:
         self._renderer, self._driver = renderer, driver
+        self.idle_picture = idle_picture            # path of the boot / idle picture, if any
+        self.idle_on_pause = renderer.s.idle_on_pause
+        self._idle_frame = None
         if fetch is None:
             from .render import fetch_cover
             fetch = fetch_cover
@@ -52,6 +62,9 @@ class ScreenDisplay:
 
     def show_track(self, title: str, artist: str = "", cover_url: str | None = None) -> None:
         self._put(("track", title, artist, cover_url))
+
+    def show_idle(self) -> None:
+        self._put(("idle",))
 
     def clear(self) -> None:
         self._put(("clear",))
@@ -73,6 +86,17 @@ class ScreenDisplay:
         self._cache = (url, img)
         return img
 
+    def _idle(self):
+        if self._idle_frame is None:
+            try:
+                from PIL import Image
+                with Image.open(self.idle_picture) as pic:
+                    self._idle_frame = self._renderer.idle(pic.convert("RGB"))
+            except Exception as exc:                  # missing file, bad image: blank screen instead
+                log.warning("idle picture %s not shown: %s", self.idle_picture, exc)
+                self._idle_frame = self._renderer.blank()
+        return self._idle_frame
+
     def _run(self) -> None:
         while True:
             item = self._q.get()
@@ -82,6 +106,8 @@ class ScreenDisplay:
                     return
                 if item[0] == "clear":
                     self._driver.show(self._renderer.blank())
+                elif item[0] == "idle":
+                    self._driver.show(self._idle() if self.idle_picture else self._renderer.blank())
                 else:
                     _, title, artist, url = item
                     self._driver.show(self._renderer.render(self._cover(url), title, artist))
@@ -89,7 +115,7 @@ class ScreenDisplay:
                 log.exception("display update failed")
 
 
-def build_display(section: dict) -> Display:
+def build_display(section: dict, base_dir=None) -> Display:
     """The display described by the [display] section; NullDisplay (with an error in the log) if the
     hardware or packages are missing, so that the rest of the box keeps working."""
     from ..config import ConfigError
@@ -103,7 +129,14 @@ def build_display(section: dict) -> Display:
         from .ili9341 import ILI9341
         from .render import Renderer
         renderer = Renderer(settings)
-        return ScreenDisplay(renderer, ILI9341(settings))
+        idle = None
+        if settings.idle_image:
+            from pathlib import Path
+            idle = Path(settings.idle_image).expanduser()
+            if not idle.is_absolute() and base_dir is not None:
+                idle = Path(base_dir) / idle          # next to the real config file
+            idle = str(idle)
+        return ScreenDisplay(renderer, ILI9341(settings), idle_picture=idle)
     except Exception as exc:                      # missing PIL/spidev/gpiod, no SPI device, ...
         log.error("display disabled: %s", exc)
         return NullDisplay()
@@ -120,5 +153,11 @@ def bind(display: Display, bus: EventBus) -> None:
 
     bus.subscribe("track", on_track)
     bus.subscribe("playing", on_playing)
-    bus.subscribe("stopped", lambda _e: display.clear())
+    if getattr(display, "idle_picture", None):        # a picture for boot and for "nothing playing"
+        bus.subscribe("boot", lambda _e: display.show_idle())
+        bus.subscribe("stopped", lambda _e: display.show_idle())
+        if getattr(display, "idle_on_pause", False):
+            bus.subscribe("paused", lambda _e: display.show_idle())
+    else:
+        bus.subscribe("stopped", lambda _e: display.clear())
     bus.subscribe("shutdown", lambda _e: display.clear())

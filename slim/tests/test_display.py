@@ -237,3 +237,39 @@ def test_cli_display_test_saves_picture(tmp_path):
     assert Image.open(out).size == (320, 240)
     cfg.write_text('[display]\nrotation = 33\n')
     assert main(["-c", str(cfg), "display-test", "--save", str(out)]) == 1
+
+
+def test_idle_picture_is_shown_on_boot_and_stop(tmp_path):
+    pic = tmp_path / "pferd.png"
+    Image.new("RGB", (400, 300), (200, 100, 50)).save(pic)
+    drv = FakeDriver()
+    d = ScreenDisplay(Renderer(DisplaySettings.from_section({"idle_image": str(pic)})), drv, idle_picture=str(pic))
+    bus = EventBus()
+    bind(d, bus)
+    bus.post(ev.BOOT)
+    bus.drain(lambda e: None)
+    assert drv.seen.wait(3)
+    d.close()
+    frame = drv.frames[0]
+    assert frame.size == (320, 240) and frame.getpixel((160, 120)) == (200, 100, 50)
+
+
+def test_idle_missing_file_gives_blank_and_pause_is_optional(tmp_path):
+    drv = FakeDriver()
+    d = ScreenDisplay(Renderer(DisplaySettings.from_section({})), drv, idle_picture=str(tmp_path / "none.png"))
+    d.show_idle()
+    assert drv.seen.wait(3)
+    d.close()
+    assert drv.frames[0].getpixel((5, 5)) == (0, 0, 0)
+
+    calls = []
+    class D(NullDisplay):
+        idle_picture = "x"
+        idle_on_pause = False
+        def show_idle(self): calls.append("idle")
+        def clear(self): calls.append("clear")
+    bus = EventBus()
+    bind(D(), bus)
+    bus.post(ev.PAUSED); bus.post(ev.STOPPED)
+    bus.drain(lambda e: None)
+    assert calls == ["idle"]                     # paused: nothing (idle_on_pause is off), stopped: idle

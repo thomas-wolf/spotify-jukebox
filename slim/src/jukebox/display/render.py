@@ -108,6 +108,18 @@ class Renderer:
                 y += step
             y += 6
 
+    def idle(self, picture: Image.Image) -> Image.Image:
+        """A picture for boot and idle: placed in the visible area, the rest in the picture's average colour."""
+        img = self._background(picture)
+        v = self.vis
+        nw, nh, ox, oy = fit_box(*picture.size, v.w, v.h, self.s.idle_fit)
+        scaled = picture.resize((nw, nh), Image.LANCZOS)
+        if self.s.idle_fit == "cover":
+            img.paste(scaled.crop((-ox, -oy, -ox + v.w, -oy + v.h)), (v.x, v.y))
+        else:
+            img.paste(scaled, (v.x + ox, v.y + oy))
+        return img
+
     def blank(self) -> Image.Image:
         return Image.new("RGB", (self.lw, self.lh), (0, 0, 0))
 
