@@ -23,7 +23,7 @@ So that your cards keep working without being re-learned, the new jukebox produc
 | Reader | v2 | New |
 |---|---|---|
 | RDM6300 | default: raw, 12 characters with checksum (`070067315809`) | `id_format = "raw"` (default) |
-| RDM6300 | `numberformat = card_id_dec` | `id_format = "dec"` |
+| RDM6300 | `numberformat = card_id_dec`, or a custom reader with `str(card.value).zfill(10)` | `id_format = "dec"` (the same 10 digits a USB reader types) |
 | RDM6300 | `numberformat = card_id_float` | `id_format = "float"` |
 | USB | digits and letters, letters lower case | the same (letters lower case) |
 

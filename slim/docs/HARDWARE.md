@@ -95,16 +95,19 @@ Quick test: `sudo cat /dev/serial0` shows characters when you put a card on the 
 with the text of the card ID in between). On models with Bluetooth, `/dev/serial0` may point to the mini UART.
 At 9600 baud that should be enough **(unverified)**.
 
-The `id_format` setting controls the card ID format, see [CONFIG.md](CONFIG.md). For existing v2 cards keep `raw`.
+The `id_format` setting controls the card ID format, see [CONFIG.md](CONFIG.md). For cards that were taught with a USB reader (or with a custom reader that padded to 10 digits) use `dec`; the stock v2 RDM6300 reader produced `raw`.
 
 Serial console: `jukebox setup` writes `enable_uart=1` (`uart = true`), but the login shell on the serial port
 must be off as well. `sudo raspi-config nonint do_serial_cons 1` does that **(command unverified, the menu route
 above is the safe one)**.
 
-**Card IDs on the UART reader:** the RDM6300 reports the same 125 kHz chips as the USB reader, but the ID can be
-written differently. Before trusting `id_format = "raw"`, put a card that is already in your v2 list on the
-reader. The web interface (or `jukebox cards`) shows the ID that arrived. If it differs from the entry in the
-old `shortcuts` file, try `dec`, `float` or `hex` until it matches, see [CONFIG.md](CONFIG.md).
+**Card IDs on the UART reader:** USB readers type the ID as 10 decimal digits, zero padded. The Phoniebox v2
+custom reader used on the horse trailer did the same with the `rdm6300` Python library
+(`str(card.value).zfill(10)`), which is why a card could be taught on any box. `id_format = "dec"` produces that
+format (the last four tag bytes as a decimal number, 10 digits). That `card.value` is exactly those four bytes
+is an inference from the `zfill(10)`, **not verified**: put a card that is already in your list on the reader.
+The web interface (or `jukebox cards`) shows the ID that arrived. If it differs from the entry in the old
+`shortcuts` file, try `raw`, `float` or `hex`, see [CONFIG.md](CONFIG.md).
 
 ## Pimoroni OnOff SHIM
 

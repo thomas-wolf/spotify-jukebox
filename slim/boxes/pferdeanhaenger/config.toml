@@ -30,8 +30,8 @@ device_name = "RFID"          # substring of the evdev device name
 
 [readers.rdm6300]
 enabled = true
-port = "/dev/serial0"
-id_format = "raw"             # raw | dec | float | hex; raw/dec/float = same ids as Phoniebox v2
+port = "/dev/serial0"         # the old custom code used /dev/ttyS0; serial0 points there on a Pi 4 with Bluetooth
+id_format = "dec"             # 10 digits, zero padded: the same id the USB readers type, so cards work in every box
 
 # --- GPIO (BCM numbers). Remove what this box does not have. ----------------
 # Reserved elsewhere: 14/15 UART (RDM6300), 8-11 SPI (display), 18-21 I2S (MiniAmp),

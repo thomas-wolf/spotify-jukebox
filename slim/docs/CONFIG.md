@@ -82,7 +82,7 @@ Formats (for the same tag):
 | `id_format` | Example | Note |
 |---|---|---|
 | `raw` | `070067315809` | 12 characters including checksum, **the default in Phoniebox v2** |
-| `dec` | `0006762840` | 10 digits, like v2 `card_id_dec` |
+| `dec` | `0006762840` | 10 digits, like v2 `card_id_dec` and like the ID a USB reader types, so cards taught on either reader match |
 | `float` | `103,12632` | like v2 `card_id_float`, matches the number printed on the tag |
 | `hex` | `0700673158` | the 10 characters of the tag without checksum (new) |
 
