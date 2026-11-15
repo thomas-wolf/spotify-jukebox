@@ -107,8 +107,9 @@ boot = "sounds/startup.mp3"      # relative to this file (pferdesound1.mp3 from 
 # shutdown = "sounds/shutdown.mp3"
 
 [display]                    # ILI9341 on SPI; set up with `jukebox display-test`
-enabled = false
-rotation = 90                # 0, 90, 180, 270 (as you look at it)
+enabled = true
+rotation = 180               # 0, 90, 180, 270 (as you look at it)
+idle_image = "pferd.png"     # boot screen and whenever nothing plays (relative to this file)
 dc = 22                      # BCM pins for data/command and reset (pins 15 and 22)
 reset = 25
 # backlight = ...           # optional: pin that switches the backlight (here: LED pin wired to 3.3V, always on)
