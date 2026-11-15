@@ -234,9 +234,12 @@ To keep cards, configuration and music in Dropbox or OneDrive and share them bet
 
 ```
 cd ~/spotify-jukebox && git pull
-cd slim && sudo /opt/jukebox/venv/bin/pip install --upgrade .
+cd slim && rm -rf build src/*.egg-info
+sudo /opt/jukebox/venv/bin/pip install --upgrade --force-reinstall --no-deps .
 sudo systemctl restart jukebox
 ```
+
+The `rm` matters: a leftover `build/` folder from an earlier install makes pip reinstall the old files.
 
 You update go-librespot by replacing the binary with one from a newer release and restarting the service. If
 Spotify suddenly stops playing after a protocol change, this is the first thing to try.
