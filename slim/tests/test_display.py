@@ -273,3 +273,16 @@ def test_idle_missing_file_gives_blank_and_pause_is_optional(tmp_path):
     bus.post(ev.PAUSED); bus.post(ev.STOPPED)
     bus.drain(lambda e: None)
     assert calls == ["idle"]                     # paused: nothing (idle_on_pause is off), stopped: idle
+
+
+def test_idle_picture_by_convention_in_the_config_folder(tmp_path):
+    from jukebox.display import find_idle_picture
+    real, local = tmp_path / "repo", tmp_path / "home"
+    real.mkdir(); local.mkdir()
+    assert find_idle_picture({}, real, local) is None
+    (local / "idle.png").write_bytes(b"x")
+    assert find_idle_picture({}, real, local) == str(local / "idle.png")
+    (local / "idle.jpg").write_bytes(b"x")                                 # jpg is looked for first
+    assert find_idle_picture({}, real, local) == str(local / "idle.jpg")
+    assert find_idle_picture({"idle_image": "pic.png"}, real, local) == str(real / "pic.png")
+    assert find_idle_picture({"idle_image": str(tmp_path / "abs.png")}, real, local) == str(tmp_path / "abs.png")

@@ -109,7 +109,7 @@ boot = "sounds/startup.mp3"      # relative to this file (pferdesound1.mp3 from 
 [display]                    # ILI9341 on SPI; set up with `jukebox display-test`
 enabled = true
 rotation = 180               # 0, 90, 180, 270 (as you look at it)
-idle_image = "~/bootscreen_pferd.jpg"   # boot screen and whenever nothing plays; a private photo, deliberately NOT in this public repository
+# Boot / idle picture: put it at ~/.config/jukebox/idle.jpg (or .png). Private photo, never in this repository.
 dc = 22                      # BCM pins for data/command and reset (pins 15 and 22)
 reset = 25
 # backlight = ...           # optional: pin that switches the backlight (here: LED pin wired to 3.3V, always on)

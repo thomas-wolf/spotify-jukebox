@@ -115,7 +115,27 @@ class ScreenDisplay:
                 log.exception("display update failed")
 
 
-def build_display(section: dict, base_dir=None) -> Display:
+IDLE_NAMES = [f"idle.{ext}" for ext in ("jpg", "jpeg", "png", "webp")]
+
+
+def find_idle_picture(section: dict, base_dir=None, local_dir=None) -> str | None:
+    """[display] idle_image if set (relative: next to the real config.toml), otherwise by convention a file
+    idle.jpg / idle.png in the configuration folder (~/.config/jukebox), which is never part of the repository."""
+    from pathlib import Path
+    named = str(section.get("idle_image") or "")
+    if named:
+        path = Path(named).expanduser()
+        if not path.is_absolute() and base_dir is not None:
+            path = Path(base_dir) / path
+        return str(path)
+    if local_dir is not None:
+        for name in IDLE_NAMES:
+            if (Path(local_dir) / name).is_file():
+                return str(Path(local_dir) / name)
+    return None
+
+
+def build_display(section: dict, base_dir=None, local_dir=None) -> Display:
     """The display described by the [display] section; NullDisplay (with an error in the log) if the
     hardware or packages are missing, so that the rest of the box keeps working."""
     from ..config import ConfigError
@@ -129,13 +149,7 @@ def build_display(section: dict, base_dir=None) -> Display:
         from .ili9341 import ILI9341
         from .render import Renderer
         renderer = Renderer(settings)
-        idle = None
-        if settings.idle_image:
-            from pathlib import Path
-            idle = Path(settings.idle_image).expanduser()
-            if not idle.is_absolute() and base_dir is not None:
-                idle = Path(base_dir) / idle          # next to the real config file
-            idle = str(idle)
+        idle = find_idle_picture(section, base_dir, local_dir)
         return ScreenDisplay(renderer, ILI9341(settings), idle_picture=idle)
     except Exception as exc:                      # missing PIL/spidev/gpiod, no SPI device, ...
         log.error("display disabled: %s", exc)

@@ -28,3 +28,10 @@ sudo ~/jukebox/venv/bin/python -m jukebox -c ~/.config/jukebox/config.toml setup
 
 Symlinks keep the box in step with the repository. Use `cp` instead if the box has no clone of the repository.
 `cards.toml` and the music are not part of a box folder; they are shared and live in the cloud (see docs/SYNC.md).
+
+## Private files: by convention in `~/.config/jukebox/`
+
+Everything that must not be in the repository goes into the configuration folder on the box, never into
+`boxes/`. Currently the boot / idle picture: `~/.config/jukebox/idle.jpg` (or `.png`, `.jpeg`, `.webp`), found
+automatically. With cloud sync (`config = "pull"`) the file may also live in the cloud under
+`<remote>/boxes/<name>/idle.jpg` and is copied there.
