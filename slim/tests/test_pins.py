@@ -32,11 +32,11 @@ def test_collision_with_bus_pins(tmp_path):
     assert any("UART" in m for m in msgs) and any("I2S" in m for m in msgs)
 
 
-def test_gpio20_is_only_a_warning_and_reserved_pins_count(tmp_path):
+def test_gpio20_with_i2s_is_an_error_and_reserved_pins_count(tmp_path):
     cfg = cfg_from(tmp_path, '[boot]\naudio = "hifiberry-miniamp"\n[gpio.reserved]\n4 = "SHIM"\n'
                              '[[gpio.button]]\npin = 20\naction = "prev"\n[[gpio.button]]\npin = 4\naction = "next"\n')
     r = check_pins(cfg)
-    assert any("GPIO 20" in p.message for p in r.problems if p.level == "warning")
+    assert any("GPIO 20" in p.message for p in r.errors)
     assert any("GPIO 4" in p.message and "SHIM" in p.message for p in r.errors)
 
 

@@ -87,12 +87,10 @@ def check_pins(cfg: Config) -> PinReport:
             problems.append(Problem("error", f"GPIO {pin} is used twice: {', '.join(whats)}"))
         if pin in hardware:
             what = ", ".join(whats)
-            if pin == 20 and hardware[pin].startswith("I2S"):
-                problems.append(Problem(
-                    "warning", f"GPIO 20 ({what}) is the I2S data-in pin; the audio overlay may "
-                              "claim it. If it does nothing, move it."))
-            else:
-                problems.append(Problem("error", f"GPIO {pin} ({what}) collides with {hardware[pin]}"))
+            what = ", ".join(whats)
+            note = " (on a Pi 4 with the hifiberry overlay libgpiod refuses it: Invalid argument)" \
+                if pin == 20 and hardware[pin].startswith("I2S") else ""
+            problems.append(Problem("error", f"GPIO {pin} ({what}) collides with {hardware[pin]}{note}"))
         elif pin in (2, 3):
             problems.append(Problem(
                 "warning", f"GPIO {pin} ({', '.join(whats)}) has a fixed pull-up on the Pi "

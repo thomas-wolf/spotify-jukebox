@@ -186,7 +186,7 @@ other pinouts; only that file is specific to it.
 | Part | Physical pin | BCM | In the config |
 |---|---|---|---|
 | Button top blue (next) | 37 | 26 | `gpio.button` next |
-| Button top green (prev) | 38 | 20 | `gpio.button` prev |
+| Button top green (prev) | 38 | 20 | **does not work**, see below; blue button held = prev meanwhile |
 | Button top yellow (pause) | 32 | 12 | `gpio.button` play_pause |
 | SHIM button (shutdown, hold 2 s) | 11 | 17 | `gpio.button`, hold only |
 | Encoder CLK / DT / push | 31 / 29 / 33 | 6 / 5 / 13 | `gpio.rotary`, button `mute` |
@@ -205,8 +205,11 @@ horse sound 16).
 
 Things to check on that box:
 
-- **GPIO 20 (prev button)** is the I2S data-in pin. The `hifiberry-dac` overlay may claim it. If the button
-  does nothing, move it to a free pin.
+- **GPIO 20 (prev button) does not work.** It is the I2S data-in pin and the `hifiberry-dac` overlay owns it;
+  libgpiod answers `Invalid argument` (seen on the box). The old v2 setup used it with a different audio
+  configuration. Free header pins are GPIO 3 (pin 5, I2C SCL with a fixed pull-up, fine as a button while I2C is
+  off; check that the SHIM does not use pin 5) and GPIO 7 (pin 26, SPI CE1; with `dtparam=spi=on` the kernel
+  claims it, `dtoverlay=spi0-1cs` would free it **(unverified)**). Until then holding the blue button gives "previous".
 - **GPIO 2 (red button LED)** is the I2C SDA pin with a fixed pull-up on the board. It works as an output
   while `i2c = false`.
 - **GPIO 4** belongs to the SHIM. Do not assign it to anything else.
