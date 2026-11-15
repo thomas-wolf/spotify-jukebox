@@ -124,6 +124,9 @@ def cmd_sync(args) -> int:
 
 def cmd_run(args) -> int:
     cfg, app, cards_path = build(args.config)
+    from .pins import check_pins
+    for problem in check_pins(cfg).problems:
+        logging.getLogger("jukebox.pins").warning("%s", problem.message)
     install_sounds(app)
     threads = start_inputs(cfg, app)
     hooks = cfg.section("hooks").get("file")
@@ -298,6 +301,14 @@ def cmd_setup(args) -> int:
     return 0
 
 
+def cmd_pins(args) -> int:
+    from .pins import check_pins, format_report
+    cfg = load_config(args.config)
+    report = check_pins(cfg)
+    print(format_report(report, cfg))
+    return 1 if report.errors else 0
+
+
 def cmd_spotify_check(args) -> int:
     from .players.spotify import ENDPOINTS, http_transport
     cfg = load_config(args.config)
@@ -363,6 +374,7 @@ def main(argv: list[str] | None = None) -> int:
     setup.add_argument("--config-txt", help="override the config.txt path")
     setup.add_argument("--modules-file", help="override /etc/modules-load.d/jukebox.conf")
     setup.set_defaults(fn=cmd_setup)
+    sub.add_parser("pins", help="list the pin assignment and report conflicts").set_defaults(fn=cmd_pins)
     sub.add_parser("spotify-check").set_defaults(fn=cmd_spotify_check)
     sub.add_parser("adc-check").set_defaults(fn=cmd_adc_check)
     args = parser.parse_args(argv)

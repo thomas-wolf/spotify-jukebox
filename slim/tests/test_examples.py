@@ -1,7 +1,9 @@
 import tomllib
 from pathlib import Path
 
-EX = Path(__file__).resolve().parent.parent / "examples"
+ROOT = Path(__file__).resolve().parent.parent
+EX = ROOT / "examples"
+BOXES = ROOT / "boxes"
 
 
 def _pins(cfg):
@@ -19,7 +21,7 @@ def test_examples_parse_and_pins_are_unique():
 
 
 def test_pferdeanhaenger_avoids_reserved_pins():
-    cfg = tomllib.loads((EX / "pferdeanhaenger.toml").read_text())
+    cfg = tomllib.loads((BOXES / "pferdeanhaenger" / "config.toml").read_text())
     reserved = {4, 14, 15, 8, 9, 10, 11, 18, 19, 21}  # 17 is the SHIM button, on purpose
     assert not reserved & set(_pins(cfg))
     assert {cfg["display"]["dc"], cfg["display"]["reset"]} == {22, 25}
@@ -29,7 +31,7 @@ def test_pferdeanhaenger_hook_registers_action():
     import importlib.util
     from types import SimpleNamespace
 
-    spec = importlib.util.spec_from_file_location("hp", EX / "hooks_pferdeanhaenger.py")
+    spec = importlib.util.spec_from_file_location("hp", BOXES / "pferdeanhaenger" / "hooks.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     app = SimpleNamespace(actions={}, cfg=SimpleNamespace(section=lambda n: {}))

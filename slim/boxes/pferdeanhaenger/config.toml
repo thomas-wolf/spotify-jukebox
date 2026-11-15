@@ -1,5 +1,5 @@
 # Marie's horse trailer: full pinout of ONE box (other boxes have different pinouts).
-# Copy to ~/.config/jukebox/config.toml on that box. Wiring notes: docs/HARDWARE.md.
+# Install on the box: see boxes/README.md. Wiring: boxes/pferdeanhaenger/README.md.
 # Everything that differs between your boxes (pinout, readers, sounds, hooks)
 # lives here, never in the code.
 
@@ -38,6 +38,9 @@ id_format = "raw"             # raw | dec | float | hex; raw/dec/float = same id
 # 4/17 OnOff SHIM (power button / power-off signal). See docs/HARDWARE.md.
 [gpio]
 chip = "/dev/gpiochip0"
+
+[gpio.reserved]            # pins that belong to other hardware (checked by `jukebox pins`)
+4 = "OnOff SHIM power-off signal"
 
 [[gpio.button]]            # top, blue (pin 37)
 pin = 26

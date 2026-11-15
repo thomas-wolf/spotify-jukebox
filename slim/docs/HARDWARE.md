@@ -149,7 +149,7 @@ tell me what you see.
 
 ## Example: one complete box ("Pferdeanhänger")
 
-`examples/pferdeanhaenger.toml` is the full pinout of one box (Marie's horse trailer). Other boxes have
+`boxes/pferdeanhaenger/config.toml` is the full pinout of one box (Marie's horse trailer). Other boxes have
 other pinouts; only that file is specific to it.
 
 | Part | Physical pin | BCM | In the config |
@@ -159,7 +159,7 @@ other pinouts; only that file is specific to it.
 | Button top yellow (pause) | 32 | 12 | `gpio.button` play_pause |
 | SHIM button (shutdown, hold 2 s) | 11 | 17 | `gpio.button`, hold only |
 | Encoder CLK / DT / push | 31 / 29 / 33 | 6 / 5 / 13 | `gpio.rotary`, button `mute` |
-| Back button (horse sound) | 36 | 16 | `pferdesound`, see `hooks_pferdeanhaenger.py` |
+| Back button (horse sound) | 36 | 16 | `pferdesound`, see `boxes/pferdeanhaenger/hooks.py` |
 | LED top red | 18 | 24 | `status` |
 | LEDs back white / red | 13 / 16 | 27 / 23 | `back_white`, `back_red` |
 | Button LED red | 3 | 2 | `button_red` |
@@ -180,3 +180,16 @@ Things to check on that box:
   while `i2c = false`.
 - **GPIO 4** belongs to the SHIM. Do not assign it to anything else.
 - The RDM6300's TX goes to the Pi's RX (pin 10, GPIO 15).
+
+## Checking the pins
+
+`jukebox pins` lists the BCM pins a configuration uses and reports collisions: a pin used twice, pins that
+belong to SPI (display), UART (RDM6300), I2C (ADS1115) or I2S (audio overlay), and pins that do not exist on the
+header. Hardware the jukebox does not drive (a SHIM, say) is declared in the box configuration:
+
+```toml
+[gpio.reserved]
+4 = "OnOff SHIM power-off signal"
+```
+
+The same check runs when the box starts (as log warnings) and in the tests for every `boxes/*/config.toml`.
