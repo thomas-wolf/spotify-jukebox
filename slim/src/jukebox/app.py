@@ -57,8 +57,10 @@ class App:
 
     # -- start -------------------------------------------------------------
     def start(self) -> None:
-        self.set_volume(self.cfg.section("audio")["start_volume"])
+        # Boot first so the startup sound is not held up by a player that is still waking up;
+        # the start volume follows through the same queue.
         self.bus.post(ev.BOOT)
+        self.bus.post(ev.ACTION, name="volume_set", args={"value": self.cfg.section("audio")["start_volume"]})
 
     # -- event entry point (runs on the main loop thread) -------------------
     def handle(self, event: Event) -> None:
