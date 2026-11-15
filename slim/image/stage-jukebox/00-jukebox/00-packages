@@ -1,0 +1,10 @@
+python3-venv
+python3-setuptools
+python3-libgpiod
+python3-evdev
+mpv
+alsa-utils
+avahi-daemon
+rclone
+sudo
+curl

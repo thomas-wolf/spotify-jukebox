@@ -1,0 +1,15 @@
+[Unit]
+Description=Jukebox first boot (hostname, box configuration, overlays)
+ConditionPathExists=/boot/firmware/jukebox.toml
+ConditionPathExists=!/var/lib/jukebox/.firstboot-done
+After=local-fs.target cloud-final.service
+Before=jukebox.service go-librespot.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/jukebox-firstboot
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

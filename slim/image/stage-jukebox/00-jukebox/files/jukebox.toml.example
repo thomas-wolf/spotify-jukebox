@@ -1,0 +1,9 @@
+# Copy this file to "jukebox.toml" (same folder, the boot partition) before the first start.
+# On the first boot the box reads it once, sets its identity and reboots.
+
+# Required. Name of the box. Selects boxes/<box>/config.toml of the image
+# (or, if present, the folder "jukebox/" next to this file, see docs). Lowercase letters, digits, "-".
+box = "kitchen"
+
+# Optional. Hostname (<hostname>.local in the network). Default: same as the box name.
+# hostname = "kitchen"

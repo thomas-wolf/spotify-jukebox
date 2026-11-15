@@ -1,0 +1,2 @@
+# Lets the jukebox service power the box off (shutdown cards and buttons)
+jukebox ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff

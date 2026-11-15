@@ -1,0 +1,9 @@
+# pi-gen configuration for the jukebox image (sourced by pi-gen's build.sh, so no `export` needed).
+# Secrets (FIRST_USER_PASS, PUBKEY_SSH_FIRST_USER, WPA_*) go into image/config.local, which is not in git.
+IMG_NAME=jukebox
+RELEASE=trixie
+STAGE_LIST="stage0 stage1 stage2 stage-jukebox"
+ENABLE_SSH=1
+TIMEZONE_DEFAULT=Europe/Berlin
+WPA_COUNTRY=DE
+DEPLOY_COMPRESSION=xz

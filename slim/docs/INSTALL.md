@@ -18,6 +18,10 @@ prebuilt binaries for it **(unverified)**. Look at the
 [release page](https://github.com/devgianlu/go-librespot/releases/latest). If `uname -m` prints `armv6l` and
 there is no binary, you have to build the program yourself.
 
+**Prefer a ready-made image?** [image/README.md](../image/README.md) builds an SD-card image with steps 1, 2, 5 and 7
+below already done, and sets the hostname and box configuration on the first boot. The steps here remain the
+way to set up a box by hand.
+
 ## 1. Prepare the system
 
 Use the Raspberry Pi Imager to write Raspberry Pi OS Lite (Trixie) to the SD card. In the Imager settings,
