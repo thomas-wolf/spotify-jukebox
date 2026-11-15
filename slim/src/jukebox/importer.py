@@ -111,6 +111,8 @@ def convert(src: Path) -> ImportResult:
 
 
 def _resolve(card_id: str, folder: str, folders: Path | None, res: ImportResult) -> Entry | None:
+    if folders is not None and not (folders / folder).is_dir() and "\\" in folder:
+        folder = folder.replace("\\", "/")  # shortcut written with Windows separators
     if folders is None or not (folders / folder).is_dir():
         res.skipped.append((card_id, f"folder {folder!r} not found (not copied, or wrong name)"))
         return None

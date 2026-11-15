@@ -68,3 +68,13 @@ def test_livestream_cards_become_streams(tmp_path):
     by = {e.id: e for e in res.entries}
     assert by["0000000002"].play == "stream:http://br-br2-nord.cast.addradio.de/br/br2/nord/mp3/56/stream.mp3"
     assert "http(s)" in dict(res.skipped)["0000000005"]
+
+
+def test_backslash_paths_are_read_as_subfolders(tmp_path):
+    root = make_v2(tmp_path)
+    af = root / "shared" / "audiofolders"
+    (af / "GESCHICHTEN" / "Tom").mkdir(parents=True)
+    (af / "GESCHICHTEN" / "Tom" / "spotify.txt").write_text("spotify:album:ABC")
+    (root / "shared" / "shortcuts" / "0000000099").write_text("GESCHICHTEN\\Tom")
+    res = importer.convert(root)
+    assert {e.id: e.play for e in res.entries}["0000000099"] == "spotify:album:ABC"
