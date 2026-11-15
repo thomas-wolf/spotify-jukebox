@@ -204,9 +204,9 @@ becomes `spotify:playlist:ABC123`. Local folders live under the `root` from the 
 
 ## 9. Several boxes
 
-Every box has its own `config.toml` (pinout, readers, sounds, `hooks.py`). The repository and the code are
-the same everywhere. A new box is: steps 1 to 8, then copy `config.toml` and `cards.toml` from an existing box
-and adjust the hardware sections.
+Every box has its own folder in `boxes/<name>/` with `config.toml` (pinout, readers, sounds) and optionally
+`hooks.py`. The code is the same everywhere. See [boxes/README.md](../boxes/README.md) for adding a box and for
+linking its files into `~/.config/jukebox/`. `jukebox -c <config> pins` checks the pinout for conflicts.
 
 ## 10. Web interface (optional)
 
