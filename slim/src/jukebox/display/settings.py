@@ -66,8 +66,8 @@ class DisplaySettings:
             raise ConfigError(f"[display] rotation must be one of {ROTATIONS}")
         if self.width < 16 or self.height < 16:
             raise ConfigError("[display] width and height must be the panel's native size in pixels")
-        if self.layout not in ("auto", "split", "cover"):
-            raise ConfigError("[display] layout must be auto, split or cover")
+        if self.layout not in ("auto", "split", "cover", "overlay"):
+            raise ConfigError("[display] layout must be auto, split, cover or overlay")
         if self.cover_side not in ("left", "right", "top", "bottom"):
             raise ConfigError("[display] cover_side must be left, right, top or bottom")
         if self.cover_fit not in ("contain", "cover"):

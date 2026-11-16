@@ -161,14 +161,14 @@ on without a display.
 | `spi_speed_hz` | `32000000` | SPI clock. Lower it if the picture shows noise (unverified, depends on the wiring). |
 | `gpio_chip` | `/dev/gpiochip0` | GPIO chip for the pins above |
 | `margins` | all `0` | Pixels the housing hides: `{ left = 12, top = 10, right = 12, bottom = 10 }`. In the **rotated** picture, as you look at it. Nothing important is drawn there. |
-| `layout` | `auto` | `cover`: the cover alone fills the visible area. `split`: square cover plus text beside or below it. `auto`: split when the leftover space is big enough for text (wide displays), otherwise cover alone. |
+| `layout` | `auto` | `cover`: the cover alone fills the visible area. `overlay`: the cover fills the whole screen (cropped) and title and artist are drawn on a dark gradient at the bottom. `split`: square cover plus text beside or below it. `auto`: split when the leftover space is big enough for text (wide displays), otherwise cover alone. |
 | `cover_side` | `left` | Which side the square cover goes in `split`: `left` or `right` (wide pictures), `top` or `bottom` (tall ones) |
 | `cover_fit` | `contain` | `contain`: the whole cover is visible, bars where the shape differs (4:3 cover in a square box). `cover`: the box is filled, the cover is cropped. |
 | `background` | `average` | What fills the free areas: `average` (darkened average colour of the cover), `blur` (blurred cover), or a fixed color like `"#101010"` |
 | `idle_image` | none | Picture shown at boot and whenever nothing plays (after `stop`). A relative path is taken relative to the real `config.toml`. **Convention:** without this key, `idle.jpg` (or `.jpeg`, `.png`, `.webp`) in the configuration folder `~/.config/jukebox/` is used. That folder is never part of the repository, so private photos belong there. Without a picture the screen goes black. |
 | `idle_fit` | `cover` | `cover`: the picture fills the visible area and is cropped, `contain`: the whole picture is shown. Margins are respected. |
 | `idle_on_pause` | `false` | `true`: the picture is also shown while playback is paused. |
-| `font` | built-in | Path of a TrueType font (the built-in one has no special characters beyond Latin) |
+| `font` | system font | Path of a TrueType font. Without it DejaVu Sans, Noto Sans, Liberation Sans or FreeSans is used if installed (`sudo apt install fonts-dejavu-core`), otherwise Pillow's built-in font, which lacks characters such as the German ß. |
 | `title_size`, `artist_size` | `22`, `16` | Text sizes in pixels |
 
 A cover is usually square or 4:3. On a wide panel the square cover takes the left or right part of the visible

@@ -286,3 +286,23 @@ def test_idle_picture_by_convention_in_the_config_folder(tmp_path):
     assert find_idle_picture({}, real, local) == str(local / "idle.jpg")
     assert find_idle_picture({"idle_image": "pic.png"}, real, local) == str(real / "pic.png")
     assert find_idle_picture({"idle_image": str(tmp_path / "abs.png")}, real, local) == str(tmp_path / "abs.png")
+
+
+def test_overlay_layout_draws_text_over_the_cover():
+    s = DisplaySettings.from_section({"layout": "overlay", "rotation": 180, "background": "#000000"})
+    r = Renderer(s)
+    cover = Image.new("RGB", (300, 300), (200, 200, 200))
+    plain = r.render(cover, "", "")
+    img = r.render(cover, "A fairly long title of a song", "Some Artist")
+    assert img.size == (240, 320)
+    assert img.getpixel((120, 10)) == plain.getpixel((120, 10)) == (200, 200, 200)        # top: untouched cover
+    assert sum(img.getpixel((120, 315))) < sum(plain.getpixel((120, 315)))                 # bottom: darkened band
+    assert img.getpixel((5, 150)) == (200, 200, 200)                                       # cover fills the screen
+    bright = [img.getpixel((x, y)) for x in range(8, 232) for y in range(260, 316)]
+    assert any(p == (255, 255, 255) for p in bright)                                       # title ink present
+
+
+def test_font_falls_back_to_a_usable_font():
+    from jukebox.display.render import _font
+    f = _font("/nonexistent/font.ttf", 16)
+    assert f is not None

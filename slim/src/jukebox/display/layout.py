@@ -36,10 +36,10 @@ def plan(vis: Rect, layout: str = "auto", cover_side: str = "left", pad: int = 8
     """Return (cover box, text box or None).
 
     The cover box is a square on one side of the visible area; the rest is for text. `layout`:
-    "cover": the cover alone fills the visible area; "split": square cover plus text; "auto": split when the
+    "cover": the cover alone fills the visible area; "overlay": the same, with title and artist drawn over it; "split": square cover plus text; "auto": split when the
     leftover space is big enough for text, otherwise cover alone.
     """
-    if layout == "cover":
+    if layout in ("cover", "overlay"):          # overlay: the renderer draws the text onto the cover
         return vis, None
     landscape = vis.w >= vis.h
     side = vis.h if landscape else vis.w

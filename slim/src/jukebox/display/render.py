@@ -28,12 +28,21 @@ def fetch_cover(url: str, timeout: float = 6.0) -> Image.Image:
     return img.convert("RGB")
 
 
+# Pillow's built-in font lacks glyphs such as the German sharp s, so look for a system font first.
+SYSTEM_FONTS = (
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+)
+
+
 def _font(path: str, size: int):
-    if path:
+    for candidate in ([path] if path else []) + list(SYSTEM_FONTS):
         try:
-            return ImageFont.truetype(path, size)
+            return ImageFont.truetype(candidate, size)
         except OSError:
-            pass
+            continue
     try:
         return ImageFont.load_default(size=size)     # scalable with Pillow >= 10.1 and FreeType
     except TypeError:
@@ -77,7 +86,9 @@ class Renderer:
         sub = tuple(int(c * 0.7 + b * 0.3) for c, b in zip(ink, bg))     # softer colour for the artist
         if cover is not None:
             self._paste_cover(img, cover)
-            if self.text_box is not None:
+            if self.s.layout == "overlay":
+                self._overlay(img, title, artist)
+            elif self.text_box is not None:
                 self._text(draw, self.text_box, title, artist, ink, sub, anchor_left=True)
         elif title or artist:
             self._text(draw, self.vis, title, artist, ink, sub, anchor_left=False)
@@ -85,12 +96,41 @@ class Renderer:
 
     def _paste_cover(self, img: Image.Image, cover: Image.Image) -> None:
         box: Rect = self.cover_box
-        nw, nh, ox, oy = fit_box(*cover.size, box.w, box.h, self.s.cover_fit)
+        fit = "cover" if self.s.layout == "overlay" else self.s.cover_fit   # overlay: the cover fills the screen
+        nw, nh, ox, oy = fit_box(*cover.size, box.w, box.h, fit)
         scaled = cover.resize((nw, nh), Image.LANCZOS)
-        if self.s.cover_fit == "cover":
+        if fit == "cover":
             img.paste(scaled.crop((-ox, -oy, -ox + box.w, -oy + box.h)), (box.x, box.y))
         else:
             img.paste(scaled, (box.x + ox, box.y + oy))
+
+    def _overlay(self, img: Image.Image, title: str, artist: str) -> None:
+        """Title and artist over the lower part of the cover, on a dark gradient so that they stay readable."""
+        if not (title or artist):
+            return
+        v, pad = self.vis, 8
+        draw = ImageDraw.Draw(img)
+        t_lines = wrap(title, lambda t: draw.textlength(t, font=self.title_font), v.w - 2 * pad, 3) if title else []
+        a_lines = wrap(artist, lambda t: draw.textlength(t, font=self.artist_font), v.w - 2 * pad, 2) if artist else []
+        th, ah = self.s.title_size + 4, self.s.artist_size + 3
+        text_h = len(t_lines) * th + len(a_lines) * ah + (4 if t_lines and a_lines else 0)
+        fade = 28
+        band_h = min(v.h, text_h + 2 * pad + fade)
+        top = v.y + v.h - band_h
+        mask = Image.new("L", (v.w, band_h))
+        md = ImageDraw.Draw(mask)
+        for row in range(band_h):                                   # transparent at the top, 80% dark at the bottom
+            alpha = int(204 * min(1.0, row / fade)) if fade else 204
+            md.line((0, row, v.w, row), fill=alpha)
+        img.paste(Image.new("RGB", (v.w, band_h), (0, 0, 0)), (v.x, top), mask)
+        y = v.y + v.h - pad - text_h
+        for lines, font, step, color in ((t_lines, self.title_font, th, (255, 255, 255)),
+                                         (a_lines, self.artist_font, ah, (215, 215, 215))):
+            for line in lines:
+                draw.text((v.x + pad + 1, y + 1), line, font=font, fill=(0, 0, 0))   # shadow
+                draw.text((v.x + pad, y), line, font=font, fill=color)
+                y += step
+            y += 4
 
     def _text(self, draw, box: Rect, title, artist, ink, sub, anchor_left: bool) -> None:
         def measure(font):
