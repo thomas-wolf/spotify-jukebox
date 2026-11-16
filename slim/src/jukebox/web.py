@@ -84,6 +84,15 @@ def list_folders(root: Path, depth: int = 3, limit: int = 2000) -> list[str]:
     return sorted(found, key=str.lower)
 
 
+class _Server(ThreadingHTTPServer):
+    def handle_error(self, request, client_address) -> None:
+        # Browsers drop connections all the time (tab closed, reload); that is not an error.
+        import sys
+        if isinstance(sys.exc_info()[1], (ConnectionError, TimeoutError)):
+            return
+        log.exception("web: error handling request from %s", client_address[0])
+
+
 class Web:
     def __init__(self, app, cards_path: Path, local_root: Path, host: str, port: int) -> None:
         self.app, self.cards_path, self.local_root = app, cards_path, local_root
@@ -92,7 +101,7 @@ class Web:
                       "error": "", "last_card": None, "last_card_time": 0.0}
         for name in (ev.CARD, ev.CARD_UNKNOWN, ev.PLAYING, ev.PAUSED, ev.STOPPED, ev.VOLUME, ev.ERROR):
             app.bus.subscribe(name, self._on_event)
-        self.server = ThreadingHTTPServer((host, port), self._handler())
+        self.server = _Server((host, port), self._handler())
         self.server.daemon_threads = True
         self.thread = threading.Thread(target=lambda: self.server.serve_forever(poll_interval=0.1), name="web", daemon=True)
 

@@ -133,3 +133,13 @@ def test_web_accepts_streams_only_over_http(web):
     assert app._cards_ci["r1"].play == "stream:https://radio.example/live.mp3"
     for bad in ("stream:file:///etc/passwd", "stream:ftp://x", "stream:https://a b"):
         assert jcall(w, "PUT", "/api/cards/R2", {"play": bad})[0] == 400
+
+
+def test_dropped_connections_are_not_logged(caplog):
+    from jukebox.web import _Server
+    srv = _Server.__new__(_Server)
+    try:
+        raise ConnectionResetError(104, "reset")
+    except ConnectionResetError:
+        srv.handle_error(None, ("127.0.0.1", 1))
+    assert not caplog.records
