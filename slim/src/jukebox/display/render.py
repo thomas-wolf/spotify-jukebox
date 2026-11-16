@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+from pathlib import Path
 import urllib.request
 
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
@@ -29,7 +30,9 @@ def fetch_cover(url: str, timeout: float = 6.0) -> Image.Image:
 
 
 # Pillow's built-in font lacks glyphs such as the German sharp s, so look for a system font first.
+BUNDLED_FONT = str(Path(__file__).parent / "fonts" / "DejaVuSans.ttf")
 SYSTEM_FONTS = (
+    BUNDLED_FONT,
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
     "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",

@@ -306,3 +306,12 @@ def test_font_falls_back_to_a_usable_font():
     from jukebox.display.render import _font
     f = _font("/nonexistent/font.ttf", 16)
     assert f is not None
+
+
+def test_bundled_font_has_umlauts_and_sharp_s():
+    from PIL import ImageFont
+    from jukebox.display.render import BUNDLED_FONT, _font
+    f = _font("", 20)
+    assert f.path == BUNDLED_FONT
+    for ch in "äöüÄÖÜß":
+        assert f.getmask(ch).getbbox() is not None

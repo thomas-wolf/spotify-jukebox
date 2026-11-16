@@ -168,7 +168,7 @@ on without a display.
 | `idle_image` | none | Picture shown at boot and whenever nothing plays (after `stop`). A relative path is taken relative to the real `config.toml`. **Convention:** without this key, `idle.jpg` (or `.jpeg`, `.png`, `.webp`) in the configuration folder `~/.config/jukebox/` is used. That folder is never part of the repository, so private photos belong there. Without a picture the screen goes black. |
 | `idle_fit` | `cover` | `cover`: the picture fills the visible area and is cropped, `contain`: the whole picture is shown. Margins are respected. |
 | `idle_on_pause` | `false` | `true`: the picture is also shown while playback is paused. |
-| `font` | system font | Path of a TrueType font. Without it DejaVu Sans, Noto Sans, Liberation Sans or FreeSans is used if installed (`sudo apt install fonts-dejavu-core`), otherwise Pillow's built-in font, which lacks characters such as the German ß. |
+| `font` | bundled | Path of a TrueType font. The default is the DejaVu Sans that ships with the package (umlauts, ß and most accents work). |
 | `title_size`, `artist_size` | `22`, `16` | Text sizes in pixels |
 
 A cover is usually square or 4:3. On a wide panel the square cover takes the left or right part of the visible
