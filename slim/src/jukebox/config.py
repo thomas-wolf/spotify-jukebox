@@ -15,7 +15,7 @@ DEFAULTS: dict[str, Any] = {
     "cards": {
         # What happens when the same card is presented again:
         # toggle (pause/resume), ignore, restart, next
-        "same_card": "toggle",
+        "same_card": "restart",
         "same_card_delay": 3.0,
     },
     "spotify": {"enabled": True, "api_url": "http://127.0.0.1:3678"},

@@ -34,7 +34,7 @@ All values are integers from 0 to 100. Volume is controlled in software (the Min
 
 | Key | Default | Meaning |
 |---|---|---|
-| `same_card` | `toggle` | What happens when the running card is presented again: `toggle` (pause/resume), `ignore`, `restart` (from the beginning), `next` (next track) |
+| `same_card` | `restart` | What happens when the running card is presented again: `toggle` (pause/resume), `ignore`, `restart` (from the beginning), `next` (next track) |
 | `same_card_delay` | `3.0` | Seconds during which the same card counts as a reader repeat and is ignored |
 
 ### `[spotify]`

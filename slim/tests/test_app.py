@@ -51,6 +51,7 @@ def test_unknown_card_event(env):
 
 def test_same_card_toggles_after_delay_but_not_before(env):
     app, feed, spotify, _, _, clock, _ = env
+    app.cfg.raw["cards"]["same_card"] = "toggle"
     feed(ev.CARD, id="A")
     clock.now += 1
     feed(ev.CARD, id="A")                     # reader repeat -> ignored
