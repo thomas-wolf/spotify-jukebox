@@ -125,8 +125,10 @@ class App:
             self.bus.post(ev.PLAYING if self.players.is_playing() else ev.PAUSED,
                           target=self.players.current_target)
         elif mode == "restart":
-            assert self.players.current_target
-            self.players.play(self.players.current_target)
+            target = self.players.current_target
+            assert target
+            self.players.play(target)
+            self.bus.post(ev.PLAYING, target=target)
         elif mode == "next":
             self.players.next()
 

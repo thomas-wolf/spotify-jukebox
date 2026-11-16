@@ -12,7 +12,7 @@ max_volume = 80          # hard cap, also applies to the knob
 volume_step = 5
 
 [cards]
-same_card = "toggle"     # toggle | ignore | restart | next
+same_card = "restart"    # toggle | ignore | restart | next  (restart = playlist from the start)
 same_card_delay = 3.0
 
 [spotify]

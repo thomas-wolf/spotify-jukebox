@@ -123,3 +123,13 @@ def test_card_lookup_ignores_case(env):
     _, feed, spotify, *_ = env
     feed(ev.CARD, id="a")                      # configured as "A"
     assert ("play", "spotify:playlist:a") in spotify.calls
+
+
+def test_same_card_restart_plays_from_the_beginning(env):
+    app, feed, spotify, _, seen, clock, _ = env
+    app.cfg.raw["cards"]["same_card"] = "restart"
+    feed(ev.CARD, id="A")
+    clock.now += 10
+    feed(ev.CARD, id="A")
+    assert spotify.calls.count(("play", "spotify:playlist:a")) == 2
+    assert ("pause",) not in spotify.calls
