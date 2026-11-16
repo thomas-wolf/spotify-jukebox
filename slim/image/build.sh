@@ -7,7 +7,8 @@
 set -euo pipefail
 
 PI_GEN_URL=https://github.com/RPi-Distro/pi-gen
-PI_GEN_COMMIT=6e3ff62bfd9c690a6a3d1d7de259d5e0af40cb78   # pi-gen master (Trixie, armhf), pinned
+PI_GEN_COMMIT=c0d2c9f2cffc08bc56850b0a3eb23178f4226e8a   # pi-gen branch arm64 (Trixie, 64-bit), pinned
+# 32-bit instead (Pi Zero/1): pi-gen master, e.g. 6e3ff62bfd9c690a6a3d1d7de259d5e0af40cb78, and see versions.env
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(git -C "$HERE" rev-parse --show-toplevel)

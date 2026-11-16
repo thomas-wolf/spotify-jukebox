@@ -10,7 +10,8 @@ chroot part (`02-run-chroot.sh`), the Docker build and the first boot on a Pi ha
 
 ## What is in the image
 
-- Raspberry Pi OS Lite, Debian 13 "Trixie", 32-bit (armhf, runs on every Pi including the Zero).
+- Raspberry Pi OS Lite, Debian 13 "Trixie", 64-bit (arm64): Pi 3, 4, 5 and Zero 2 W. Not for the Pi Zero (W) and
+  Pi 1, see "32-bit" below.
 - Packages: `python3-libgpiod`, `python3-evdev`, `mpv`, `alsa-utils`, `rclone`, `avahi-daemon`, `sudo`.
 - The jukebox from the committed state of `slim/` in `/opt/jukebox/repo`, installed into `/opt/jukebox/venv`.
   `/opt/jukebox/VERSION` holds the git commit.
@@ -88,11 +89,11 @@ later boots because the first boot tells cloud-init to leave the hostname alone 
 This depends on how the Pi OS release configures cloud-init **(unverified)**; if the hostname jumps back after
 the first reboot, check `/etc/cloud/cloud.cfg.d/` and `user-data` on the boot partition.
 
-## 64-bit
+## 32-bit (Pi Zero, Pi 1)
 
-pi-gen builds 32-bit from `master` and 64-bit from its `arm64` branch. For a 64-bit image pin an `arm64`
-commit in `build.sh` and set `GL_ASSET=go-librespot_linux_arm64.tar.gz` plus its checksum in `versions.env`
-(that file name is **unverified**).
+pi-gen builds 64-bit from its `arm64` branch (the default here) and 32-bit from `master`. For a 32-bit image
+pin a `master` commit in `build.sh` and switch `GL_ASSET`/`GL_SHA256` in `versions.env` (both are in the file,
+commented out). Not built or run **(unverified)**.
 
 ## Files
 
