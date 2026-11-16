@@ -41,7 +41,8 @@ echo "$COMMIT" > "$F/VERSION"
 touch "$PIGEN/stage2/SKIP_IMAGES"   # only our stage exports an image, not the plain Lite one
 # Workaround: newer util-linux prints "/dev/loop0 (lost)" for `losetup -f` when the device node is missing in
 # the container; pi-gen then cannot parse it ("mknod: invalid minor device number") and the export fails.
-sed -i 's|loopdev="$(losetup -f)"|loopdev="$(losetup -f \| awk '"'"'{print $1}'"'"')"|' "$PIGEN/scripts/common"
+sed -i.bak 's#loopdev="$(losetup -f)"#loopdev="$(losetup -f | awk '"'"'{print $1}'"'"')"#' "$PIGEN/scripts/common"
+rm -f "$PIGEN/scripts/common.bak"
 grep -q "awk '{print \$1}'" "$PIGEN/scripts/common" || { echo "error: loop device patch did not apply" >&2; exit 1; }
 
 cp "$HERE/config" "$PIGEN/config"
