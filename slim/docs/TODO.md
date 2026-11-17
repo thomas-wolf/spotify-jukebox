@@ -28,6 +28,17 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
 
 - [ ] GPIO 20 (previous-track button): owned by the I2S driver. Either a custom I2S overlay or re-solder to GPIO 3/7.
 
+## Soloist
+
+- [x] Soloist backend (code, tests), works on the Pferdeanhaenger by hand.
+- [ ] Image with Soloist (units, wrapper, update timer, PipeWire, linger): written, NOT built or booted yet.
+  Unverified: linger for the system user `jukebox` (`loginctl show-user jukebox`), PipeWire in the `jukebox`
+  user session (`sudo -u jukebox XDG_RUNTIME_DIR=/run/user/$(id -u jukebox) wpctl status`), mpv through
+  pipewire-alsa, first pairing as `jukebox`.
+- [ ] Volume with Soloist is much quieter at `start_volume = 30` (PipeWire): measure and adjust, or add a curve.
+- [ ] On the hardware: previous/next, `set_volume`, seek, cold boot without a phone.
+- [ ] Pairing without a phone nearby (or a helper command), API key out of `ps` if Soloist can read it from a file.
+
 ## Repository
 
 - [ ] Make the repo private: new private repo plus a deploy key on the Pi (a fork cannot be made private).
@@ -39,5 +50,4 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
 
 ## Maybe later
 
-- [ ] Soloist as a second Spotify backend if old accounts stop working (see TROUBLESHOOTING.md).
 - [ ] Podcasts, Cover Art Archive as a cover source, split `cli.py`, detect go-librespot stopping by itself.

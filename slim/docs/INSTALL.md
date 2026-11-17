@@ -141,30 +141,50 @@ Since late 2025 Spotify refuses the audio key to go-librespot (and every other l
 set of accounts, mostly new ones, including members of a Family plan ([TROUBLESHOOTING.md](TROUBLESHOOTING.md)).
 **Soloist**, Spotify's own headless client for Linux and Raspberry Pi (released August 2026), is not affected.
 
-Status: tested on a Mac (macOS, Apple Silicon) with a new Family member: pairing, `play` with a playlist and an album
-URI, restored login after a restart. **Not tried on a Pi yet.** What the Pi needs, from Spotify's documentation:
+Status: works on a Pi 4 (Trixie, PipeWire, HiFiBerry MiniAmp) with a new Family member: pairing, playback,
+card scan, pause, restart on the same card, `jukebox spotify-check`. Still to check on hardware: previous/next,
+volume from the knob, behaviour after a cold boot without a phone. What the Pi needs, from Spotify's documentation:
 
 - A 64-bit or 32-bit ARM build (not ARMv6, so not the Pi 1 or Pi Zero 1) and a recent glibc (Trixie).
-- PipeWire or PulseAudio; plain ALSA is not enough.
+- PipeWire or PulseAudio; plain ALSA is not enough. With PipeWire the user needs the group `audio`.
 - An **API key** from Spotify for Developers. It belongs to the account that creates it, which needs Premium.
   Every start of Soloist needs it, also when it restores a session.
 - **A build expires 90 days after it was made** and then exits (exit code 10). The box must update it before that.
 - Spotify forbids passing the binaries on, so they cannot be part of an image: download from Spotify's page.
 
-Start and pair once (the device and the phone in the same network; the Spotify app must be logged in with the
-account the box should play with):
+The image does all of this except the download, the key and the pairing ([image/README.md](../image/README.md)).
+On a Pi you set up yourself (user `pi`, repo checked out in `~/spotify-jukebox/slim`):
 
 ```
-soloist --device-name "Pferdeanhaenger" --api-key "$SOLOIST_API_KEY" --ws 127.0.0.1:9090 --pair
+sudo apt install pipewire pipewire-alsa wireplumber
+sudo loginctl enable-linger pi        # PipeWire and Soloist run in the user session without a login
+cd ~/spotify-jukebox/slim/packaging
+sudo install -m 755 jukebox-soloist /usr/local/bin/ && sudo install -m 755 jukebox-soloist-update /usr/local/sbin/
+sudo jukebox-soloist-update           # downloads the binary into /opt/soloist (Spotify's server)
+sudo install -m 644 soloist.service soloist-update.service soloist-update.timer /etc/systemd/system/
 ```
 
-Then run it normally (as a service, with the key from an environment file, not on a visible command line):
+Put the key and the device name into a private file (mode 600, never into git):
 
 ```
-soloist --device-name "Pferdeanhaenger" --api-key "$SOLOIST_API_KEY" --ws 127.0.0.1:9090 --initial-volume 30
+mkdir -p ~/.config/jukebox && install -m 600 /dev/null ~/.config/jukebox/soloist.env
+printf 'SOLOIST_API_KEY=...\nSOLOIST_NAME=Pferdeanhaenger\n' > ~/.config/jukebox/soloist.env
 ```
 
-and in `config.local.toml`:
+Pair once (phone and Pi in the same network; the Spotify app must be logged in with the account the box should play
+with; the device then shows up in the app's device list, choose it). Pairing stores the login and exits:
+
+```
+set -a; . ~/.config/jukebox/soloist.env; set +a
+/opt/soloist/soloist --device-name "$SOLOIST_NAME" --api-key "$SOLOIST_API_KEY" --ws 127.0.0.1:9090 --pair
+```
+
+Then start the services and set the backend in `config.local.toml`:
+
+```
+sudo systemctl daemon-reload && sudo systemctl enable --now soloist soloist-update.timer
+sudo systemctl disable --now go-librespot   # only one Spotify receiver
+```
 
 ```toml
 [spotify]
@@ -172,7 +192,12 @@ backend = "soloist"
 ```
 
 `jukebox spotify-check` prints the login state and the current track. The WebSocket API has no authentication:
-keep it on `127.0.0.1`.
+it only listens on `127.0.0.1`. The API key is a command line argument of Soloist and therefore visible in `ps`
+to every local user; that is acceptable on a box without other users, not on a shared computer.
+
+`soloist-update.timer` fetches the current build once a week, so the 90 days never run out as long as the box is
+online now and then. `sudo journalctl -u soloist-update` shows what it did; `sudo systemctl start soloist-update`
+runs it right away.
 
 ## 6. Check the Spotify connection
 

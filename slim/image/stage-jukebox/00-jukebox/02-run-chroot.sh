@@ -8,6 +8,10 @@ if ! id jukebox >/dev/null 2>&1; then
 	useradd --system --create-home --home-dir /var/lib/jukebox --shell /usr/sbin/nologin jukebox
 fi
 usermod -aG audio,gpio,i2c,spi,dialout,input jukebox
+# PipeWire runs in the user session of `jukebox` (for Soloist and mpv); linger starts that session at boot
+# without a login (what `loginctl enable-linger jukebox` writes)
+install -d /var/lib/systemd/linger
+touch /var/lib/systemd/linger/jukebox
 
 install -d -o jukebox -g jukebox /var/lib/jukebox/music \
 	/var/lib/jukebox/.config /var/lib/jukebox/.config/jukebox /var/lib/jukebox/.config/go-librespot
@@ -35,4 +39,5 @@ python3 -m py_compile /usr/local/sbin/jukebox-firstboot
 # Keep the journal across reboots (first-boot problems are otherwise gone after the reboot)
 install -d -m 2755 -g systemd-journal /var/log/journal
 
-systemctl enable jukebox-firstboot.service go-librespot.service jukebox.service
+# Soloist is the Spotify backend of the image (go-librespot is installed, but off: see image/README.md)
+systemctl enable jukebox-firstboot.service soloist.service soloist-update.timer jukebox.service

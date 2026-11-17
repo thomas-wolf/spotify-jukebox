@@ -12,16 +12,18 @@ chroot part (`02-run-chroot.sh`), the Docker build and the first boot on a Pi ha
 
 - Raspberry Pi OS Lite, Debian 13 "Trixie", 64-bit (arm64): Pi 3, 4, 5 and Zero 2 W. Not for the Pi Zero (W) and
   Pi 1, see "32-bit" below.
-- Packages: `python3-libgpiod`, `python3-evdev`, `python3-pil`, `python3-spidev` (display), `mpv`, `alsa-utils`, `rclone`, `avahi-daemon`, `sudo`.
+- Packages: `python3-libgpiod`, `python3-evdev`, `python3-pil`, `python3-spidev` (display), `mpv`, `alsa-utils`,
+  `pipewire`, `pipewire-alsa`, `wireplumber`, `rclone`, `avahi-daemon`, `sudo`.
 - The jukebox from the committed state of `slim/` in `/opt/jukebox/repo`, installed into `/opt/jukebox/venv`.
   `/opt/jukebox/VERSION` holds the git commit.
 - go-librespot in a pinned version, checked against a SHA-256 sum (`stage-jukebox/00-jukebox/versions.env`).
 - User `jukebox` (home `/var/lib/jukebox`) in the groups `audio gpio i2c spi dialout input`. Configuration lives
   in `/var/lib/jukebox/.config/jukebox/`, music in `/var/lib/jukebox/music`.
-- Services `go-librespot`, `jukebox` and `jukebox-firstboot`, all enabled, plus the sudoers rule for
-  `systemctl poweroff`. The units are generated from `packaging/` (user and paths replaced at build time).
+- Services `soloist`, `jukebox` and `jukebox-firstboot`, enabled, plus `soloist-update.timer` and the sudoers rule
+  for `systemctl poweroff`. go-librespot is installed but off (`sudo systemctl enable --now go-librespot` and
+  `backend = "go-librespot"` bring it back). Linger is on for `jukebox`: PipeWire runs in its user session at boot. The units are generated from `packaging/` (user and paths replaced at build time).
 
-Not in the image: Spotify login (once per box, see below), cards, music, Wi-Fi, user and password.
+Not in the image: the Soloist binary (Spotify forbids passing it on; downloaded after the first boot), the API key and the Spotify login (once per box, see below), cards, music, Wi-Fi, user and password.
 
 ## Build
 
@@ -58,8 +60,18 @@ Secrets and local choices go into `image/config.local` (not in git), e.g. `FIRST
    - sets the hostname (`<hostname>.local` in the network),
    - runs `jukebox setup --apply` (HiFiBerry overlay, on-board audio off, ...),
    - writes `/var/lib/jukebox/.firstboot-done` and reboots.
-4. Spotify login, once per box: `journalctl -u go-librespot -f` shows a code, enter it at
-   <https://www.spotify.com/pair>.
+4. Soloist, once per box (the box needs network for this; user `jukebox` has no shell, so the commands run
+   through `sudo -u jukebox`):
+   ```
+   sudo jukebox-soloist-update                       # downloads the binary into /opt/soloist
+   sudo -u jukebox sh -c 'umask 077; printf "SOLOIST_API_KEY=...\nSOLOIST_NAME=Pferdeanhaenger\n" > /var/lib/jukebox/.config/jukebox/soloist.env'
+   sudo -u jukebox env HOME=/var/lib/jukebox XDG_RUNTIME_DIR=/run/user/$(id -u jukebox) \
+     /opt/soloist/soloist --device-name Pferdeanhaenger --api-key "..." --ws 127.0.0.1:9090 --pair
+   sudo systemctl restart soloist jukebox
+   ```
+   The API key belongs to the Spotify account the box plays with ([INSTALL.md](../docs/INSTALL.md)). Pairing
+   needs the Spotify app of that account in the same network. Check with `journalctl -u soloist -f` and
+   `jukebox spotify-check`. The weekly `soloist-update.timer` keeps the 90-day build fresh.
 5. Cards: `cards.toml` is not part of the image. Import (`jukebox import-v2`) or sync it, see
    [MIGRATION.md](../docs/MIGRATION.md) and [SYNC.md](../docs/SYNC.md).
 

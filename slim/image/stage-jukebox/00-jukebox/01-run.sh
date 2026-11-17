@@ -19,12 +19,17 @@ rm -rf "${tmp}"
 # Services: the units from packaging/ with the service user and its home swapped in (single source of truth)
 units="${ROOTFS_DIR}/etc/systemd/system"
 install -d "${units}"
-for u in jukebox go-librespot; do
+for u in jukebox go-librespot soloist; do
 	sed 's|/home/pi|/var/lib/jukebox|g; s|^User=pi$|User=jukebox|' "${ROOTFS_DIR}/opt/jukebox/repo/packaging/${u}.service" > "${units}/${u}.service"
 	grep -q '^User=jukebox$' "${units}/${u}.service"
 	if grep -q '/home/pi' "${units}/${u}.service"; then echo "${u}.service still names /home/pi" >&2; exit 1; fi
 	install -D -m 644 "files/${u}.service.d.conf" "${units}/${u}.service.d/image.conf"
 done
+# Soloist: the binary is not part of the image (Spotify forbids passing it on); jukebox-soloist-update downloads it
+install -D -m 755 "${ROOTFS_DIR}/opt/jukebox/repo/packaging/jukebox-soloist" "${ROOTFS_DIR}/usr/local/bin/jukebox-soloist"
+install -D -m 755 "${ROOTFS_DIR}/opt/jukebox/repo/packaging/jukebox-soloist-update" "${ROOTFS_DIR}/usr/local/sbin/jukebox-soloist-update"
+install -m 644 "${ROOTFS_DIR}/opt/jukebox/repo/packaging/soloist-update.service" "${units}/soloist-update.service"
+install -m 644 "${ROOTFS_DIR}/opt/jukebox/repo/packaging/soloist-update.timer" "${units}/soloist-update.timer"
 install -m 644 files/jukebox-firstboot.service "${units}/jukebox-firstboot.service"
 install -D -m 755 files/jukebox-firstboot "${ROOTFS_DIR}/usr/local/sbin/jukebox-firstboot"
 install -D -m 440 files/sudoers "${ROOTFS_DIR}/etc/sudoers.d/jukebox"

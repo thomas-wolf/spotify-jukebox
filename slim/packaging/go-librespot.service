@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=simple
 User=pi
 SupplementaryGroups=audio
+Environment=XDG_RUNTIME_DIR=/run/user/%U
 # Adjust the binary path (the name is in the unpacked release archive)
 ExecStart=/usr/local/bin/go-librespot
 # The config folder defaults to ~/.config/go-librespot of the service user (the -config_dir flag did not parse in v0.10.5)

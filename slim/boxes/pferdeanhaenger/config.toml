@@ -17,7 +17,9 @@ same_card_delay = 3.0
 
 [spotify]
 enabled = true
-api_url = "http://127.0.0.1:3678"   # go-librespot REST API (see packaging/)
+backend = "soloist"                  # the Family accounts get no audio key from go-librespot
+soloist_ws = "127.0.0.1:9090"
+api_url = "http://127.0.0.1:3678"   # only used with backend = "go-librespot"
 
 [local]
 enabled = true

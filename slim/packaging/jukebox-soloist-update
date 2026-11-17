@@ -1,0 +1,39 @@
+#!/bin/sh
+# Downloads the current Soloist build from Spotify into /opt/soloist and restarts the service if it changed.
+# Spotify builds expire 90 days after they were made, so this runs weekly (soloist-update.timer).
+# The binary may not be passed on, which is why it is downloaded here and not part of the image.
+# Needs root and a network connection.
+set -eu
+
+case "$(uname -m)" in
+	aarch64 | arm64) arch=arm64 ;;
+	armv7l | armv8l) arch=arm32 ;;
+	x86_64) arch=x86_64 ;;
+	*) echo "no Soloist build for $(uname -m)" >&2; exit 1 ;;
+esac
+url="https://soloist-builds.spotifycdn.com/soloist_release_${arch}.tar.gz"
+dest=/opt/soloist
+
+tmp=$(mktemp -d)
+trap 'rm -rf "${tmp}"' EXIT
+curl -fsSL --retry 3 -o "${tmp}/soloist.tar.gz" "${url}"
+mkdir "${tmp}/x"
+tar -xzf "${tmp}/soloist.tar.gz" -C "${tmp}/x"
+new=$(find "${tmp}/x" -type f -name soloist | head -n 1)
+if [ -z "${new}" ]; then
+	echo "no 'soloist' binary in ${url}" >&2
+	exit 1
+fi
+chmod 755 "${new}"
+"${new}" --help >/dev/null   # does it start at all (glibc, architecture)?
+
+if [ -f "${dest}/soloist" ] && cmp -s "${new}" "${dest}/soloist"; then
+	echo "Soloist is up to date"
+	exit 0
+fi
+install -d "${dest}"
+[ -f "${dest}/soloist" ] && cp -f "${dest}/soloist" "${dest}/soloist.old"
+install -m 755 "${new}" "${dest}/soloist.new"
+mv -f "${dest}/soloist.new" "${dest}/soloist"
+echo "Soloist updated"
+systemctl try-restart soloist.service || true

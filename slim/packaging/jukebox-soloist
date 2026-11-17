@@ -1,0 +1,25 @@
+#!/bin/sh
+# Starts Soloist for soloist.service. Settings come from the environment file of the unit:
+#   SOLOIST_API_KEY  Spotify for Developers API key of the account that plays (required)
+#   SOLOIST_NAME     device name shown in Spotify (default: Jukebox)
+# The WebSocket API has no authentication, so it only listens on 127.0.0.1.
+set -eu
+
+if [ -z "${SOLOIST_API_KEY:-}" ]; then
+	echo "SOLOIST_API_KEY is not set (soloist.env)" >&2
+	exit 78
+fi
+
+# Wait for the audio server of the service user (up to a minute after boot)
+runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+i=0
+while [ ! -S "${runtime}/pipewire-0" ] && [ ! -S "${runtime}/pulse/native" ] && [ "${i}" -lt 60 ]; do
+	sleep 1
+	i=$((i + 1))
+done
+
+# Note: the key is a command line argument and therefore visible in `ps` to local users.
+exec "${SOLOIST_BIN:-/opt/soloist/soloist}" \
+	--device-name "${SOLOIST_NAME:-Jukebox}" \
+	--api-key "${SOLOIST_API_KEY}" \
+	--ws 127.0.0.1:9090

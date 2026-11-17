@@ -9,6 +9,8 @@ Wants=go-librespot.service
 Type=simple
 User=pi
 SupplementaryGroups=audio gpio i2c spi dialout input
+# Sounds and local files play through PipeWire when the box has it (see soloist.service)
+Environment=XDG_RUNTIME_DIR=/run/user/%U
 ExecStart=/opt/jukebox/venv/bin/jukebox -c /home/pi/.config/jukebox/config.toml run
 Restart=on-failure
 RestartSec=3
