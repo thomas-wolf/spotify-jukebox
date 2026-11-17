@@ -51,6 +51,18 @@ cp "$HERE/config" "$PIGEN/config"
 echo "jukebox commit: $COMMIT   pi-gen: $PI_GEN_COMMIT"
 [ "${PREPARE_ONLY:-0}" = 1 ] && { echo "prepared in $PIGEN"; exit 0; }
 
+# Podman: pi-gen's build-docker.sh greps `$DOCKER info` for "rootless", which also matches podman's
+# "rootless: false" line, and then prefixes sudo. The wrapper hides `info` so no sudo is used.
+if [ "$(basename "${DOCKER:-}")" = podman ]; then
+    cat > "$WORK/podman-wrapper" <<'WRAP'
+#!/bin/sh
+[ "$1" = info ] && exit 0
+exec podman "$@"
+WRAP
+    chmod +x "$WORK/podman-wrapper"
+    export DOCKER="$WORK/podman-wrapper"
+fi
+
 cd "$PIGEN"
 if [ "${NATIVE:-0}" = 1 ]; then sudo ./build.sh -c config; else PRESERVE_CONTAINER="${PRESERVE_CONTAINER:-1}" ./build-docker.sh -c config; fi
 echo "image: $PIGEN/deploy/"
