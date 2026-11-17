@@ -17,7 +17,9 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
   [TROUBLESHOOTING.md](TROUBLESHOOTING.md)).
 - [ ] Shutdown button: sudoers entry (`/etc/sudoers.d/jukebox`), hold the SHIM button for 2 s; if the box does not
   power off, compare `pinctrl get 17` idle and pressed (polarity).
-- [ ] Startup time: `systemd-analyze` and `systemd-analyze critical-chain` (the service itself needs ~0.5 s).
+- [x] Startup time: the jukebox no longer waits for the network (ready after ~5 s). Spotify is ready after ~19 s;
+  ~6 s of that are four systemd reloads triggered from `NetworkManager.service` at start (cause not found, see
+  [TROUBLESHOOTING.md](TROUBLESHOOTING.md)). Parked.
 - [ ] Idle picture and startup sound: `~/.config/jukebox/idle.jpg`, `startup.mp3`.
 - [ ] rclone sync against Dropbox (`[sync]` in `config.local.toml`, `config = "off"`).
 - [ ] Check the rotation direction (180) and the overlay text size.
