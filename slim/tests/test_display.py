@@ -315,3 +315,12 @@ def test_bundled_font_has_umlauts_and_sharp_s():
     assert f.path == BUNDLED_FONT
     for ch in "äöüÄÖÜß":
         assert f.getmask(ch).getbbox() is not None
+
+
+def test_overlay_opacity_is_validated():
+    import pytest
+    from jukebox.config import ConfigError
+    from jukebox.display.settings import DisplaySettings
+    assert DisplaySettings.from_section({"overlay_opacity": 1}).overlay_opacity == 1.0
+    with pytest.raises(ConfigError):
+        DisplaySettings.from_section({"overlay_opacity": 1.5}).validate()

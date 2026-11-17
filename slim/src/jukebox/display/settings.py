@@ -34,6 +34,7 @@ class DisplaySettings:
     title_size: int = 22
     artist_size: int = 16
     idle_image: str = ""            # picture for boot and "nothing playing" (empty: blank screen)
+    overlay_opacity: float = 0.92   # darkness of the band behind title and artist in layout "overlay" (0..1)
     idle_fit: str = "cover"         # cover: fill and crop, contain: whole picture visible
     idle_on_pause: bool = False     # also show it while paused
 
@@ -56,6 +57,7 @@ class DisplaySettings:
             font=str(d.get("font", "")), title_size=int(d.get("title_size", 22)),
             artist_size=int(d.get("artist_size", 16)),
             idle_image=str(d.get("idle_image", "") or ""), idle_fit=str(d.get("idle_fit", "cover")),
+            overlay_opacity=float(d.get("overlay_opacity", 0.92)),
             idle_on_pause=bool(d.get("idle_on_pause", False)),
         )
         s.validate()
@@ -72,6 +74,8 @@ class DisplaySettings:
             raise ConfigError("[display] cover_side must be left, right, top or bottom")
         if self.cover_fit not in ("contain", "cover"):
             raise ConfigError("[display] cover_fit must be contain or cover")
+        if not 0 <= self.overlay_opacity <= 1:
+            raise ConfigError("[display] overlay_opacity must be between 0 and 1")
         if self.idle_fit not in ("contain", "cover"):
             raise ConfigError("[display] idle_fit must be contain or cover")
         if self.background not in ("average", "blur") and not _COLOR.match(self.background):

@@ -122,8 +122,9 @@ class Renderer:
         top = v.y + v.h - band_h
         mask = Image.new("L", (v.w, band_h))
         md = ImageDraw.Draw(mask)
-        for row in range(band_h):                                   # transparent at the top, 80% dark at the bottom
-            alpha = int(204 * min(1.0, row / fade)) if fade else 204
+        peak = round(255 * self.s.overlay_opacity)
+        for row in range(band_h):                                   # transparent at the top, overlay_opacity at the bottom
+            alpha = int(peak * min(1.0, row / fade)) if fade else peak
             md.line((0, row, v.w, row), fill=alpha)
         img.paste(Image.new("RGB", (v.w, band_h), (0, 0, 0)), (v.x, top), mask)
         y = v.y + v.h - pad - text_h
