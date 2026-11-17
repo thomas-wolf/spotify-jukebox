@@ -19,8 +19,9 @@ python3 -m venv --system-site-packages /opt/jukebox/venv
 /opt/jukebox/venv/bin/pip install --no-build-isolation --no-deps --no-cache-dir /opt/jukebox/repo
 rm -rf /opt/jukebox/repo/build /opt/jukebox/repo/src/*.egg-info
 
-# Raspberry Pi OS ships this file world-readable; netplan then refuses it, and NetworkManager retries the
-# generator four times (about 8 s extra at every boot). Harmless if the file does not exist.
+# Raspberry Pi OS ships this file world-readable; netplan then refuses it and logs "Permissions ... are too open"
+# several times per boot. This only silences that warning (it was measured NOT to speed up the boot).
+# Harmless if the file does not exist.
 if [ -f /lib/netplan/00-network-manager-all.yaml ]; then
 	chmod 600 /lib/netplan/00-network-manager-all.yaml
 fi

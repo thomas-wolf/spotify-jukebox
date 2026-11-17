@@ -161,15 +161,12 @@ sudo cp /boot/firmware/config.txt.jukebox.bak /boot/firmware/config.txt
 With a problem, include: Raspberry Pi model, `cat /etc/os-release`, `uname -m`, excerpts from
 `journalctl -u jukebox` and `journalctl -u go-librespot`, and your `config.toml` without personal data.
 
-## Slow boot: NetworkManager takes ~8 s
+## Slow boot: Spotify is ready only after ~19 s
 
-Symptom: `systemd-analyze critical-chain go-librespot.service` shows `NetworkManager.service` taking 8 s, and the
-journal has several lines `Permissions for /lib/netplan/00-network-manager-all.yaml are too open`
-(`journalctl -u NetworkManager -b | grep "too open"`). Netplan rejects the world-readable file and NetworkManager
-retries its generator about every 2 s. Fix:
+`systemd-analyze critical-chain go-librespot.service` on a Pi 4 with Wi-Fi: `NetworkManager.service` ~8 s, then
+`NetworkManager-wait-online` ~6 s. The jukebox itself does not wait for this (display, buttons, sounds and local
+folders are up after ~5 s); only go-librespot needs the network.
 
-```
-sudo chmod 600 /lib/netplan/00-network-manager-all.yaml
-```
-
-The image build sets this already. A package update may restore the old mode; repeat the command if the lines come back.
+Measured: the warning `Permissions for /lib/netplan/00-network-manager-all.yaml are too open` is *not* the cause.
+`sudo chmod 600 /lib/netplan/00-network-manager-all.yaml` (done by the image build) silences it, but NetworkManager
+still needs ~7 s between "ifupdown: interfaces file doesn't exist" and "dhcp: init". Cause not found yet.
