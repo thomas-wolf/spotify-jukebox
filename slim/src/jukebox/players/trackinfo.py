@@ -50,6 +50,27 @@ class SpotifyTrackPoller(threading.Thread):
         self._halt.set()
 
 
+class SoloistTrackReporter:
+    """Reports what Soloist plays as `track` events. Fed with every `playback_state` by the Soloist client
+    (a listener, no polling). Only while playing: a session restored in the paused state should not put the old
+    cover on the screen at boot."""
+
+    def __init__(self, bus) -> None:
+        self.bus = bus
+        self._last: tuple[str, bool] | None = None
+
+    def on_state(self, state: dict) -> None:
+        from .soloist import PLAYING, track_from_state
+        info = track_from_state(state)
+        if info is None:
+            self._last = None
+            return
+        playing = state.get("status") in PLAYING
+        if playing and (self._last is None or self._last[0] != info["uri"] or not self._last[1]):
+            self.bus.post(ev.TRACK, **info)
+        self._last = (info["uri"], playing)
+
+
 class LocalTrackPoller(threading.Thread):
     """Reports the local file that mpv plays as `track` events, with a cover picture if there is one:
     first a picture in the folder, then (in a second event, once found) one from Spotify."""

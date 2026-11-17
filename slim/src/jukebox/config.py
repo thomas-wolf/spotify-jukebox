@@ -18,7 +18,12 @@ DEFAULTS: dict[str, Any] = {
         "same_card": "restart",
         "same_card_delay": 3.0,
     },
-    "spotify": {"enabled": True, "api_url": "http://127.0.0.1:3678"},
+    "spotify": {
+        "enabled": True,
+        "backend": "go-librespot",               # or "soloist" (Spotify's own client, see docs/CONFIG.md)
+        "api_url": "http://127.0.0.1:3678",      # go-librespot
+        "soloist_ws": "127.0.0.1:9090",          # Soloist's WebSocket API
+    },
     "local": {"enabled": True, "root": "~/music", "mpv": "mpv"},
     "sounds": {"command": ["mpv", "--no-video", "--really-quiet"]},
     "display": {"enabled": False},
@@ -103,6 +108,8 @@ def load_config(path: str | Path | None = None) -> Config:
     for key in ("start_volume", "max_volume", "volume_step"):
         if not isinstance(audio[key], int) or not 0 <= audio[key] <= 100:
             raise ConfigError(f"[audio] {key} must be an integer 0..100")
+    if cfg.section("spotify")["backend"] not in ("go-librespot", "soloist"):
+        raise ConfigError("[spotify] backend must be go-librespot or soloist")
     if cfg.section("cards")["same_card"] not in ("toggle", "ignore", "restart", "next"):
         raise ConfigError("[cards] same_card must be toggle, ignore, restart or next")
     return cfg

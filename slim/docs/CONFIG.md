@@ -42,7 +42,12 @@ All values are integers from 0 to 100. Volume is controlled in software (the Min
 | Key | Default | Meaning |
 |---|---|---|
 | `enabled` | `true` | Spotify playback on or off |
-| `api_url` | `http://127.0.0.1:3678` | Address of go-librespot's REST API (`server.port` there) |
+| `backend` | `"go-librespot"` | `"go-librespot"` or `"soloist"`. Soloist is Spotify's own headless client, see [Soloist](INSTALL.md#soloist-instead-of-go-librespot). Needed for accounts to which Spotify no longer gives go-librespot the audio key (new accounts, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)). |
+| `api_url` | `http://127.0.0.1:3678` | go-librespot: address of its REST API (`server.port` there) |
+| `soloist_ws` | `127.0.0.1:9090` | Soloist: address of its WebSocket API (`--ws` of the daemon) |
+
+With `backend = "soloist"`, covers of local files are not searched on Spotify (`[covers] spotify_search` has no effect),
+because Soloist has no token endpoint.
 
 ### `[local]`
 

@@ -81,3 +81,15 @@ def test_local_override_file_is_merged(tmp_path):
     assert cfg.section("readers")["rdm6300"]["enabled"] is False
     assert cfg.section("readers")["usb"]["device_name"] == "RFID"
     assert cfg.section("box")["name"] == "x"
+
+
+def test_spotify_backend_is_validated(tmp_path):
+    import pytest
+    from jukebox.config import ConfigError, load_config
+    ok = tmp_path / "a.toml"
+    ok.write_text('[spotify]\nbackend = "soloist"\n')
+    assert load_config(str(ok)).section("spotify")["backend"] == "soloist"
+    bad = tmp_path / "b.toml"
+    bad.write_text('[spotify]\nbackend = "other"\n')
+    with pytest.raises(ConfigError):
+        load_config(str(bad))

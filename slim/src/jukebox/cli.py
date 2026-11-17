@@ -26,7 +26,15 @@ def build(cfg_path: str):
     bus = EventBus()
     backends = {}
     spotify = cfg.section("spotify")
-    if spotify["enabled"]:
+    if spotify["enabled"] and spotify["backend"] == "soloist":
+        from .players.soloist import SoloistClient, SoloistPlayer, parse_ws
+        try:
+            client = SoloistClient(*parse_ws(spotify["soloist_ws"]))
+        except PlayerError as exc:
+            raise ConfigError(str(exc)) from None
+        client.start()
+        backends["spotify"] = SoloistPlayer(client)
+    elif spotify["enabled"]:
         from .players.spotify import SpotifyPlayer, http_transport
         backends["spotify"] = SpotifyPlayer(http_transport(spotify["api_url"]))
     local = cfg.section("local")
@@ -138,10 +146,15 @@ def cmd_run(args) -> int:
         display = build_display(cfg.section("display"), cfg.path.resolve().parent if cfg.path else None,
                                 cfg.path.parent if cfg.path else None)
         bind(display, app.bus)
-        if cfg.section("spotify")["enabled"]:
+        spotify_cfg = cfg.section("spotify")
+        soloist = spotify_cfg["backend"] == "soloist"
+        if spotify_cfg["enabled"] and soloist:
+            from .players.trackinfo import SoloistTrackReporter
+            app.players.backend("spotify").client.listeners.append(SoloistTrackReporter(app.bus).on_state)
+        elif spotify_cfg["enabled"]:
             from .players.spotify import http_transport
             from .players.trackinfo import SpotifyTrackPoller
-            poller = SpotifyTrackPoller(app.bus, http_transport(cfg.section("spotify")["api_url"]))
+            poller = SpotifyTrackPoller(app.bus, http_transport(spotify_cfg["api_url"]))
             poller.start()
             threads.append(poller)
         local_player = app.players.backend("folder")
@@ -150,7 +163,8 @@ def cmd_run(args) -> int:
             from .players.trackinfo import LocalTrackPoller
             covers_cfg = cfg.section("covers")
             search = None
-            if covers_cfg["spotify_search"] and cfg.section("spotify")["enabled"]:
+            # the search needs go-librespot's token endpoint; Soloist offers none
+            if covers_cfg["spotify_search"] and spotify_cfg["enabled"] and not soloist:
                 from .players.spotify import http_transport
                 call = http_transport(cfg.section("spotify")["api_url"])
                 search = SpotifySearch(lambda: (call("POST", "/token", None) or {}).get("token"))
@@ -311,8 +325,10 @@ def cmd_pins(args) -> int:
 
 
 def cmd_spotify_check(args) -> int:
-    from .players.spotify import ENDPOINTS, http_transport
     cfg = load_config(args.config)
+    if cfg.section("spotify")["backend"] == "soloist":
+        return _soloist_check(cfg)
+    from .players.spotify import ENDPOINTS, http_transport
     call = http_transport(cfg.section("spotify")["api_url"])
     method, path = ENDPOINTS["status"]
     try:
@@ -321,6 +337,32 @@ def cmd_spotify_check(args) -> int:
         print(f"FAILED: {exc}")
         return 1
     return 0
+
+
+def _soloist_check(cfg) -> int:
+    """Connect to Soloist, wait for login state and the playback state, print both."""
+    import time
+    from .players.soloist import SoloistClient, parse_ws, track_from_state
+    try:
+        client = SoloistClient(*parse_ws(cfg.section("spotify")["soloist_ws"]))
+    except PlayerError as exc:
+        print(f"FAILED: {exc}")
+        return 1
+    client.start()
+    deadline = time.monotonic() + 6
+    while time.monotonic() < deadline and (client.state is None or client.logged_in is None):
+        time.sleep(0.1)
+    reachable = client.connected or client.state is not None or client.logged_in is not None
+    state, logged_in = client.state, client.logged_in
+    client.stop()
+    if not reachable:
+        print(f"FAILED: Soloist is not reachable at {client.host}:{client.port} (is it started with --ws?)")
+        return 1
+    print(f"logged in: {logged_in}")
+    if state:
+        print(f"status: {state.get('status')}  volume: {state.get('volume')}  active: {state.get('is_active')}")
+        print(f"track: {track_from_state(state)}")
+    return 0 if logged_in else 1
 
 
 def cmd_adc_check(args) -> int:

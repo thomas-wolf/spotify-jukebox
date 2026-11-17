@@ -135,6 +135,45 @@ No sound? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
    enter the code and confirm. The daemon stores the credentials itself. Afterwards "Jukebox" shows up as a
    device in your Spotify app.
 
+## Soloist instead of go-librespot
+
+Since late 2025 Spotify refuses the audio key to go-librespot (and every other librespot-based client) for a growing
+set of accounts, mostly new ones, including members of a Family plan ([TROUBLESHOOTING.md](TROUBLESHOOTING.md)).
+**Soloist**, Spotify's own headless client for Linux and Raspberry Pi (released August 2026), is not affected.
+
+Status: tested on a Mac (macOS, Apple Silicon) with a new Family member: pairing, `play` with a playlist and an album
+URI, restored login after a restart. **Not tried on a Pi yet.** What the Pi needs, from Spotify's documentation:
+
+- A 64-bit or 32-bit ARM build (not ARMv6, so not the Pi 1 or Pi Zero 1) and a recent glibc (Trixie).
+- PipeWire or PulseAudio; plain ALSA is not enough.
+- An **API key** from Spotify for Developers. It belongs to the account that creates it, which needs Premium.
+  Every start of Soloist needs it, also when it restores a session.
+- **A build expires 90 days after it was made** and then exits (exit code 10). The box must update it before that.
+- Spotify forbids passing the binaries on, so they cannot be part of an image: download from Spotify's page.
+
+Start and pair once (the device and the phone in the same network; the Spotify app must be logged in with the
+account the box should play with):
+
+```
+soloist --device-name "Pferdeanhaenger" --api-key "$SOLOIST_API_KEY" --ws 127.0.0.1:9090 --pair
+```
+
+Then run it normally (as a service, with the key from an environment file, not on a visible command line):
+
+```
+soloist --device-name "Pferdeanhaenger" --api-key "$SOLOIST_API_KEY" --ws 127.0.0.1:9090 --initial-volume 30
+```
+
+and in `config.local.toml`:
+
+```toml
+[spotify]
+backend = "soloist"
+```
+
+`jukebox spotify-check` prints the login state and the current track. The WebSocket API has no authentication:
+keep it on `127.0.0.1`.
+
 ## 6. Check the Spotify connection
 
 ```
