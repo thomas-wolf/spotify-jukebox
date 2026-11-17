@@ -76,7 +76,7 @@ class PlayerRouter:
             try:
                 backend.set_volume(self._volume)
             except PlayerError:
-                log.warning("volume not applied to %s", backend.name)
+                log.warning("volume not applied to %s (it is applied again on the next play)", backend.name)
 
     @property
     def volume(self) -> int:

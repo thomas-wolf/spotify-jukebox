@@ -1,7 +1,9 @@
 [Unit]
 Description=Spotify jukebox
-After=sound.target network-online.target go-librespot.service
-Wants=network-online.target go-librespot.service
+# Deliberately no network-online.target: display, buttons and sounds do not need the network and should be up
+# seconds earlier. go-librespot waits for the network on its own; until it answers, Spotify cards report an error.
+After=sound.target
+Wants=go-librespot.service
 
 [Service]
 Type=simple

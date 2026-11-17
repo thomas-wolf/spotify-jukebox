@@ -181,3 +181,13 @@ def test_current_track_of_a_stream(tmp_path):
     mpv.props.update({"path": "http://r/x", "pause": False, "metadata": {"icy-title": "Band - Song", "icy-name": "Radio X"}})
     info = LocalPlayer(mpv, tmp_path, tmp_path / "s.json").current_track()
     assert info["stream"] and info["title"] == "Band - Song" and info["artist"] == "Radio X"
+
+
+def test_router_start_volume_reaches_a_backend_that_was_not_ready_yet():
+    """go-librespot may still be starting at boot: the volume is applied again before the first play."""
+    a = FakePlayer("spotify", fail=True)
+    r = PlayerRouter({"spotify": a})
+    r.set_volume(30)                  # fails quietly, nothing raised
+    a.fail = False
+    r.play("spotify:x")
+    assert a.calls[-2:] == [("volume", 30), ("play", "spotify:x")]
