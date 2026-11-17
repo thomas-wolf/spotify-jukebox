@@ -19,6 +19,12 @@ python3 -m venv --system-site-packages /opt/jukebox/venv
 /opt/jukebox/venv/bin/pip install --no-build-isolation --no-deps --no-cache-dir /opt/jukebox/repo
 rm -rf /opt/jukebox/repo/build /opt/jukebox/repo/src/*.egg-info
 
+# Raspberry Pi OS ships this file world-readable; netplan then refuses it, and NetworkManager retries the
+# generator four times (about 8 s extra at every boot). Harmless if the file does not exist.
+if [ -f /lib/netplan/00-network-manager-all.yaml ]; then
+	chmod 600 /lib/netplan/00-network-manager-all.yaml
+fi
+
 # Fail the build early if something is wrong
 /opt/jukebox/venv/bin/jukebox --help >/dev/null
 /opt/jukebox/venv/bin/python -c "import gpiod; assert hasattr(gpiod, 'request_lines'), 'libgpiod API v1 found, v2 needed'"

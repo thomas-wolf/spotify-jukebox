@@ -160,3 +160,16 @@ sudo cp /boot/firmware/config.txt.jukebox.bak /boot/firmware/config.txt
 
 With a problem, include: Raspberry Pi model, `cat /etc/os-release`, `uname -m`, excerpts from
 `journalctl -u jukebox` and `journalctl -u go-librespot`, and your `config.toml` without personal data.
+
+## Slow boot: NetworkManager takes ~8 s
+
+Symptom: `systemd-analyze critical-chain go-librespot.service` shows `NetworkManager.service` taking 8 s, and the
+journal has several lines `Permissions for /lib/netplan/00-network-manager-all.yaml are too open`
+(`journalctl -u NetworkManager -b | grep "too open"`). Netplan rejects the world-readable file and NetworkManager
+retries its generator about every 2 s. Fix:
+
+```
+sudo chmod 600 /lib/netplan/00-network-manager-all.yaml
+```
+
+The image build sets this already. A package update may restore the old mode; repeat the command if the lines come back.
