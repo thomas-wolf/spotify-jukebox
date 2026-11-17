@@ -32,4 +32,7 @@ fi
 visudo -cf /etc/sudoers.d/jukebox
 python3 -m py_compile /usr/local/sbin/jukebox-firstboot
 
+# Keep the journal across reboots (first-boot problems are otherwise gone after the reboot)
+install -d -m 2755 -g systemd-journal /var/log/journal
+
 systemctl enable jukebox-firstboot.service go-librespot.service jukebox.service

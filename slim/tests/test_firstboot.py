@@ -136,3 +136,15 @@ def test_setup_failure_leaves_no_marker(fb, paths, monkeypatch):
     with pytest.raises(subprocess.CalledProcessError):
         fb.provision(paths)
     assert not paths.marker.exists()
+
+
+def test_unit_has_no_ordering_that_can_form_a_cycle():
+    """cloud-final.service is After=multi-user.target; ordering this WantedBy=multi-user.target unit after it
+    (or after anything that follows multi-user.target) makes systemd drop the job (seen on a real box)."""
+    unit = SCRIPT.with_name("jukebox-firstboot.service").read_text()
+    order = [line for line in unit.splitlines() if line.startswith("After=")]
+    assert order, "expected an After= line"
+    for line in order:
+        for dep in line.removeprefix("After=").split():
+            assert dep in {"local-fs.target"}, f"After={dep} may form a cycle with multi-user.target"
+    assert "WantedBy=multi-user.target" in unit
