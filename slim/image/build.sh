@@ -65,4 +65,6 @@ fi
 
 cd "$PIGEN"
 if [ "${NATIVE:-0}" = 1 ]; then sudo ./build.sh -c config; else PRESERVE_CONTAINER="${PRESERVE_CONTAINER:-1}" ./build-docker.sh -c config; fi
-echo "image: $PIGEN/deploy/"
+# Depending on the container tool, pi-gen's copy lands in deploy/ or directly in the pi-gen folder
+echo "image(s):"
+ls -lh "$PIGEN"/deploy/*.img* "$PIGEN"/image_*.img* 2>/dev/null || echo "  none found, look in $PIGEN (and 'podman cp pigen_work:/pi-gen/deploy .')"
