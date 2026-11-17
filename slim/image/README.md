@@ -12,7 +12,7 @@ chroot part (`02-run-chroot.sh`), the Docker build and the first boot on a Pi ha
 
 - Raspberry Pi OS Lite, Debian 13 "Trixie", 64-bit (arm64): Pi 3, 4, 5 and Zero 2 W. Not for the Pi Zero (W) and
   Pi 1, see "32-bit" below.
-- Packages: `python3-libgpiod`, `python3-evdev`, `mpv`, `alsa-utils`, `rclone`, `avahi-daemon`, `sudo`.
+- Packages: `python3-libgpiod`, `python3-evdev`, `python3-pil`, `python3-spidev` (display), `mpv`, `alsa-utils`, `rclone`, `avahi-daemon`, `sudo`.
 - The jukebox from the committed state of `slim/` in `/opt/jukebox/repo`, installed into `/opt/jukebox/venv`.
   `/opt/jukebox/VERSION` holds the git commit.
 - go-librespot in a pinned version, checked against a SHA-256 sum (`stage-jukebox/00-jukebox/versions.env`).
