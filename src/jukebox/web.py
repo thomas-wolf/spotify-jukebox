@@ -18,7 +18,7 @@ from urllib.parse import unquote
 from . import events as ev
 from .config import Card, save_cards
 from .importer import normalize_spotify
-from .metrics import build_metrics
+from .metrics import build_metrics, soloist_build_date
 from ._page import PAGE
 
 log = logging.getLogger(__name__)
@@ -205,7 +205,7 @@ class Web:
                         if path == "/api/actions":
                             return self._json(sorted(web.app.actions))
                         if path == "/api/metrics":
-                            return self._json(build_metrics(web.app))
+                            return self._json(build_metrics(web.app, soloist_built=soloist_build_date()))
                     elif path == "/api/action" and method == "POST":
                         data = self._body()
                         name = str(data.get("name", ""))

@@ -9,7 +9,14 @@ from jukebox import __version__
 from jukebox.app import App
 from jukebox.config import Card, load_config
 from jukebox.events import EventBus
-from jukebox.metrics import SOLOIST_BUILD_LIFETIME_DAYS, build_metrics, read_sync_status, soloist_lifetime
+from jukebox.metrics import (
+    SOLOIST_BUILD_LIFETIME_DAYS,
+    build_metrics,
+    parse_soloist_build_date,
+    read_sync_status,
+    soloist_build_date,
+    soloist_lifetime,
+)
 from jukebox.players import PlayerRouter
 from jukebox.sync import SyncResult, sync_status_path, write_sync_status
 from jukebox.web import Web
@@ -26,6 +33,35 @@ def app(tmp_path):
 def test_soloist_lifetime_counts_down_from_the_build_date():
     life = soloist_lifetime(date(2026, 11, 1), today=date(2026, 11, 18))
     assert life == {"soloist_build_age_days": 17, "soloist_expires_in_days": SOLOIST_BUILD_LIFETIME_DAYS - 17}
+
+
+SOLOIST_VERSION = "soloist 1.3.10.79 build 1794938472 (20261117) (g19412df6ea) (macos/aarch64)\n"
+
+
+def test_build_date_comes_from_the_version_line():
+    assert parse_soloist_build_date(SOLOIST_VERSION) == date(2026, 11, 17)
+
+
+@pytest.mark.parametrize("text", ["", "garbage", "soloist 1 build 2 (20261340)\n"])
+def test_build_date_missing_or_invalid_is_none(text):
+    assert parse_soloist_build_date(text) is None
+
+
+def test_lifetime_matches_what_soloist_logged():
+    # Soloist logged "client expires in 89 days" on 2026-11-18 for the 2026-11-17 build
+    life = soloist_lifetime(parse_soloist_build_date(SOLOIST_VERSION), today=date(2026, 11, 18))
+    assert life["soloist_expires_in_days"] == 89
+
+
+def test_build_date_is_read_from_the_binary(tmp_path):
+    binary = tmp_path / "soloist"
+    binary.write_text("#!/bin/sh\necho '" + SOLOIST_VERSION.strip() + "'\n", encoding="utf-8")
+    binary.chmod(0o755)
+    assert soloist_build_date(binary) == date(2026, 11, 17)
+
+
+def test_missing_binary_gives_no_build_date(tmp_path):
+    assert soloist_build_date(tmp_path / "nope") is None
 
 
 def test_soloist_lifetime_is_null_without_a_build_date():
