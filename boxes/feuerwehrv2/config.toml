@@ -1,6 +1,5 @@
-# Per-box configuration. Copy to ~/.config/jukebox/config.toml and adjust.
-# Everything that differs between your boxes (pinout, readers, sounds, hooks)
-# lives here, never in the code.
+# Fire engine box ("Feuerwehr v2"). Pinout from the user's wiring list (physical pins -> BCM), see README.md.
+# Everything marked "unverified" has not been tried on the hardware yet.
 
 [box]
 name = "feuerwehrv2"
@@ -16,104 +15,127 @@ same_card_delay = 3.0
 
 [spotify]
 enabled = true
-api_url = "http://127.0.0.1:3678"   # go-librespot REST API (see packaging/)
+backend = "soloist"                  # assumption: one of the children's Family accounts (no audio key from go-librespot)
+soloist_ws = "127.0.0.1:9090"
+api_url = "http://127.0.0.1:3678"   # only used with backend = "go-librespot"
 
 [local]
 enabled = true
 root = "~/music"
 
 # --- readers ---------------------------------------------------------------
+# No RDM6300 in the wiring list (and GPIO 14/15 are used as plain pins), so the reader is a USB one.
 [readers.usb]
-enabled = false
-device_name = "RFID"          # substring of the evdev device name
+enabled = true
+device_name = "RFID"          # unverified: substring of the evdev device name of the reader
 
 [readers.rdm6300]
-enabled = true
-port = "/dev/serial0"
-id_format = "raw"             # raw | dec | float | hex; raw/dec/float = same ids as Phoniebox v2
+enabled = false               # GPIO 14 (LED) and 15 (button) are the UART pins
 
-# --- GPIO (BCM numbers). Remove what this box does not have. ----------------
-# Reserved elsewhere: 14/15 UART (RDM6300), 2/3 I2C (ADS1115), 8-11 SPI (display),
-# 18-21 I2S (MiniAmp). See docs/HARDWARE.md.
-# A complete real-world pinout of one box: boxes/pferdeanhaenger/
+# --- GPIO (BCM numbers) ------------------------------------------------------
+# Reserved elsewhere: 8-11 SPI (display), 18/19/21 I2S (MiniAmp; GPIO 20 is unused).
 [gpio]
 chip = "/dev/gpiochip0"
 
-[[gpio.button]]
-pin = 26
-action = "next"
-
-[[gpio.button]]
-pin = 5
+[[gpio.button]]            # pin 7, blue right: back
+pin = 4
 action = "prev"
 
-[[gpio.button]]
-pin = 27
-action = "play_pause"
+[[gpio.button]]            # pin 10, blue left: forward
+pin = 15
+action = "next"
+
+[[gpio.button]]            # pin 5, power button: shutdown only when held. GPIO 3 also wakes the Pi from halt.
+pin = 3
 hold_action = "shutdown"
 hold_time = 2.0
 
-[[gpio.rotary]]
-pin_a = 22
-pin_b = 23
-cw = "volume_up"
+[[gpio.button]]            # pin 16, push button of the rotary encoder: play / pause (the wiring list has a "?")
+pin = 23
+action = "play_pause"
+
+[[gpio.button]]            # pin 31, orange left: siren. Action defined in hooks.py (not written yet)
+pin = 6
+action = "sirene"
+
+[[gpio.button]]            # pin 33, orange right: blue light. Action defined in hooks.py (not written yet)
+pin = 13
+action = "blaulicht"
+
+[[gpio.rotary]]            # encoder CLK = pin 13, DT = pin 15
+pin_a = 27
+pin_b = 22
+cw = "volume_up"           # unverified: swap cw/ccw if it turns the wrong way
 ccw = "volume_down"
 
-[[gpio.led]]
+[[gpio.led]]               # pin 18, power button LED (1 kOhm)
 name = "status"
 pin = 24
+
+[[gpio.led]]               # pin 8, blue right (100 Ohm)
+name = "blue_right"
+pin = 14
+
+[[gpio.led]]               # pin 36, blue left (100 Ohm)
+name = "blue_left"
+pin = 16
+
+[[gpio.led]]               # pin 29, orange left (220 Ohm)
+name = "orange_left"
+pin = 5
+
+[[gpio.led]]               # pin 32, orange right (220 Ohm)
+name = "orange_right"
+pin = 12
 
 # --- potentiometer on an ADS1115 --------------------------------------------
 [adc]
 enabled = false
-bus = 1
-address = 0x48
-channel = 0
-full_scale = 26400            # calibrate with: jukebox adc-check
 
 # --- sounds and hooks ---------------------------------------------------------
 [sounds.events]
-boot = "~/sounds/startup.mp3"
-shutdown = "~/sounds/shutdown.mp3"
+# Sounds by convention: ~/.config/jukebox/startup.mp3 (boot) and shutdown.mp3. Private files, not in this repository.
 
 [display]                    # ILI9341 on SPI; set up with `jukebox display-test`
-enabled = false
-rotation = 90                # 0, 90, 180, 270 (as you look at it)
-dc = 25                      # BCM pins for data/command and reset
-reset = 17
-# backlight = 24             # optional: pin that switches the backlight (leave out if it is always on)
-margins = { left = 0, top = 0, right = 0, bottom = 0 }   # pixels hidden by the housing, as you look at it
-layout = "auto"              # auto, split (cover + text), cover (cover alone)
-cover_side = "left"          # left, right (wide displays) or top, bottom (tall ones)
-cover_fit = "contain"        # contain: whole cover visible, cover: fill and crop
-background = "average"       # average colour of the cover, blur, or a color like "#101010"
-# idle_image = "idle.jpg"      # picture for boot and when nothing plays (relative to this file)
-# idle_on_pause = false
+enabled = true
+rotation = 90                # unverified: 0, 90, 180, 270 (as you look at it)
+dc = 7                       # BCM pins for data/command and reset (pins 26 and 22); GPIO 7 is SPI CE1, see [boot] extra
+reset = 25
+# backlight: the display LED is wired to 3.3 V (pin 1), always on
+margins = { left = 0, top = 0, right = 0, bottom = 0 }
+layout = "auto"
+cover_side = "left"
+cover_fit = "contain"
+background = "average"
 
-[covers]                     # cover art for local files (needs [display])
-spotify_search = true        # no cover.jpg in the folder: search the album on Spotify
-write_to_folder = true       # and save it there as cover.jpg
+[covers]
+spotify_search = true
+write_to_folder = true
 
-[sync]                       # cards, config and music from/to Dropbox, OneDrive, ... through rclone
+[sync]
 enabled = false
-remote = "dropbox:Jukebox"   # an rclone remote (set up with `rclone config`) and a folder in it
+remote = "dropbox:Jukebox2.0"
 interval_minutes = 30
-cards = "both"               # cards.toml: both, pull (cloud wins), push, off
-config = "pull"              # <remote>/boxes/<box name>/ -> this folder (config.toml, hooks.py, sounds/)
-music = "pull"               # <remote>/music/ -> [local] root
-# delete = false             # true: music also loses files that were removed in the cloud
-# bwlimit = "2M"             # limit for the music download
+cards = "both"
+config = "off"
+music = "pull"
 
 [web]
 enabled = true            # no password: trusted home network only
 port = 8080
 
-[hooks]
-file = "hooks.py"             # optional, relative to this file
+# [hooks]                 # enable once hooks.py (siren, blue light) exists
+# file = "hooks.py"
 
 # --- device tree overlays, applied by: jukebox setup --apply -------------------
 [boot]
 audio = "hifiberry-miniamp"   # dtoverlay=hifiberry-dac, on-board audio off
 spi = true                    # ILI9341 display
-i2c = false                   # true when an ADS1115 is attached
-# extra = ["dtoverlay=something", { model = "pi5", line = "dtparam=pciex1" }]
+# spi0-1cs leaves only CE0 (GPIO 8) to the SPI driver, so GPIO 7 is free as the display DC pin.
+# Unverified: without it libgpiod most likely answers "busy" for GPIO 7 (like GPIO 20 on the I2S block).
+extra = ["dtoverlay=spi0-1cs"]
+i2c = false
+
+[system]
+# needs /etc/sudoers.d/jukebox, see docs/INSTALL.md
+shutdown_command = ["sudo", "systemctl", "poweroff"]
