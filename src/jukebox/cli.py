@@ -190,6 +190,24 @@ def cmd_run(args) -> int:
             web.start()
         except OSError as exc:
             log.error("web interface disabled: %s", exc)
+    mqtt_cfg = cfg.section("mqtt")
+    if mqtt_cfg["enabled"]:
+        from .metrics import build_metrics, soloist_build_date
+        from .mqtt_export import MqttExporter, make_paho_client
+        box = cfg.section("box")["name"]
+        try:
+            client = make_paho_client(mqtt_cfg["host"], mqtt_cfg["port"], mqtt_cfg["username"],
+                                      mqtt_cfg["password"], box)
+        except RuntimeError as exc:
+            log.error("%s", exc)
+        else:
+            exporter = MqttExporter(client, lambda: build_metrics(app, soloist_built=soloist_build_date()), box,
+                                    backend=cfg.section("spotify")["backend"],
+                                    discovery_prefix=mqtt_cfg["discovery_prefix"],
+                                    topic_prefix=mqtt_cfg["topic_prefix"], interval=float(mqtt_cfg["interval"]),
+                                    host=mqtt_cfg["host"], port=int(mqtt_cfg["port"]))
+            exporter.start()
+            threads.append(exporter)
     signal.signal(signal.SIGTERM, lambda *_: app.bus.stop())
     signal.signal(signal.SIGINT, lambda *_: app.bus.stop())
     app.start()

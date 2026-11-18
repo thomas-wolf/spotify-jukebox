@@ -31,6 +31,9 @@ DEFAULTS: dict[str, Any] = {
     "covers": {"spotify_search": True, "write_to_folder": True},
     "sync": {"enabled": False},
     "web": {"enabled": False, "host": "0.0.0.0", "port": 8080},
+    # Status to Home Assistant over MQTT (needs the "mqtt" extra: paho-mqtt)
+    "mqtt": {"enabled": False, "host": "127.0.0.1", "port": 1883, "username": "", "password": "",
+             "discovery_prefix": "homeassistant", "topic_prefix": "jukebox", "interval": 60.0},
     "system": {"shutdown_command": ["systemctl", "poweroff"]},
 }
 
