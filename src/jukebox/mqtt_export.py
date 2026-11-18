@@ -26,6 +26,7 @@ SENSORS: list[tuple[str, str, dict[str, Any]]] = [
     ("soloist_build_age_days", "Soloist Build-Alter", {"unit_of_measurement": "d", "icon": "mdi:calendar-clock"}),
     ("version", "Version", {"icon": "mdi:tag"}),
     ("playtime_today_min", "Spielzeit heute", {"unit_of_measurement": "min", "icon": "mdi:timer-play"}),
+    ("last_track", "Zuletzt gespielt", {"icon": "mdi:music-note"}),
 ]
 SOLOIST_KEYS = {"soloist_expires_in_days", "soloist_build_age_days"}
 
@@ -84,6 +85,9 @@ class MqttExporter(threading.Thread):
                       "state_topic": self.state_topic, "value_template": f"{{{{ value_json.{key} }}}}",
                       "availability_topic": self.availability_topic, "entity_category": "diagnostic",
                       "device": self._device(), **extra}
+            if key == "last_track":  # the last ten tracks as attributes, read from the state topic
+                entity["json_attributes_topic"] = self.state_topic
+                entity["json_attributes_template"] = "{{ {'history': value_json.history} | tojson }}"
             out.append((f"{self.discovery_prefix}/sensor/jukebox_{self.box}/{key}/config", entity))
         problem = {"name": "Letzter Sync fehlgeschlagen", "unique_id": f"jukebox_{self.box}_sync_problem",
                    "state_topic": self.state_topic, "device_class": "problem", "entity_category": "diagnostic",

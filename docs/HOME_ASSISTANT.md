@@ -26,6 +26,12 @@ Served by the existing web API (`[web]` section, off by default). Read-only JSON
 
 Values the box cannot know are `null`, never guessed.
 
+| `last_track` | Title of the last track played | `history.json` in the data dir, fed by the track events |
+| `history` | The last 10 tracks: `time` (UTC), `title`, `artist`, `uri` if known | same |
+
+The same track reported again (the poller repeats it every few seconds, and a pause resumes it) is not a new
+entry. The last 50 entries are kept. In HA, `Zuletzt gespielt` shows the title; the history is in its attributes.
+
 The MQTT export also has an `Online` binary sensor (connectivity), read from the availability topic. The
 broker's last will turns it off when the box disappears.
 

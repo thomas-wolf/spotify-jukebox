@@ -193,6 +193,9 @@ def cmd_run(args) -> int:
     from .playtime import Playtime
     app.playtime = Playtime(cfg.data_dir / "playtime.json")  # read by build_metrics
     app.playtime.bind(app.bus)
+    from .history import PlayHistory
+    app.history = PlayHistory(cfg.data_dir / "history.json")  # read by build_metrics
+    app.history.bind(app.bus)
     mqtt_cfg = cfg.section("mqtt")
     if mqtt_cfg["enabled"]:
         from .metrics import build_metrics, soloist_build_date

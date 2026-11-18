@@ -93,5 +93,10 @@ def build_metrics(app, soloist_built: date | None = None, today: date | None = N
     playtime = getattr(app, "playtime", None)  # set by the run command, None in tests and CLI commands
     if playtime is not None:
         metrics["playtime_today_min"] = playtime.minutes(today)
+    history = getattr(app, "history", None)  # set by the run command
+    if history is not None:
+        last = history.last(10)
+        metrics["last_track"] = last[-1]["title"] if last else None
+        metrics["history"] = last
     metrics.update(soloist_lifetime(soloist_built, today))
     return metrics
