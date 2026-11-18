@@ -19,6 +19,7 @@ import subprocess
 import threading
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
@@ -186,6 +187,25 @@ class SyncResult:
     errors: list[str] = field(default_factory=list)
 
 
+SYNC_STATUS_FILE = "sync-status.json"
+
+
+def sync_status_path(data_dir: Path) -> Path:
+    return data_dir / SYNC_STATUS_FILE
+
+
+def write_sync_status(path: Path, res: SyncResult, now: float | None = None) -> None:
+    """Remember when the last sync ran, for the status API (Home Assistant). A failure here is only logged."""
+    stamp = datetime.fromtimestamp(time.time() if now is None else now, timezone.utc)
+    data = {"last_run": stamp.isoformat(timespec="seconds"), "ok": not res.errors,
+            "cards_changed": res.cards_changed, "errors": res.errors}
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _write_atomic(path, json.dumps(data, indent=2) + "\n")
+    except OSError:
+        log.warning("could not write sync status to %s", path, exc_info=True)
+
+
 class Syncer:
     def __init__(self, s: SyncSettings, box_name: str, config_dir: Path, cards_path: Path, music_root: Path,
                  data_dir: Path, runner: Runner = _run) -> None:
@@ -220,6 +240,8 @@ class Syncer:
                 except OSError as exc:
                     res.errors.append(f"{name}: {exc}")
                     log.warning("sync %s failed: %s", name, exc)
+        if not dry_run and any(steps[n][0] != "off" for n in parts):
+            write_sync_status(sync_status_path(self.data_dir), res)
         return res
 
     # -- cards ---------------------------------------------------------------------------
