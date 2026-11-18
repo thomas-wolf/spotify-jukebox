@@ -42,6 +42,34 @@ which is 90 days after the build date.
 `Syncer.run_once()` writes `sync-status.json` to the data dir after every run that had at least one enabled
 part (cards, config, music). Dry runs do not write it. A write failure is logged and does not stop the sync.
 
+## MQTT (chosen transport)
+
+Metrics are published to the MQTT broker with Home Assistant discovery. Config section `[mqtt]`, off by default:
+
+```toml
+[mqtt]
+enabled = true
+host = "192.168.1.10"
+port = 1883
+username = ""
+password = ""
+discovery_prefix = "homeassistant"
+topic_prefix = "jukebox"
+interval = 60.0
+```
+
+- Needs the optional extra `paho-mqtt` (`pip install 'spotify-jukebox[mqtt]'`; on the Pi `apt python3-paho-mqtt`).
+  Without it the box logs an error and runs as before.
+- Topics: `jukebox/<box>/state` (JSON with the metrics), `jukebox/<box>/availability` (`online` / `offline`).
+- Discovery: `homeassistant/sensor/jukebox_<box>/<key>/config` and one `binary_sensor` for the sync problem.
+  Soloist entities appear only on Soloist boxes.
+- Every tick (`interval`) publishes all of it, retained. The broker's last will sets `offline` when the box
+  vanishes; a clean shutdown sets it too. A broker that is down at boot is retried every tick.
+- Read-only: the box subscribes to nothing.
+
+Not verified yet: a real broker, paho-mqtt on the Pi, and the entities in Home Assistant (the `null` handling
+in the value templates in particular).
+
 ## Control
 
 Out of scope. HA does not start, pause or change playback. The existing action endpoints in the web API
@@ -49,9 +77,8 @@ are unchanged and not used by HA.
 
 ## Open points
 
-- **Transport for HA.** HA polls `/api/metrics` with a REST sensor. This needs no new dependency, since the
-  core only uses the standard library. The alternative is MQTT with HA discovery, which needs a client library
-  such as `paho-mqtt`. For read-only metrics, polling is enough. Decide whether MQTT is still wanted.
+- **Broker details.** Is the broker the Mosquitto add-on in HA or a separate machine, and does it need a login?
+  Needed to fill in `[mqtt]` on the test box.
 - **Web API exposure.** Not part of HA work, but worth knowing: `/api/*` has no authentication (see
   `docs/CONFIG.md`). With `[web]` enabled, anyone who can reach the port can change cards and control playback.
   HA does not change that. Decide whether this needs a fix later.
