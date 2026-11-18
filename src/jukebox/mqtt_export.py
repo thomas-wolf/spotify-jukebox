@@ -25,6 +25,7 @@ SENSORS: list[tuple[str, str, dict[str, Any]]] = [
     ("soloist_expires_in_days", "Soloist läuft noch", {"unit_of_measurement": "d", "icon": "mdi:timer-sand"}),
     ("soloist_build_age_days", "Soloist Build-Alter", {"unit_of_measurement": "d", "icon": "mdi:calendar-clock"}),
     ("version", "Version", {"icon": "mdi:tag"}),
+    ("playtime_today_min", "Spielzeit heute", {"unit_of_measurement": "min", "icon": "mdi:timer-play"}),
 ]
 SOLOIST_KEYS = {"soloist_expires_in_days", "soloist_build_age_days"}
 
@@ -90,6 +91,11 @@ class MqttExporter(threading.Thread):
                                      "{{ 'OFF' if value_json.last_sync_ok else 'ON' }}{% endif %}",
                    "availability_topic": self.availability_topic, "device": self._device()}
         out.append((f"{self.discovery_prefix}/binary_sensor/jukebox_{self.box}/sync_problem/config", problem))
+        # on/off of the box itself: read from the availability topic (the last will makes it "offline")
+        online = {"name": "Online", "unique_id": f"jukebox_{self.box}_online",
+                  "state_topic": self.availability_topic, "payload_on": "online", "payload_off": "offline",
+                  "device_class": "connectivity", "entity_category": "diagnostic", "device": self._device()}
+        out.append((f"{self.discovery_prefix}/binary_sensor/jukebox_{self.box}/online/config", online))
         return out
 
     # -- lifecycle ---------------------------------------------------------------------

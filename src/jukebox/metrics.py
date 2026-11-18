@@ -87,7 +87,11 @@ def build_metrics(app, soloist_built: date | None = None, today: date | None = N
         "cards": len(app.cards),
         "last_sync": sync.get("last_run"),
         "last_sync_ok": sync.get("ok"),
+        "playtime_today_min": None,
         "battery_soc": None,
     }
+    playtime = getattr(app, "playtime", None)  # set by the run command, None in tests and CLI commands
+    if playtime is not None:
+        metrics["playtime_today_min"] = playtime.minutes(today)
     metrics.update(soloist_lifetime(soloist_built, today))
     return metrics

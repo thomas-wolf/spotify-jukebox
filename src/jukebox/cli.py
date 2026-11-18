@@ -190,6 +190,9 @@ def cmd_run(args) -> int:
             web.start()
         except OSError as exc:
             log.error("web interface disabled: %s", exc)
+    from .playtime import Playtime
+    app.playtime = Playtime(cfg.data_dir / "playtime.json")  # read by build_metrics
+    app.playtime.bind(app.bus)
     mqtt_cfg = cfg.section("mqtt")
     if mqtt_cfg["enabled"]:
         from .metrics import build_metrics, soloist_build_date

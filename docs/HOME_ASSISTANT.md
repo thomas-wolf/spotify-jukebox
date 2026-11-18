@@ -19,11 +19,21 @@ Served by the existing web API (`[web]` section, off by default). Read-only JSON
 | `cards` | Number of cards in `cards.toml` | loaded cards |
 | `last_sync` | UTC time of the last Dropbox sync run (ISO 8601) | `sync-status.json` in the data dir |
 | `last_sync_ok` | `false` if the last run had errors | `sync-status.json` |
+| `playtime_today_min` | Minutes of playback today, including a running session | `playtime.json` in the data dir, fed by the playing / paused / stopped events |
 | `soloist_build_age_days` | Age of the Soloist build in days | build date from `soloist -V`, `null` if no binary |
 | `soloist_expires_in_days` | `90 - age`, remaining days | same |
 | `battery_soc` | Battery state of charge in percent | **no hardware yet**, always `null` |
 
 Values the box cannot know are `null`, never guessed.
+
+The MQTT export also has an `Online` binary sensor (connectivity), read from the availability topic. The
+broker's last will turns it off when the box disappears.
+
+### Playtime
+
+The day is the local date at the moment playback stops. A session that runs past midnight counts for the
+day it ends on. Days older than 30 are dropped. A pause does not count. A clean shutdown stores the running
+session; after a crash, the running session is lost.
 
 ### Soloist build expiry
 
