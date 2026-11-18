@@ -4,9 +4,8 @@ Status: in progress on branch `feature/home-assistant-integration`. Open points 
 
 ## Goals
 
-1. **Metrics:** let Home Assistant (HA) show the health of each box.
-2. **Control:** let HA start playback (including a Spotify link), pause, skip, and set the volume.
-3. **Battery state of charge:** planned, needs hardware (see below).
+1. **Metrics:** let Home Assistant (HA) show the health of each box. HA only reads; it does not control playback.
+2. **Battery state of charge:** planned, needs hardware (see below).
 
 ## Metrics: `GET /api/metrics`
 
@@ -42,27 +41,17 @@ part (cards, config, music). Dry runs do not write it. A write failure is logged
 
 ## Control
 
-HA calls the existing action endpoint `POST /api/action` with `{"name": ..., "args": {...}}`.
-Available actions today (from `app.py`):
-
-`play_pause`, `pause`, `resume`, `stop`, `next`, `prev`, `seek_forward`, `seek_back`, `volume_up`,
-`volume_down`, `volume_set`, `mute`, `shutdown`.
-
-Missing: starting an arbitrary Spotify link. The only play route today is a stored card
-(`POST /api/cards/<id>/play`). A `play` action with a `target` argument is needed. It must reuse the
-target check in `web.validate_card` so that only valid targets get through.
-
-All playback goes through `PlayerRouter`, which picks the backend by the URI scheme (`spotify:`).
-The same commands therefore work with both go-librespot and Soloist.
+Out of scope. HA does not start, pause or change playback. The existing action endpoints in the web API
+are unchanged and not used by HA.
 
 ## Open points
 
-- **Transport for HA.** Option A (current plan): HA polls `/api/metrics` and calls `/api/action`
-  with REST sensors and `rest_command`. Needs no new dependency, since the core only uses the standard library.
-  Option B: MQTT with HA discovery, which needs a client library such as `paho-mqtt`. Decide before building.
-- **Authentication.** `/api/*` has no authentication (see `docs/CONFIG.md`). Anyone who can reach the port
-  can control playback. Before HA controls the box, either bind to the LAN only with a token, or limit it
-  by firewall.
+- **Transport for HA.** HA polls `/api/metrics` with a REST sensor. This needs no new dependency, since the
+  core only uses the standard library. The alternative is MQTT with HA discovery, which needs a client library
+  such as `paho-mqtt`. For read-only metrics, polling is enough. Decide whether MQTT is still wanted.
+- **Web API exposure.** Not part of HA work, but worth knowing: `/api/*` has no authentication (see
+  `docs/CONFIG.md`). With `[web]` enabled, anyone who can reach the port can change cards and control playback.
+  HA does not change that. Decide whether this needs a fix later.
 - **Soloist log format.** Needed for the expiry metric.
 - **Battery.** Needs a fuel gauge on the I²C bus (e.g. MAX17048) or a UPS HAT that reports SoC.
   Nothing is installed yet.
