@@ -14,7 +14,7 @@ chroot part (`02-run-chroot.sh`), the Docker build and the first boot on a Pi ha
   Pi 1, see "32-bit" below.
 - Packages: `python3-libgpiod`, `python3-evdev`, `python3-pil`, `python3-spidev` (display), `mpv`, `alsa-utils`,
   `pipewire`, `pipewire-alsa`, `wireplumber`, `rclone`, `avahi-daemon`, `sudo`.
-- The jukebox from the committed state of `slim/` in `/opt/jukebox/repo`, installed into `/opt/jukebox/venv`.
+- The jukebox from the committed state of the repository in `/opt/jukebox/repo`, installed into `/opt/jukebox/venv`.
   `/opt/jukebox/VERSION` holds the git commit.
 - go-librespot in a pinned version, checked against a SHA-256 sum (`stage-jukebox/00-jukebox/versions.env`).
 - User `jukebox` (home `/var/lib/jukebox`) in the groups `audio gpio i2c spi dialout input`. Configuration lives
@@ -30,11 +30,11 @@ Not in the image: the Soloist binary (Spotify forbids passing it on; downloaded 
 Needs Docker (or a Debian host with `NATIVE=1`), network and some disk space. From a clean checkout:
 
 ```
-cd slim/image
+cd image
 ./build.sh
 ```
 
-The result (`image_<date>-jukebox.img.xz`) is in `.build/pi-gen/deploy/` or, with some container tools (seen with Podman), directly in `.build/pi-gen/`; `build.sh` prints where. Copy it out before you remove the container or the Podman VM. The image contains exactly the **committed** `slim/` (the script
+The result (`image_<date>-jukebox.img.xz`) is in `.build/pi-gen/deploy/` or, with some container tools (seen with Podman), directly in `.build/pi-gen/`; `build.sh` prints where. Copy it out before you remove the container or the Podman VM. The image contains exactly the **committed** repository (the script
 stops if there are uncommitted changes; `ALLOW_DIRTY=1` builds the last commit anyway). Pinned: the pi-gen
 commit (`build.sh`), the jukebox commit (your checkout), go-librespot (`versions.env`). The Debian packages are
 whatever Trixie has on the build day, so two builds on different days are not bit-identical.

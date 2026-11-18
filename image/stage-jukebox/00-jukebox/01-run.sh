@@ -2,7 +2,7 @@
 # Runs on the build host; ROOTFS_DIR is the image's file system. Working directory: this folder.
 . ./versions.env
 
-# Code: the committed slim/ tree, unpacked to /opt/jukebox/repo
+# Code: the committed tree, unpacked to /opt/jukebox/repo
 install -d "${ROOTFS_DIR}/opt/jukebox"
 rm -rf "${ROOTFS_DIR}/opt/jukebox/repo"
 tar -xf files/jukebox.tar -C "${ROOTFS_DIR}/opt/jukebox"

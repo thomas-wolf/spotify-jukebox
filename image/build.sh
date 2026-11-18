@@ -3,7 +3,7 @@
 #   ./build.sh                 build from the committed state of the current checkout
 #   NATIVE=1 ./build.sh        no Docker: run pi-gen's build.sh with sudo (Debian host)
 #   PREPARE_ONLY=1 ./build.sh  prepare the pi-gen tree and stop (for inspection)
-# The image contains exactly the committed state of slim/ (git archive), nothing else.
+# The image contains exactly the committed state of the repository (git archive), nothing else.
 set -euo pipefail
 
 PI_GEN_URL=https://github.com/RPi-Distro/pi-gen
@@ -12,11 +12,10 @@ PI_GEN_COMMIT=c0d2c9f2cffc08bc56850b0a3eb23178f4226e8a   # pi-gen branch arm64 (
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(git -C "$HERE" rev-parse --show-toplevel)
-SLIM=${HERE#"$REPO"/}; SLIM=${SLIM%/image}
 COMMIT=$(git -C "$REPO" rev-parse HEAD)
 
-if [ -n "$(git -C "$REPO" status --porcelain -- "$SLIM")" ] && [ "${ALLOW_DIRTY:-0}" != 1 ]; then
-    echo "error: uncommitted changes in $SLIM. The image only contains committed files." >&2
+if [ -n "$(git -C "$REPO" status --porcelain --untracked-files=no)" ] && [ "${ALLOW_DIRTY:-0}" != 1 ]; then
+    echo "error: uncommitted changes. The image only contains committed files." >&2
     echo "       Commit them, or set ALLOW_DIRTY=1 to build the last commit anyway." >&2
     exit 1
 fi
@@ -36,7 +35,7 @@ fi
 rm -rf "$PIGEN/stage-jukebox"
 cp -r "$HERE/stage-jukebox" "$PIGEN/stage-jukebox"
 F="$PIGEN/stage-jukebox/00-jukebox/files"
-git -C "$REPO" archive --format=tar --prefix=repo/ "HEAD:$SLIM" > "$F/jukebox.tar"
+git -C "$REPO" archive --format=tar --prefix=repo/ HEAD > "$F/jukebox.tar"
 echo "$COMMIT" > "$F/VERSION"
 touch "$PIGEN/stage2/SKIP_IMAGES"   # only our stage exports an image, not the plain Lite one
 # Workaround: newer util-linux prints "/dev/loop0 (lost)" for `losetup -f` when the device node is missing in

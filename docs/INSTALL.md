@@ -39,8 +39,8 @@ cannot find it, search with `apt search evdev`.
 ## 2. Install the jukebox
 
 ```
-git clone -b rewrite/slim-core https://github.com/thomas-wolf/spotify-jukebox ~/spotify-jukebox
-cd ~/spotify-jukebox/slim
+git clone https://github.com/thomas-wolf/spotify-jukebox ~/spotify-jukebox
+cd ~/spotify-jukebox
 sudo python3 -m venv --system-site-packages /opt/jukebox/venv
 sudo /opt/jukebox/venv/bin/pip install .
 ```
@@ -118,14 +118,14 @@ No sound? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 3. Create the configuration:
    ```
    mkdir -p ~/.config/go-librespot
-   cp ~/spotify-jukebox/slim/packaging/go-librespot-config.yml ~/.config/go-librespot/config.yml
+   cp ~/spotify-jukebox/packaging/go-librespot-config.yml ~/.config/go-librespot/config.yml
    ```
    go-librespot reads this folder by default (`~/.config/go-librespot` of the service user), so the service
    needs no option for it. The important parts are `credentials.type: device_auth` (login with a code, no browser needed on the
    box) and `server.enabled: true`. The REST API then listens on `localhost:3678`.
 4. Set up the service:
    ```
-   sed "s|/home/pi|$HOME|g; s|^User=pi|User=$USER|" ~/spotify-jukebox/slim/packaging/go-librespot.service \
+   sed "s|/home/pi|$HOME|g; s|^User=pi|User=$USER|" ~/spotify-jukebox/packaging/go-librespot.service \
      | sudo tee /etc/systemd/system/go-librespot.service >/dev/null
    sudo systemctl daemon-reload
    sudo systemctl enable --now go-librespot
@@ -153,12 +153,12 @@ volume from the knob, behaviour after a cold boot without a phone. What the Pi n
 - Spotify forbids passing the binaries on, so they cannot be part of an image: download from Spotify's page.
 
 The image does all of this except the download, the key and the pairing ([image/README.md](../image/README.md)).
-On a Pi you set up yourself (user `pi`, repo checked out in `~/spotify-jukebox/slim`):
+On a Pi you set up yourself (user `pi`, repo checked out in `~/spotify-jukebox`):
 
 ```
 sudo apt install pipewire pipewire-alsa wireplumber
 sudo loginctl enable-linger pi        # PipeWire and Soloist run in the user session without a login
-cd ~/spotify-jukebox/slim/packaging
+cd ~/spotify-jukebox/packaging
 sudo install -m 755 jukebox-soloist /usr/local/bin/ && sudo install -m 755 jukebox-soloist-update /usr/local/sbin/
 sudo jukebox-soloist-update           # downloads the binary into /opt/soloist (Spotify's server)
 sudo install -m 644 soloist.service soloist-update.service soloist-update.timer /etc/systemd/system/
@@ -220,7 +220,7 @@ sudo usermod -aG audio,gpio,i2c,spi,dialout,input "$USER"
 Install and start the service:
 
 ```
-sed "s|/home/pi|$HOME|g; s|^User=pi|User=$USER|" ~/spotify-jukebox/slim/packaging/jukebox.service \
+sed "s|/home/pi|$HOME|g; s|^User=pi|User=$USER|" ~/spotify-jukebox/packaging/jukebox.service \
   | sudo tee /etc/systemd/system/jukebox.service >/dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable --now jukebox
@@ -302,7 +302,7 @@ To keep cards, configuration and music in Dropbox or OneDrive and share them bet
 
 ```
 cd ~/spotify-jukebox && git pull
-cd slim && sudo rm -rf build src/*.egg-info
+sudo rm -rf build src/*.egg-info
 sudo /opt/jukebox/venv/bin/pip install --upgrade --force-reinstall --no-deps .
 sudo systemctl restart jukebox
 ```
