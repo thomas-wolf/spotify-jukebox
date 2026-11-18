@@ -2,11 +2,11 @@
 
 An RFID jukebox for the Raspberry Pi: put a card on the reader, music plays.
 
-This repository is a fork of [Phoniebox (RPi-Jukebox-RFID)](https://github.com/MiczFlor/RPi-Jukebox-RFID) v2.
-The branch `rewrite/slim-core` replaces the Spotify edition with a slim rewrite in [`slim/`](slim/README.md):
+This repository started as a fork of [Phoniebox (RPi-Jukebox-RFID)](https://github.com/MiczFlor/RPi-Jukebox-RFID) v2
+and has been rewritten from scratch. Everything lives in [`slim/`](slim/README.md):
 
 - one Python process, configuration in TOML, no PHP, MPD, Mopidy or shell scripts
-- Spotify through [go-librespot](https://github.com/devgianlu/go-librespot) (Premium required), local folders and web radio through mpv
+- Spotify through [Soloist](https://developer.spotify.com/) (Spotify's own headless client) or [go-librespot](https://github.com/devgianlu/go-librespot) (Premium required), local folders and web radio through mpv
 - USB and RDM6300 card readers, GPIO buttons, rotary encoders, LEDs, volume potentiometer (ADS1115)
 - cover display (ILI9341) with configurable pins, rotation and hidden edges
 - cloud sync of cards, config and music (Dropbox, OneDrive, ... through rclone)
@@ -15,8 +15,7 @@ The branch `rewrite/slim-core` replaces the Spotify edition with a slim rewrite 
 - per-box pinout, startup sounds and LED animations without touching the code
 - card IDs compatible with Phoniebox v2, so existing cards keep working
 
-Some parts are not verified or not written yet (hardware glue, a real run against go-librespot, display driver).
-The status table in [`slim/README.md`](slim/README.md#status) lists them.
+Not everything is verified on real hardware yet. The status table in [`slim/README.md`](slim/README.md#status) lists them.
 
 ## Documentation
 
@@ -32,10 +31,10 @@ The status table in [`slim/README.md`](slim/README.md#status) lists them.
 | [slim/docs/TROUBLESHOOTING.md](slim/docs/TROUBLESHOOTING.md) | Fixing common problems |
 | [slim/docs/DEVELOPMENT.md](slim/docs/DEVELOPMENT.md) | Architecture, tests, extending |
 
-## The old code
+## History
 
-Everything outside `slim/` is the unchanged Phoniebox v2 code and is not maintained here. The original
-project's README is in the git history and upstream.
+The Phoniebox v2 code this started from was removed from the tree. It is still in the git history
+(the last commit before the rewrite is `42d5023`) and upstream.
 
 ## License
 
