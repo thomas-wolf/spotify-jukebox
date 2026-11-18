@@ -63,7 +63,9 @@ WRAP
 fi
 
 cd "$PIGEN"
+mkdir -p deploy   # build-docker.sh writes its log there at the end and aborts if the folder is missing (Podman)
 if [ "${NATIVE:-0}" = 1 ]; then sudo ./build.sh -c config; else PRESERVE_CONTAINER="${PRESERVE_CONTAINER:-1}" ./build-docker.sh -c config; fi
-# Depending on the container tool, pi-gen's copy lands in deploy/ or directly in the pi-gen folder
+# Depending on the container tool, pi-gen's copy lands in deploy/ or directly in the pi-gen folder (Podman): collect it
+mv -f "$PIGEN"/image_*.img* "$PIGEN/deploy/" 2>/dev/null || true
 echo "image(s):"
-ls -lh "$PIGEN"/deploy/*.img* "$PIGEN"/image_*.img* 2>/dev/null || echo "  none found, look in $PIGEN (and 'podman cp pigen_work:/pi-gen/deploy .')"
+ls -lh "$PIGEN"/deploy/*.img* 2>/dev/null || echo "  none found, look in $PIGEN (and 'podman cp pigen_work:/pi-gen/deploy .')"

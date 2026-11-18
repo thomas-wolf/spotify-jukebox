@@ -34,7 +34,7 @@ cd image
 ./build.sh
 ```
 
-The result (`image_<date>-jukebox.img.xz`) is in `.build/pi-gen/deploy/` or, with some container tools (seen with Podman), directly in `.build/pi-gen/`; `build.sh` prints where. Copy it out before you remove the container or the Podman VM. The image contains exactly the **committed** repository (the script
+The result (`image_<date>-jukebox.img.xz`) ends up in `.build/pi-gen/deploy/` (with Podman pi-gen first drops it into `.build/pi-gen/`, `build.sh` moves it); `build.sh` prints where. Copy it out before you remove the container or the Podman VM. The image contains exactly the **committed** repository (the script
 stops if there are uncommitted changes; `ALLOW_DIRTY=1` builds the last commit anyway). Pinned: the pi-gen
 commit (`build.sh`), the jukebox commit (your checkout), go-librespot (`versions.env`). The Debian packages are
 whatever Trixie has on the build day, so two builds on different days are not bit-identical.
