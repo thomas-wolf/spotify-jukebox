@@ -74,8 +74,8 @@ action = "pferdesound"
 [[gpio.rotary]]            # encoder CLK = pin 31, DT = pin 29
 pin_a = 6
 pin_b = 5
-cw = "volume_up"
-ccw = "volume_down"
+cw = "volume_down"           # swapped: this encoder is wired the other way round (turn right = louder)
+ccw = "volume_up"
 
 [[gpio.led]]               # top, red, with resistor (pin 18)
 name = "status"
