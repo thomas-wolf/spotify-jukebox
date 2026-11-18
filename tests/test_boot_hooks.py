@@ -205,3 +205,53 @@ def test_conventional_sound_files_in_the_config_folder(tmp_path):
     app.bus.dispatch(Event("boot"))
     app.bus.dispatch(Event("shutdown"))
     assert launched == [str(cfg_dir / "startup.mp3"), str(tmp_path / "own.mp3")]
+
+
+def test_free_gpio20_adds_our_overlay_after_the_stock_one_for_bcm2835_boards():
+    p = plan(audio="hifiberry-miniamp", i2s_free_gpio20=True)
+    assert p.overlays == ["jukebox-i2s-free-gpio20"]
+    text = boot.render_block(p)
+    assert text.index("dtoverlay=hifiberry-dac") < text.index("dtoverlay=jukebox-i2s-free-gpio20")
+    assert "[pi4]\ndtoverlay=jukebox-i2s-free-gpio20" in text
+    assert "[pi5]" not in text                      # the Pi 5 keeps the stock overlay only
+    assert text.count("dtoverlay=jukebox-i2s-free-gpio20") == 3   # pi02, pi3, pi4: no model twice
+
+
+def test_free_gpio20_needs_a_hifiberry_preset():
+    with pytest.raises(boot.BootConfigError):
+        plan(i2s_free_gpio20=True)
+
+
+def test_overlay_source_is_shipped_and_shortens_the_pin_group():
+    source = (boot.OVERLAY_SOURCES / "jukebox-i2s-free-gpio20.dts").read_text()
+    assert "brcm,pins = <18 19 21>;" in source and "<&i2s_pins>" in source
+
+
+def test_build_overlay_calls_dtc_and_reports_errors(tmp_path, monkeypatch):
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+        class R: returncode = 0; stderr = ""; stdout = ""
+        return R()
+
+    monkeypatch.setattr(boot.shutil, "which", lambda name: "/usr/bin/dtc")
+    monkeypatch.setattr(boot.subprocess, "run", fake_run)
+    out = boot.build_overlay("jukebox-i2s-free-gpio20", tmp_path)
+    assert out == tmp_path / "jukebox-i2s-free-gpio20.dtbo"
+    assert calls[0][:6] == ["/usr/bin/dtc", "-@", "-I", "dts", "-O", "dtb"] and str(out) in calls[0]
+
+    monkeypatch.setattr(boot.shutil, "which", lambda name: None)
+    with pytest.raises(boot.BootConfigError, match="device-tree-compiler"):
+        boot.build_overlay("jukebox-i2s-free-gpio20", tmp_path)
+    with pytest.raises(boot.BootConfigError, match="no source"):
+        boot.build_overlay("nope", tmp_path)
+
+
+def test_overlay_missing_until_built(tmp_path):
+    p = plan(audio="hifiberry-miniamp", i2s_free_gpio20=True)
+    config_txt = tmp_path / "config.txt"
+    assert boot.overlay_missing(p, config_txt) == ["jukebox-i2s-free-gpio20"]
+    (tmp_path / "overlays").mkdir()
+    (tmp_path / "overlays" / "jukebox-i2s-free-gpio20.dtbo").write_bytes(b"")
+    assert boot.overlay_missing(p, config_txt) == []

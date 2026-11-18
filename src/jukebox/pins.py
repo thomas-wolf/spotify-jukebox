@@ -71,6 +71,8 @@ def check_pins(cfg: Config) -> PinReport:
         hardware[3] = "I2C SCL"
     if str(boot.get("audio", "")).startswith("hifiberry"):
         for pin, name in I2S_PINS.items():
+            if pin == 20 and boot.get("i2s_free_gpio20"):
+                continue   # jukebox-i2s-free-gpio20 leaves the data-in pin alone (BCM2835 family)
             hardware[pin] = f"I2S {name} (audio overlay)"
     elif boot.get("audio") == "pirate-audio":
         hardware[25] = "pirate-audio amplifier"

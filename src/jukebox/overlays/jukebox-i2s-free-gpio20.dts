@@ -1,0 +1,26 @@
+// Gives GPIO 20 back to the user.
+//
+// The stock hifiberry-dac overlay claims all four I2S pins (18 to 21) through the i2s_pins group. A DAC such as
+// the HiFiBerry MiniAmp only needs the bit clock (18), the word clock (19) and the data OUT pin (21). GPIO 20 is
+// the data IN pin, so it is free for a button, but the kernel keeps it reserved and libgpiod refuses it.
+//
+// Load this AFTER `dtoverlay=hifiberry-dac`: it only shortens the pin list of the group the stock overlay
+// uses, so the audio part always comes from the stock overlay of the installed kernel.
+//
+// BCM2835 family only (Pi Zero 2 W, 3, 4, 400, CM4). The Pi 5 has a different pin controller and needs its own
+// variant; `jukebox setup` does not load this file there.
+//
+// Build:  dtc -@ -I dts -O dtb -o jukebox-i2s-free-gpio20.dtbo jukebox-i2s-free-gpio20.dts
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2835";
+
+	fragment@0 {
+		target = <&i2s_pins>;
+		__overlay__ {
+			brcm,pins = <18 19 21>;
+		};
+	};
+};

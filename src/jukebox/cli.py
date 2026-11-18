@@ -290,7 +290,8 @@ def cmd_setup(args) -> int:
     new = boot.apply_plan(old, plan)
     modules = boot.modules_text(plan)
     modules_current = modules_path.read_text() if modules_path.exists() else None
-    changes = new != old or (modules is not None and modules != modules_current)
+    missing = boot.overlay_missing(plan, path)
+    changes = new != old or (modules is not None and modules != modules_current) or bool(missing)
     if not changes:
         print(f"{path}: already up to date")
         return 0
@@ -298,14 +299,21 @@ def cmd_setup(args) -> int:
         print(boot.diff(old, new, path.name))
     if modules is not None and modules != modules_current:
         print(f"{modules_path} (new): {modules.strip().splitlines()[-1]}")
+    for name in missing:
+        print(f"{boot.overlay_target(path)}/{name}.dtbo: to be built with dtc")
     if args.apply:
         try:
+            for name in missing:
+                print(f"built {boot.build_overlay(name, boot.overlay_target(path))}")
             if new != old:
                 backup = boot.write_config(path, new)
                 print(f"written {path}" + (f" (backup: {backup})" if backup else ""))
             if modules is not None and modules != modules_current:
                 modules_path.write_text(modules)
                 print(f"written {modules_path}")
+        except boot.BootConfigError as exc:
+            print(f"error: {exc}")
+            return 1
         except PermissionError as exc:
             print(f"error: {exc.filename or exc}: permission denied. Writing the boot files needs root. Run:\n"
                   f"  sudo {sys.executable} -m jukebox -c {cfg.path or DEFAULT_CONFIG} setup --apply")

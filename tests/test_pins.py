@@ -49,3 +49,9 @@ def test_display_pins_and_bad_pin(tmp_path):
 def test_onoff_shim_reserves_gpio4(tmp_path):
     cfg = cfg_from(tmp_path, '[boot]\npower = "onoff-shim"\n[[gpio.button]]\npin = 4\naction = "next"\n')
     assert any("SHIM" in p.message for p in check_pins(cfg).errors)
+
+
+def test_gpio20_is_free_with_i2s_free_gpio20(tmp_path):
+    base = '[boot]\naudio = "hifiberry-miniamp"\n%s[[gpio.button]]\npin = 20\naction = "prev"\n'
+    assert check_pins(cfg_from(tmp_path, base % "")).errors
+    assert check_pins(cfg_from(tmp_path, base % "i2s_free_gpio20 = true\n")).errors == []

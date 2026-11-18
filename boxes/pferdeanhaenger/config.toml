@@ -41,18 +41,13 @@ id_format = "dec"             # 10 digits, zero padded: the same id the USB read
 [gpio]
 chip = "/dev/gpiochip0"
 
-[[gpio.button]]            # top, blue (pin 37). Held 0.8 s = previous, until the green button has a new pin
+[[gpio.button]]            # top, blue (pin 37): next
 pin = 26
 action = "next"
-hold_action = "prev"
-hold_time = 0.8
 
-# Top, green (pin 38, GPIO 20) does NOT work with the MiniAmp: GPIO 20 belongs to the I2S block and
-# libgpiod answers "Invalid argument" (seen on the box). Re-solder it to a free pin (GPIO 3 on pin 5, or
-# GPIO 7 on pin 26 with `dtoverlay=spi0-1cs`), then re-enable:
-# [[gpio.button]]
-# pin = 3
-# action = "prev"
+[[gpio.button]]            # top, green (pin 38, GPIO 20): previous. Works because [boot] i2s_free_gpio20 = true
+pin = 20                   # (without it the I2S block owns GPIO 20 and libgpiod answers "Invalid argument")
+action = "prev"
 
 [[gpio.button]]            # top, yellow (pin 32): pause
 pin = 12
@@ -147,6 +142,7 @@ file = "hooks.py"             # optional, relative to this file
 # --- device tree overlays, applied by: jukebox setup --apply -------------------
 [boot]
 audio = "hifiberry-miniamp"   # dtoverlay=hifiberry-dac, on-board audio off
+i2s_free_gpio20 = true        # own overlay: the DAC does not need I2S data-in, so GPIO 20 is a normal pin (needs dtc)
 power = "onoff-shim"          # Pimoroni OnOff SHIM: GPIO 4 cuts the power after shutdown
 uart = true                   # RDM6300 on the serial port (enable_uart=1)
 spi = true                    # ILI9341 display

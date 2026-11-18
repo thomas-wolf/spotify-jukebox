@@ -26,7 +26,8 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
 
 ## Hardware
 
-- [ ] GPIO 20 (previous-track button): owned by the I2S driver. Either a custom I2S overlay or re-solder to GPIO 3/7.
+- [ ] GPIO 20 (previous button): own overlay `jukebox-i2s-free-gpio20` written (`[boot] i2s_free_gpio20`), NOT tried on the
+  box yet (needs `dtc`; check `pinctrl get 20`, sound, green button). Pi 5 variant not written.
 
 ## Soloist
 

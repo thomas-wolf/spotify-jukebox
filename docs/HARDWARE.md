@@ -13,6 +13,16 @@ Whether go-librespot plays on the DAC without further settings (`audio_device: d
 being the only card. With the on-board audio switched off that should be the case **(check on the box)**.
 Otherwise enter the ALSA name from `aplay -L` in `go-librespot/config.yml`.
 
+### Freeing GPIO 20 next to an I2S DAC
+
+`[boot] i2s_free_gpio20 = true` (with a `hifiberry-*` audio preset) adds `dtoverlay=jukebox-i2s-free-gpio20` after the
+stock overlay. The source is `src/jukebox/overlays/jukebox-i2s-free-gpio20.dts`; it only shortens the pin list of
+the stock overlay's pin group to 18, 19 and 21, so the audio part always comes from the installed kernel's own
+overlay. `jukebox setup --apply` compiles it with `dtc` (`sudo apt install device-tree-compiler`; the image has
+it) into `overlays/` next to `config.txt`. The overlay is loaded on the Pi Zero 2 W, 3 and 4 family (BCM2835 pin
+controller). On a **Pi 5** it is not loaded: GPIO 20 stays reserved there until a variant for its pin controller
+has been written and tested. Do not use the option with a DAC that needs data-in (an audio HAT with a microphone).
+
 ### Overlays and Pi versions
 
 Overlays depend on the Pi model and the kernel. That is why the choice lives in each box's `config.toml`
@@ -205,11 +215,12 @@ horse sound 16).
 
 Things to check on that box:
 
-- **GPIO 20 (prev button) does not work.** It is the I2S data-in pin and the `hifiberry-dac` overlay owns it;
-  libgpiod answers `Invalid argument` (seen on the box). The old v2 setup used it with a different audio
-  configuration. Free header pins are GPIO 3 (pin 5, I2C SCL with a fixed pull-up, fine as a button while I2C is
-  off; check that the SHIM does not use pin 5) and GPIO 7 (pin 26, SPI CE1; with `dtparam=spi=on` the kernel
-  claims it, `dtoverlay=spi0-1cs` would free it **(unverified)**). Until then holding the blue button gives "previous".
+- **GPIO 20 (prev button)** is the I2S data-in pin. The stock `hifiberry-dac` overlay reserves it, and libgpiod then
+  answers `Invalid argument` (the old v2 software wrote to the GPIO registers directly and did not ask the
+  kernel, which is why it worked there). The MiniAmp only needs the clocks (18, 19) and data-out (21), so
+  `[boot] i2s_free_gpio20 = true` loads an extra overlay that takes pin 20 out of the I2S pin group
+  (see below). **Unverified on the box yet:** after `sudo jukebox setup --apply` and a reboot, `pinctrl get 20`
+  should show a plain input, the sound must still work, and the green button must give "previous".
 - **GPIO 2 (red button LED)** is the I2C SDA pin with a fixed pull-up on the board. It works as an output
   while `i2c = false`.
 - **GPIO 4** belongs to the SHIM. Do not assign it to anything else.

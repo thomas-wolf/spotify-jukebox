@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import difflib
 import re
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -42,6 +44,15 @@ POWER_PRESETS: dict[str, list[str]] = {
 }
 
 
+# GPIO 20 for a button next to an I2S DAC (see overlays/jukebox-i2s-free-gpio20.dts). Only boards with the
+# BCM2835 pin controller; elsewhere (Pi 5) the stock overlay stays as it is and GPIO 20 remains taken.
+FREE_GPIO20_OVERLAY = "jukebox-i2s-free-gpio20"
+# config.txt filters: [pi4] already covers Pi 4B, 400 and CM4, [pi3] the 3B, 3B+, 3A+ and CM3. A more specific
+# filter on top would load the overlay twice.
+FREE_GPIO20_MODELS = ("pi02", "pi3", "pi4")
+OVERLAY_SOURCES = Path(__file__).with_name("overlays")
+
+
 class BootConfigError(ValueError):
     pass
 
@@ -52,6 +63,7 @@ class BootPlan:
     by_model: dict[str, list[str]] = field(default_factory=dict)  # [pi5] -> lines
     comment_out: list[str] = field(default_factory=list)
     modules: list[str] = field(default_factory=list)      # for modules-load.d
+    overlays: list[str] = field(default_factory=list)     # our own overlays (.dts in overlays/), built by setup
 
 
 def plan_from_config(boot: dict[str, Any]) -> BootPlan:
@@ -69,6 +81,13 @@ def plan_from_config(boot: dict[str, Any]) -> BootPlan:
             raise BootConfigError(
                 f"unknown power preset {power!r}; known: {', '.join(sorted(POWER_PRESETS))}")
         plan.lines += POWER_PRESETS[power]
+    if boot.get("i2s_free_gpio20"):
+        if not str(preset or "").startswith("hifiberry"):
+            raise BootConfigError("[boot] i2s_free_gpio20 needs a hifiberry audio preset")
+        # after the stock overlay, which comes first among the unconditional lines
+        for model in FREE_GPIO20_MODELS:
+            plan.by_model.setdefault(model, []).append(f"dtoverlay={FREE_GPIO20_OVERLAY}")
+        plan.overlays.append(FREE_GPIO20_OVERLAY)
     if boot.get("uart"):
         plan.lines.append("enable_uart=1")
     if boot.get("spi"):
@@ -146,3 +165,28 @@ def modules_text(plan: BootPlan) -> str | None:
     if not plan.modules:
         return None
     return "# written by jukebox setup\n" + "\n".join(plan.modules) + "\n"
+
+
+def overlay_target(config_txt: Path) -> Path:
+    """Where the firmware looks for overlays: ``overlays/`` next to config.txt."""
+    return config_txt.parent / "overlays"
+
+
+def overlay_missing(plan: BootPlan, config_txt: Path) -> list[str]:
+    return [n for n in plan.overlays if not (overlay_target(config_txt) / f"{n}.dtbo").exists()]
+
+
+def build_overlay(name: str, dest_dir: Path) -> Path:
+    """Compile ``overlays/<name>.dts`` with dtc into ``dest_dir/<name>.dtbo``."""
+    source = OVERLAY_SOURCES / f"{name}.dts"
+    if not source.is_file():
+        raise BootConfigError(f"no source for the overlay {name!r} ({source})")
+    dtc = shutil.which("dtc")
+    if not dtc:
+        raise BootConfigError("dtc not found: sudo apt install device-tree-compiler")
+    out = dest_dir / f"{name}.dtbo"
+    result = subprocess.run([dtc, "-@", "-I", "dts", "-O", "dtb", "-o", str(out), str(source)],
+                            capture_output=True, text=True)
+    if result.returncode != 0:
+        raise BootConfigError(f"dtc failed for {name}: {result.stderr.strip() or result.stdout.strip()}")
+    return out
