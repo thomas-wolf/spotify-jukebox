@@ -1,0 +1,4 @@
+.build/
+config.local
+stage-jukebox/00-jukebox/files/jukebox.tar
+stage-jukebox/00-jukebox/files/VERSION

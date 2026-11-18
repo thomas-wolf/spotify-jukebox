@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spotify-jukebox"
+version = "3.0.0.dev0"
+description = "Slim RFID jukebox for the Raspberry Pi: Spotify (go-librespot) plus local folders"
+requires-python = ">=3.11"
+dependencies = []  # core uses only the standard library
+
+[project.optional-dependencies]
+# evdev and gpiod come from apt (python3-evdev, python3-libgpiod), see docs/INSTALL.md
+display = ["spidev", "pillow"]
+dev = ["pytest"]
+
+[project.scripts]
+jukebox = "jukebox.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"jukebox.display" = ["fonts/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

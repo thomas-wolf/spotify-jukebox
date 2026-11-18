@@ -1,0 +1,17 @@
+[Unit]
+Description=Jukebox first boot (hostname, box configuration, overlays)
+ConditionPathExists=/boot/firmware/jukebox.toml
+ConditionPathExists=!/var/lib/jukebox/.firstboot-done
+# No ordering against cloud-init: cloud-final.service is After=multi-user.target, and multi-user.target is
+# implicitly after everything it wants, so After=cloud-final.service makes a cycle and systemd drops this job.
+After=local-fs.target
+Before=jukebox.service go-librespot.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/jukebox-firstboot
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

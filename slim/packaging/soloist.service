@@ -1,0 +1,25 @@
+[Unit]
+Description=Spotify Soloist (Spotify Connect receiver, official client)
+# Needs the binary (see jukebox-soloist-update) and the private environment file with the API key.
+ConditionPathExists=/opt/soloist/soloist
+ConditionPathExists=/home/pi/.config/jukebox/soloist.env
+After=sound.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+SupplementaryGroups=audio
+# Soloist talks to PipeWire (or PulseAudio) in the user session of the service user. That session must exist
+# without a login: `loginctl enable-linger <user>`. The wrapper waits until its socket is there.
+Environment=XDG_RUNTIME_DIR=/run/user/%U
+# SOLOIST_API_KEY (required) and SOLOIST_NAME (device name, default "Jukebox"). Mode 600, never in git.
+EnvironmentFile=/home/pi/.config/jukebox/soloist.env
+ExecStart=/usr/local/bin/jukebox-soloist
+Restart=on-failure
+RestartSec=5
+# Exit code 10: this build expired (they last 90 days). Restarting does not help; jukebox-soloist-update fetches a new one.
+RestartPreventExitStatus=10
+
+[Install]
+WantedBy=multi-user.target

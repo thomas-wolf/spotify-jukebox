@@ -1,0 +1,158 @@
+# Marie's horse trailer: full pinout of ONE box (other boxes have different pinouts).
+# Install on the box: see boxes/README.md. Wiring: boxes/pferdeanhaenger/README.md.
+# Everything that differs between your boxes (pinout, readers, sounds, hooks)
+# lives here, never in the code.
+
+[box]
+name = "pferdeanhaenger"
+
+[audio]
+start_volume = 30
+max_volume = 80          # hard cap, also applies to the knob
+volume_step = 5
+
+[cards]
+same_card = "restart"    # toggle | ignore | restart | next  (restart = playlist from the start)
+same_card_delay = 3.0
+
+[spotify]
+enabled = true
+backend = "soloist"                  # the Family accounts get no audio key from go-librespot
+soloist_ws = "127.0.0.1:9090"
+api_url = "http://127.0.0.1:3678"   # only used with backend = "go-librespot"
+
+[local]
+enabled = true
+root = "~/music"
+
+# --- readers ---------------------------------------------------------------
+[readers.usb]
+enabled = false
+device_name = "RFID"          # substring of the evdev device name
+
+[readers.rdm6300]
+enabled = true
+port = "/dev/serial0"         # the old custom code used /dev/ttyS0; serial0 points there on a Pi 4 with Bluetooth
+id_format = "dec"             # 10 digits, zero padded: the same id the USB readers type, so cards work in every box
+
+# --- GPIO (BCM numbers). Remove what this box does not have. ----------------
+# Reserved elsewhere: 14/15 UART (RDM6300), 8-11 SPI (display), 18-21 I2S (MiniAmp),
+# 4/17 OnOff SHIM (power button / power-off signal). See docs/HARDWARE.md.
+[gpio]
+chip = "/dev/gpiochip0"
+
+[[gpio.button]]            # top, blue (pin 37). Held 0.8 s = previous, until the green button has a new pin
+pin = 26
+action = "next"
+hold_action = "prev"
+hold_time = 0.8
+
+# Top, green (pin 38, GPIO 20) does NOT work with the MiniAmp: GPIO 20 belongs to the I2S block and
+# libgpiod answers "Invalid argument" (seen on the box). Re-solder it to a free pin (GPIO 3 on pin 5, or
+# GPIO 7 on pin 26 with `dtoverlay=spi0-1cs`), then re-enable:
+# [[gpio.button]]
+# pin = 3
+# action = "prev"
+
+[[gpio.button]]            # top, yellow (pin 32): pause
+pin = 12
+action = "play_pause"
+
+[[gpio.button]]            # SHIM button (pin 11): shutdown only when held, a short press does nothing
+pin = 17
+hold_action = "shutdown"
+hold_time = 2.0
+
+[[gpio.button]]            # push button of the rotary encoder (pin 33): volume 0 / back
+pin = 13
+action = "mute"
+
+[[gpio.button]]            # back (pin 36): random horse sound, action defined in hooks.py
+pin = 16
+action = "pferdesound"
+
+[[gpio.rotary]]            # encoder CLK = pin 31, DT = pin 29
+pin_a = 6
+pin_b = 5
+cw = "volume_down"           # swapped: this encoder is wired the other way round (turn right = louder)
+ccw = "volume_up"
+
+[[gpio.led]]               # top, red, with resistor (pin 18)
+name = "status"
+pin = 24
+
+[[gpio.led]]               # back lights (pin 13 white, pin 16 red), always on as in v2 (led_buttons.py)
+name = "back_white"
+pin = 27
+on = true
+
+[[gpio.led]]
+name = "back_red"
+pin = 23
+on = true
+
+[[gpio.led]]               # button LED at the back (pin 3, red)
+name = "button_red"
+pin = 2
+
+# --- potentiometer on an ADS1115 --------------------------------------------
+[adc]
+enabled = false
+bus = 1
+address = 0x48
+channel = 0
+full_scale = 26400            # calibrate with: jukebox adc-check
+
+# --- sounds and hooks ---------------------------------------------------------
+[sounds.events]
+# Sounds by convention: ~/.config/jukebox/startup.mp3 (boot) and shutdown.mp3. Private files, not in this repository.
+
+[display]                    # ILI9341 on SPI; set up with `jukebox display-test`
+enabled = true
+rotation = 180               # 0, 90, 180, 270 (as you look at it)
+# Boot / idle picture: put it at ~/.config/jukebox/idle.jpg (or .png). Private photo, never in this repository.
+dc = 22                      # BCM pins for data/command and reset (pins 15 and 22)
+reset = 25
+# backlight = ...           # optional: pin that switches the backlight (here: LED pin wired to 3.3V, always on)
+margins = { left = 0, top = 0, right = 0, bottom = 0 }   # pixels hidden by the housing, as you look at it
+layout = "auto"              # auto, split (cover + text), cover (cover alone)
+cover_side = "left"          # left, right (wide displays) or top, bottom (tall ones)
+cover_fit = "contain"        # contain: whole cover visible, cover: fill and crop
+background = "average"       # average colour of the cover, blur, or a color like "#101010"
+
+[covers]                     # cover art for local files (needs [display])
+spotify_search = true        # no cover.jpg in the folder: search the album on Spotify
+write_to_folder = true       # and save it there as cover.jpg
+
+[sync]                       # cards, config and music from/to Dropbox, OneDrive, ... through rclone
+enabled = false
+remote = "dropbox:Jukebox"   # an rclone remote (set up with `rclone config`) and a folder in it
+interval_minutes = 30
+cards = "both"               # cards.toml: both, pull (cloud wins), push, off
+config = "pull"              # <remote>/boxes/<box name>/ -> this folder (config.toml, hooks.py, sounds/)
+music = "pull"               # <remote>/music/ -> [local] root
+# delete = false             # true: music also loses files that were removed in the cloud
+# bwlimit = "2M"             # limit for the music download
+
+[web]
+enabled = true            # no password: trusted home network only
+port = 8080
+
+[pferdesound]               # read by hooks.py
+folder = "~/sounds/pferd"
+
+[hooks]
+file = "hooks.py"             # optional, relative to this file
+
+# --- device tree overlays, applied by: jukebox setup --apply -------------------
+[boot]
+audio = "hifiberry-miniamp"   # dtoverlay=hifiberry-dac, on-board audio off
+power = "onoff-shim"          # Pimoroni OnOff SHIM: GPIO 4 cuts the power after shutdown
+uart = true                   # RDM6300 on the serial port (enable_uart=1)
+spi = true                    # ILI9341 display
+i2c = false                   # true when an ADS1115 is attached
+# extra = ["dtoverlay=something", { model = "pi5", line = "dtparam=pciex1" }]
+
+[system]
+# needs /etc/sudoers.d/jukebox, see docs/INSTALL.md
+shutdown_command = ["sudo", "systemctl", "poweroff"]

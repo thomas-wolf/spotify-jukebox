@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""First-boot provisioning of a jukebox image.
+
+Reads /boot/firmware/jukebox.toml (put there by the user, see jukebox.toml.example), then once:
+  1. installs the box configuration (boxes/<box>/ of the image, or a folder jukebox/ on the boot partition),
+  2. sets the hostname,
+  3. runs ``jukebox setup --apply`` (device-tree overlays of that box),
+  4. writes a marker and reboots.
+Standard library only. Run by jukebox-firstboot.service, which is skipped once the marker exists.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import pwd
+import re
+import shutil
+import subprocess
+import sys
+import tomllib
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+
+NAME_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")  # also a valid hostname label
+KNOWN_KEYS = {"box", "hostname"}
+SHUTDOWN = ["sudo", "systemctl", "poweroff"]  # matches the sudoers rule of the image
+
+
+class FirstBootError(Exception):
+    pass
+
+
+@dataclass
+class Paths:
+    boot: Path = Path("/boot/firmware")
+    home: Path = Path("/var/lib/jukebox")
+    repo: Path = Path("/opt/jukebox/repo")
+    venv: Path = Path("/opt/jukebox/venv")
+    etc: Path = Path("/etc")
+    user: str = "jukebox"
+
+    @property
+    def conf(self) -> Path:
+        return self.home / ".config" / "jukebox"
+
+    @property
+    def marker(self) -> Path:
+        return self.home / ".firstboot-done"
+
+
+def say(msg: str) -> None:
+    print(f"jukebox-firstboot: {msg}", flush=True)
+
+
+def run(cmd: list[str], check: bool = True) -> int:
+    return subprocess.run(cmd, check=check).returncode
+
+
+def read_request(paths: Paths) -> tuple[str, str]:
+    """Returns (box, hostname) from jukebox.toml; raises FirstBootError for anything unusable."""
+    f = paths.boot / "jukebox.toml"
+    try:
+        with open(f, "rb") as fh:
+            data = tomllib.load(fh)
+    except FileNotFoundError:
+        raise FirstBootError(f"{f} not found") from None
+    except tomllib.TOMLDecodeError as exc:
+        raise FirstBootError(f"{f}: {exc}") from exc
+    unknown = sorted(set(data) - KNOWN_KEYS)
+    if unknown:
+        raise FirstBootError(f"{f}: unknown key(s) {', '.join(unknown)} (allowed: box, hostname)")
+    box = data.get("box")
+    if not isinstance(box, str) or not NAME_RE.match(box):
+        raise FirstBootError(f"{f}: 'box' is required: lowercase letters, digits and '-', max 63 characters")
+    hostname = data.get("hostname", box)
+    if not isinstance(hostname, str) or not NAME_RE.match(hostname):
+        raise FirstBootError(f"{f}: 'hostname' must be lowercase letters, digits and '-', max 63 characters")
+    return box, hostname
+
+
+def chown_to_user(path: Path, user: str) -> None:
+    if os.geteuid() != 0:
+        return
+    try:
+        pw = pwd.getpwnam(user)
+    except KeyError:
+        return
+    os.lchown(path, pw.pw_uid, pw.pw_gid)
+
+
+def install_box_config(paths: Paths, box: str) -> Path:
+    """Puts config.toml (and hooks.py, ...) into the service user's configuration folder."""
+    conf = paths.conf
+    conf.mkdir(parents=True, exist_ok=True)
+    chown_to_user(conf, paths.user)
+    override = paths.boot / "jukebox"
+    repo_box = paths.repo / "boxes" / box
+    if (override / "config.toml").is_file():
+        say(f"box configuration from the boot partition ({override})")
+        for src in sorted(p for p in override.iterdir() if p.is_file()):
+            dst = conf / src.name
+            dst.unlink(missing_ok=True)
+            shutil.copyfile(src, dst)
+            chown_to_user(dst, paths.user)
+    elif (repo_box / "config.toml").is_file():
+        say(f"box configuration boxes/{box}/ of the image")
+        for name in ("config.toml", "hooks.py"):
+            src, dst = repo_box / name, conf / name
+            dst.unlink(missing_ok=True)
+            if src.is_file():
+                dst.symlink_to(src)
+                chown_to_user(dst, paths.user)
+    else:
+        known = sorted(p.name for p in (paths.repo / "boxes").iterdir() if p.is_dir()) if (paths.repo / "boxes").is_dir() else []
+        raise FirstBootError(f"no configuration for box '{box}': neither {override}/config.toml nor "
+                             f"boxes/{box}/config.toml in the image (boxes in the image: {', '.join(known) or 'none'})")
+    return conf / "config.toml"
+
+
+def write_shutdown_override(paths: Paths, config: Path) -> None:
+    """The service may not call `systemctl poweroff` directly; use the sudoers rule unless the box says otherwise."""
+    try:
+        with open(config, "rb") as fh:
+            box_cfg = tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise FirstBootError(f"{config}: {exc}") from exc
+    local = config.with_name("config.local.toml")
+    if "shutdown_command" in box_cfg.get("system", {}) or local.exists():
+        return
+    items = ", ".join(f'"{x}"' for x in SHUTDOWN)
+    local.write_text(f"# written by jukebox-firstboot\n[system]\nshutdown_command = [{items}]\n")
+    chown_to_user(local, paths.user)
+
+
+def set_hostname(paths: Paths, hostname: str) -> None:
+    etc = paths.etc
+    (etc / "hostname").write_text(hostname + "\n")
+    run(["hostnamectl", "set-hostname", hostname], check=False)  # also the running system; best effort
+    hosts = etc / "hosts"
+    lines = hosts.read_text().splitlines() if hosts.exists() else []
+    entry = f"127.0.1.1\t{hostname}"
+    if any(line.startswith("127.0.1.1") for line in lines):
+        lines = [entry if line.startswith("127.0.1.1") else line for line in lines]
+    else:
+        lines.append(entry)
+    hosts.write_text("\n".join(lines) + "\n")
+    # cloud-init (Raspberry Pi Imager) would put its own hostname back on the next boot
+    if (etc / "cloud").is_dir():
+        d = etc / "cloud" / "cloud.cfg.d"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "99-jukebox-hostname.cfg").write_text("preserve_hostname: true\nmanage_etc_hosts: false\n")
+
+
+def provision(paths: Paths, reboot: bool = True) -> int:
+    box, hostname = read_request(paths)
+    say(f"box '{box}', hostname '{hostname}'")
+    config = install_box_config(paths, box)
+    write_shutdown_override(paths, config)
+    set_hostname(paths, hostname)
+    run([str(paths.venv / "bin" / "jukebox"), "-c", str(config), "setup", "--apply"])
+    paths.marker.write_text(f"box={box}\nhostname={hostname}\n"
+                            f"time={datetime.now(timezone.utc).isoformat(timespec='seconds')}\n")
+    say("done" + (", rebooting" if reboot else ""))
+    if reboot:
+        run(["systemctl", "reboot"])
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--no-reboot", action="store_true", help="do not reboot at the end")
+    ap.add_argument("--boot", type=Path, default=Paths.boot, help="boot partition (default /boot/firmware)")
+    args = ap.parse_args(argv)
+    try:
+        return provision(Paths(boot=args.boot), reboot=not args.no_reboot)
+    except FirstBootError as exc:
+        say(f"ERROR: {exc}")
+        return 1
+    except subprocess.CalledProcessError as exc:
+        say(f"ERROR: {' '.join(map(str, exc.cmd))} failed with {exc.returncode}")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
