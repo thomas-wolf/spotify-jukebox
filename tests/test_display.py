@@ -324,3 +324,18 @@ def test_overlay_opacity_is_validated():
     assert DisplaySettings.from_section({"overlay_opacity": 1}).overlay_opacity == 1.0
     with pytest.raises(ConfigError):
         DisplaySettings.from_section({"overlay_opacity": 1.5}).validate()
+
+
+def test_overlay_lift_moves_the_text_up():
+    cover = Image.new("RGB", (300, 300), (40, 40, 40))
+
+    def lowest_ink_row(lift):
+        s = DisplaySettings.from_section({"layout": "overlay", "rotation": 180, "background": "#000000",
+                                          "overlay_lift": lift})
+        img = Renderer(s).render(cover, "Title", "Artist")
+        rows = [y for y in range(320) if any(img.getpixel((x, y)) == (255, 255, 255) for x in range(240))]
+        return max(rows)
+
+    assert lowest_ink_row(20) == lowest_ink_row(0) - 20
+    with pytest.raises(ConfigError):
+        DisplaySettings.from_section({"overlay_lift": 101}).validate()

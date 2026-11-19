@@ -117,8 +117,8 @@ class Renderer:
         a_lines = wrap(artist, lambda t: draw.textlength(t, font=self.artist_font), v.w - 2 * pad, 2) if artist else []
         th, ah = self.s.title_size + 4, self.s.artist_size + 3
         text_h = len(t_lines) * th + len(a_lines) * ah + (4 if t_lines and a_lines else 0)
-        fade = 28
-        band_h = min(v.h, text_h + 2 * pad + fade)
+        fade, lift = 28, self.s.overlay_lift
+        band_h = min(v.h, text_h + 2 * pad + fade + lift)
         top = v.y + v.h - band_h
         mask = Image.new("L", (v.w, band_h))
         md = ImageDraw.Draw(mask)
@@ -127,7 +127,7 @@ class Renderer:
             alpha = int(peak * min(1.0, row / fade)) if fade else peak
             md.line((0, row, v.w, row), fill=alpha)
         img.paste(Image.new("RGB", (v.w, band_h), (0, 0, 0)), (v.x, top), mask)
-        y = v.y + v.h - pad - text_h
+        y = v.y + v.h - pad - lift - text_h
         for lines, font, step, color in ((t_lines, self.title_font, th, (255, 255, 255)),
                                          (a_lines, self.artist_font, ah, (215, 215, 215))):
             for line in lines:

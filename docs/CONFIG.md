@@ -168,6 +168,7 @@ on without a display.
 | `margins` | all `0` | Pixels the housing hides: `{ left = 12, top = 10, right = 12, bottom = 10 }`. In the **rotated** picture, as you look at it. Nothing important is drawn there. |
 | `layout` | `auto` | `cover`: the cover alone fills the visible area. `overlay`: the cover fills the whole screen (cropped) and title and artist are drawn on a dark gradient at the bottom. `split`: square cover plus text beside or below it. `auto`: split when the leftover space is big enough for text (wide displays), otherwise cover alone. |
 | `overlay_opacity` | `0.92` | Layout `overlay`: how dark the band behind title and artist is at the bottom (0 = transparent, 1 = black). |
+| `overlay_lift` | `0` | Layout `overlay`: extra pixels between the text and the bottom edge (0..100). Raise it when the housing covers the lower edge or the text sits too close to it. |
 | `cover_side` | `left` | Which side the square cover goes in `split`: `left` or `right` (wide pictures), `top` or `bottom` (tall ones) |
 | `cover_fit` | `contain` | `contain`: the whole cover is visible, bars where the shape differs (4:3 cover in a square box). `cover`: the box is filled, the cover is cropped. |
 | `background` | `average` | What fills the free areas: `average` (darkened average colour of the cover), `blur` (blurred cover), or a fixed color like `"#101010"` |

@@ -112,6 +112,7 @@ reset = 25
 margins = { left = 0, top = 0, right = 0, bottom = 0 }   # pixels hidden by the housing, as you look at it
 layout = "overlay"           # overlay (cover full screen, title on a gradient), auto, split (cover + text), cover (cover alone)
 overlay_opacity = 0.8        # overlay layout: darkness of the band behind title and artist (0 = transparent, 1 = black; default 0.92)
+overlay_lift = 14             # overlay layout: pixels between the text and the bottom edge (the housing hides the lower edge)
 cover_side = "left"          # left, right (wide displays) or top, bottom (tall ones)
 cover_fit = "contain"        # contain: whole cover visible, cover: fill and crop
 background = "average"       # average colour of the cover, blur, or a color like "#101010"
