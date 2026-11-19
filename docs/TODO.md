@@ -26,8 +26,9 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
 
 ## Hardware
 
-- [ ] GPIO 20 (previous button): own overlay `jukebox-i2s-free-gpio20` written (`[boot] i2s_free_gpio20`), NOT tried on the
-  box yet (needs `dtc`; check `pinctrl get 20`, sound, green button). Pi 5 variant not written.
+- [x] GPIO 20 (previous button): own overlay `jukebox-i2s-free-gpio20` (`[boot] i2s_free_gpio20`). Checked on the
+  Pferdeanhaenger box (Pi 4): `pinctrl get 20` shows a plain input, the sound still works, the green button gives
+  "previous". Pi 5 variant not written.
 
 ## Soloist
 

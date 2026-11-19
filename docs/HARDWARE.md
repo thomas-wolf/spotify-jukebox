@@ -219,8 +219,8 @@ Things to check on that box:
   answers `Invalid argument` (the old v2 software wrote to the GPIO registers directly and did not ask the
   kernel, which is why it worked there). The MiniAmp only needs the clocks (18, 19) and data-out (21), so
   `[boot] i2s_free_gpio20 = true` loads an extra overlay that takes pin 20 out of the I2S pin group
-  (see below). **Unverified on the box yet:** after `sudo jukebox setup --apply` and a reboot, `pinctrl get 20`
-  should show a plain input, the sound must still work, and the green button must give "previous".
+  (see below). **Checked on the box (Pi 4):** after `sudo jukebox setup --apply` and a reboot `pinctrl get 20`
+  shows a plain input (`ip pu`), the sound still works and the green button gives "previous".
 - **GPIO 2 (red button LED)** is the I2C SDA pin with a fixed pull-up on the board. It works as an output
   while `i2c = false`.
 - **GPIO 4** belongs to the SHIM. Do not assign it to anything else.
