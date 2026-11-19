@@ -113,11 +113,11 @@ spotify_search = true
 write_to_folder = true
 
 [sync]
-enabled = false
+enabled = true            # needs rclone with the remote `dropbox` (see docs/SYNC.md)
 remote = "dropbox:Jukebox2.0"
 interval_minutes = 30
 cards = "both"
-config = "off"
+config = "pull"           # Jukebox2.0/boxes/feuerwehrv2/ -> ~/.config/jukebox/ (idle.jpg, startup.mp3, ...)
 music = "pull"
 
 [web]

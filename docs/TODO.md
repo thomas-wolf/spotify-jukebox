@@ -26,7 +26,8 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
   `nmcli connection modify HomeOffice 802-11-wireless.powersave 2` and reconnect. The log now shows each card
   with its source. Deployed 2026-11-19 (`f7ed4b0`): the user reports it is far better and the problem solved.
   Which part helped (keep-alive, lazy loading, polling) was not isolated; Wi-Fi power save was not checked.
-- [ ] Idle picture and startup sound: `~/.config/jukebox/idle.jpg`, `startup.mp3`.
+- [ ] Idle picture and startup sound: put `idle.jpg`, `startup.mp3` into `Jukebox2.0/boxes/<box name>/` in Dropbox; the box
+  pulls them (`config = "pull"`, now in the box configs). Needs a restart after the first pull. Not yet seen on the box.
 - [ ] rclone sync against Dropbox (`[sync]` in `config.local.toml`, `config = "off"`).
 - [ ] Check the rotation direction (180) and the overlay text size.
 

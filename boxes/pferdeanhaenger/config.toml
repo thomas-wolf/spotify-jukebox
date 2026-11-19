@@ -124,11 +124,11 @@ spotify_search = true        # no cover.jpg in the folder: search the album on S
 write_to_folder = true       # and save it there as cover.jpg
 
 [sync]                       # cards, config and music from/to Dropbox, OneDrive, ... through rclone
-enabled = false
-remote = "dropbox:Jukebox"   # an rclone remote (set up with `rclone config`) and a folder in it
+enabled = true
+remote = "dropbox:Jukebox2.0"   # an rclone remote (set up with `rclone config`) and a folder in it
 interval_minutes = 30
 cards = "both"               # cards.toml: both, pull (cloud wins), push, off
-config = "pull"              # <remote>/boxes/<box name>/ -> this folder (config.toml, hooks.py, sounds/)
+config = "pull"              # <remote>/boxes/<box name>/ -> ~/.config/jukebox/ (idle.jpg, startup.mp3, shutdown.mp3, ...)
 music = "pull"               # <remote>/music/ -> [local] root
 # delete = false             # true: music also loses files that were removed in the cloud
 # bwlimit = "2M"             # limit for the music download

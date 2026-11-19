@@ -31,6 +31,10 @@ log = logging.getLogger(__name__)
 CARD_MODES = ("both", "pull", "push", "off")
 PULL_MODES = ("pull", "off")
 KEEP_LOCAL = ("cards.toml", "*.bak", "*.tmp", "*.jukebox.bak", "sync.json")   # never overwritten by a config pull
+# Files that are only read when the jukebox starts: after a change a restart is needed (boot / idle picture, sounds).
+RESTART_FILES = ("config.toml", "hooks.py",
+                 *(f"idle.{e}" for e in ("jpg", "jpeg", "png", "webp")),
+                 *(f"{stem}.{e}" for stem in ("startup", "shutdown") for e in ("mp3", "ogg", "wav", "flac", "m4a")))
 
 
 class SyncError(Exception):
@@ -289,7 +293,7 @@ class Syncer:
     # -- config folder ---------------------------------------------------------------------
     def _config(self, res: SyncResult, dry_run: bool) -> None:
         remote = self._box()
-        watched = [self.config_dir / n for n in ("config.toml", "hooks.py")]
+        watched = [self.config_dir / n for n in RESTART_FILES]
         before = [_sha(p) for p in watched]
         args = ["copy", remote, str(self.config_dir), "--update"]
         for pattern in KEEP_LOCAL:

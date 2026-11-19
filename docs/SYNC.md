@@ -16,7 +16,8 @@ Jukebox/
     kitchen/                one folder per box    ->   ~/.config/jukebox/               (cloud to box)
       config.toml
       hooks.py
-      sounds/boot.mp3
+      idle.jpg              boot / idle picture
+      startup.mp3           boot sound (shutdown.mp3: shutdown sound)
     bedroom/
       config.toml
 ```
@@ -26,7 +27,7 @@ The folder name under `boxes/` is `[box] name` from the box's `config.toml`.
 | Part | Default | What happens |
 |---|---|---|
 | Cards | `both` | Merged card by card. A card added or changed on one side arrives on the other. A card changed on both sides differently: the cloud version is kept and the conflict is logged. Cards deleted on one side are deleted on the other. |
-| Config | `pull` | Files from `boxes/<name>/` are copied to the config folder, except `cards.toml` and backup files. A local file that is newer than the cloud file is not overwritten. Nothing is deleted. A change of `config.toml` or `hooks.py` is used after the next restart. |
+| Config | `pull` | Files from `boxes/<name>/` are copied to the config folder, except `cards.toml` and backup files. A local file that is newer than the cloud file is not overwritten. Nothing is deleted. A change of `config.toml`, `hooks.py`, the idle picture (`idle.*`) or the startup / shutdown sound is used after the next restart (the log says so). |
 | Music | `pull` | New and changed files are copied from `music/` to the music folder. Nothing is deleted unless `delete = true`. |
 
 `cards = "pull"` makes the cloud the master (local changes in cards are discarded), `"push"` the other way,

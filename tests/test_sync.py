@@ -191,6 +191,17 @@ def test_config_pull_keeps_cards_and_flags_changes(tmp_path):
     assert not syncer.run_once(("config",)).config_changed
 
 
+def test_config_pull_flags_idle_picture_and_startup_sound(tmp_path):
+    syncer, fake, cloud, conf = setup(tmp_path)
+    box = cloud / "boxes" / "kitchen"
+    box.mkdir(parents=True)
+    (box / "idle.jpg").write_text("jpg")
+    (box / "startup.mp3").write_text("mp3")
+    res = syncer.run_once(("config",))
+    assert res.config_changed and (conf / "idle.jpg").exists() and (conf / "startup.mp3").exists()
+    assert not syncer.run_once(("config",)).config_changed
+
+
 def test_music_copy_vs_sync(tmp_path):
     syncer, fake, cloud, conf = setup(tmp_path, bwlimit="2M")
     (cloud / "music").mkdir(parents=True)
