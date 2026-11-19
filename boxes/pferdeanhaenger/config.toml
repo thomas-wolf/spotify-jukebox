@@ -8,7 +8,7 @@ name = "pferdeanhaenger"
 
 [audio]
 start_volume = 80          # Soloist through PipeWire is much quieter than the old setup (was 30)
-max_volume = 80          # hard cap, also applies to the knob
+max_volume = 100         # hard cap, also applies to the knob
 volume_step = 5
 
 [cards]
