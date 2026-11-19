@@ -112,6 +112,7 @@ reset = 25
 margins = { left = 4, top = 0, right = 4, bottom = 0 }   # pixels hidden by the housing, as you look at it
 layout = "overlay"           # overlay (cover full screen, title on a gradient), auto, split (cover + text), cover (cover alone)
 overlay_opacity = 0.65       # overlay layout: darkness of the band behind the text (0 = transparent, 1 = black; default 0.92)
+overlay_fit = "contain"          # overlay layout: show the whole cover (bars above and below) instead of filling the screen
 overlay_artist = false       # overlay layout: show the artist as well (default false: title only)
 overlay_lift = 14             # overlay layout: pixels between the text and the bottom edge (the housing hides the lower edge)
 cover_side = "left"          # left, right (wide displays) or top, bottom (tall ones)

@@ -99,7 +99,7 @@ class Renderer:
 
     def _paste_cover(self, img: Image.Image, cover: Image.Image) -> None:
         box: Rect = self.cover_box
-        fit = "cover" if self.s.layout == "overlay" else self.s.cover_fit   # overlay: the cover fills the screen
+        fit = self.s.overlay_fit if self.s.layout == "overlay" else self.s.cover_fit   # overlay: own setting, default fill
         nw, nh, ox, oy = fit_box(*cover.size, box.w, box.h, fit)
         scaled = cover.resize((nw, nh), Image.LANCZOS)
         if fit == "cover":

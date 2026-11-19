@@ -357,3 +357,18 @@ def test_overlay_shows_only_the_title_unless_the_artist_is_switched_on():
     assert title_only and with_artist
     assert max(with_artist) < max(title_only)
     assert min(with_artist) < min(title_only)
+
+
+def test_overlay_fit_contain_shows_the_whole_cover_with_bars():
+    cover = Image.new("RGB", (300, 300), (200, 200, 200))
+
+    def render(**extra):
+        s = DisplaySettings.from_section({"layout": "overlay", "rotation": 180, "background": "#000000", **extra})
+        return Renderer(s).render(cover, "Title", "")
+
+    fill, whole = render(), render(overlay_fit="contain")
+    assert fill.getpixel((120, 10)) == (200, 200, 200)             # default: the cover fills the screen
+    assert whole.getpixel((120, 10)) == (0, 0, 0)                  # contain: a bar above the square cover
+    assert whole.getpixel((120, 160)) == (200, 200, 200)           # the cover sits in the middle
+    with pytest.raises(ConfigError):
+        DisplaySettings.from_section({"overlay_fit": "stretch"}).validate()

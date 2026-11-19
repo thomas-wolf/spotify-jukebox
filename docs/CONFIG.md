@@ -169,6 +169,7 @@ on without a display.
 | `layout` | `auto` | `cover`: the cover alone fills the visible area. `overlay`: the cover fills the whole screen (cropped) and title and artist are drawn on a dark gradient at the bottom. `split`: square cover plus text beside or below it. `auto`: split when the leftover space is big enough for text (wide displays), otherwise cover alone. |
 | `overlay_opacity` | `0.92` | Layout `overlay`: how dark the band behind title and artist is at the bottom (0 = transparent, 1 = black). |
 | `overlay_lift` | `0` | Layout `overlay`: extra pixels between the text and the bottom edge (0..100). Raise it when the housing covers the lower edge or the text sits too close to it. |
+| `overlay_fit` | `cover` | Layout `overlay`: `cover` fills the whole screen and crops the cover, `contain` shows the whole cover with bars (in the `background` colour) around it; the text then sits at the bottom over the bar. The setting `cover_fit` does not apply to this layout. |
 | `overlay_artist` | `false` | Layout `overlay`: also show the artist below the title. By default only the title is shown (the other layouts always show both). |
 | `cover_side` | `left` | Which side the square cover goes in `split`: `left` or `right` (wide pictures), `top` or `bottom` (tall ones) |
 | `cover_fit` | `contain` | `contain`: the whole cover is visible, bars where the shape differs (4:3 cover in a square box). `cover`: the box is filled, the cover is cropped. |

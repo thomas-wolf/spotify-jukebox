@@ -37,6 +37,7 @@ class DisplaySettings:
     overlay_opacity: float = 0.92   # darkness of the band behind title and artist in layout "overlay" (0..1)
     overlay_lift: int = 0           # layout "overlay": extra pixels between the text and the bottom edge
     overlay_artist: bool = False    # layout "overlay": also show the artist (default: the title alone)
+    overlay_fit: str = "cover"      # layout "overlay": cover = fill the screen and crop, contain = whole cover visible, bars around it
     idle_fit: str = "cover"         # cover: fill and crop, contain: whole picture visible
     idle_on_pause: bool = False     # also show it while paused
 
@@ -60,7 +61,7 @@ class DisplaySettings:
             artist_size=int(d.get("artist_size", 16)),
             idle_image=str(d.get("idle_image", "") or ""), idle_fit=str(d.get("idle_fit", "cover")),
             overlay_opacity=float(d.get("overlay_opacity", 0.92)), overlay_lift=int(d.get("overlay_lift", 0)),
-            overlay_artist=bool(d.get("overlay_artist", False)),
+            overlay_artist=bool(d.get("overlay_artist", False)), overlay_fit=str(d.get("overlay_fit", "cover")),
             idle_on_pause=bool(d.get("idle_on_pause", False)),
         )
         s.validate()
@@ -79,6 +80,8 @@ class DisplaySettings:
             raise ConfigError("[display] cover_fit must be contain or cover")
         if not 0 <= self.overlay_opacity <= 1:
             raise ConfigError("[display] overlay_opacity must be between 0 and 1")
+        if self.overlay_fit not in ("contain", "cover"):
+            raise ConfigError("[display] overlay_fit must be contain or cover")
         if not 0 <= self.overlay_lift <= 100:
             raise ConfigError("[display] overlay_lift must be between 0 and 100 pixels")
         if self.idle_fit not in ("contain", "cover"):
