@@ -7,7 +7,7 @@
 name = "pferdeanhaenger"
 
 [audio]
-start_volume = 30
+start_volume = 80          # Soloist through PipeWire is much quieter than the old setup (was 30)
 max_volume = 80          # hard cap, also applies to the knob
 volume_step = 5
 

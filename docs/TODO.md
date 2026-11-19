@@ -37,7 +37,8 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
   Unverified: linger for the system user `jukebox` (`loginctl show-user jukebox`), PipeWire in the `jukebox`
   user session (`sudo -u jukebox XDG_RUNTIME_DIR=/run/user/$(id -u jukebox) wpctl status`), mpv through
   pipewire-alsa, first pairing as `jukebox`.
-- [ ] Volume with Soloist is much quieter at `start_volume = 30` (PipeWire): measure and adjust, or add a curve.
+- [ ] Volume with Soloist is much quieter at `start_volume = 30` (PipeWire): the Pferdeanhaenger box now uses 80 (the
+  cap `max_volume` is 80 as well); measure properly or add a curve if other boxes need it.
 - [ ] On the hardware: previous/next, `set_volume`, seek, cold boot without a phone.
 - [ ] Pairing without a phone nearby (or a helper command), API key out of `ps` if Soloist can read it from a file.
 
