@@ -372,3 +372,16 @@ def test_overlay_fit_contain_shows_the_whole_cover_with_bars():
     assert whole.getpixel((120, 160)) == (200, 200, 200)           # the cover sits in the middle
     with pytest.raises(ConfigError):
         DisplaySettings.from_section({"overlay_fit": "stretch"}).validate()
+
+
+def test_ruler_numbers_the_distance_from_each_edge(tmp_path):
+    r = Renderer(DisplaySettings.from_section({"rotation": 90}))
+    img = r.ruler()
+    assert img.size == (320, 240)
+    assert img.getpixel((10, 0)) == (255, 255, 255)           # the outermost frame is at the panel edge
+    assert img.getpixel((10, 4)) == (90, 90, 255)             # the next one 4 pixels in
+    cfg = tmp_path / "config.toml"
+    cfg.write_text("[display]\nenabled = true\n")
+    out = tmp_path / "ruler.png"
+    assert main(["-c", str(cfg), "display-test", "--ruler", "--save", str(out)]) == 0
+    assert Image.open(out).size == (320, 240)

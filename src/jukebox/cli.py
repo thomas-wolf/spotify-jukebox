@@ -280,7 +280,7 @@ def cmd_display_test(args) -> int:
         if args.cover:
             from PIL import Image
             cover = Image.open(args.cover).convert("RGB")
-        picture = renderer.test_pattern(cover)
+        picture = renderer.ruler() if args.ruler else renderer.test_pattern(cover)
     except (ConfigError, ImportError, OSError) as exc:
         print(f"error: {exc}")
         return 1
@@ -443,6 +443,8 @@ def main(argv: list[str] | None = None) -> int:
     dt = sub.add_parser("display-test", help="show a calibration picture (rotation, covered edges)")
     dt.add_argument("--save", metavar="PNG", help="write the picture to a file instead of the panel")
     dt.add_argument("--cover", metavar="IMAGE", help="use this picture as the cover")
+    dt.add_argument("--ruler", action="store_true",
+                    help="numbered frames from each edge: the lowest number you can read per side = pixels hidden there")
     dt.set_defaults(fn=cmd_display_test)
     setup = sub.add_parser("setup", help="write overlays to config.txt (dry run by default)")
     setup.add_argument("--apply", action="store_true")

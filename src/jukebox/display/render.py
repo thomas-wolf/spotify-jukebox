@@ -169,6 +169,25 @@ class Renderer:
     def blank(self) -> Image.Image:
         return Image.new("RGB", (self.lw, self.lh), (0, 0, 0))
 
+    def ruler(self) -> Image.Image:
+        """Measuring picture for the covered edges: a frame every 4 pixels from each edge of the panel, numbered
+        (the number is the distance from the edge). The lowest number you can still read on a side is how many
+        pixels the housing hides there, give those as `margins`."""
+        img = Image.new("RGB", (self.lw, self.lh), (0, 0, 0))
+        d = ImageDraw.Draw(img)
+        colors = ((255, 255, 255), (90, 90, 255))
+        for k, n in enumerate(range(0, 52, 4)):
+            d.rectangle((n, n, self.lw - 1 - n, self.lh - 1 - n), outline=colors[k % 2], width=1)
+        f = _font("", 10)
+        for k, n in enumerate(range(4, 52, 4)):
+            dx = (k % 4) * 26 - 39                        # staggered so that neighbouring numbers do not overlap
+            tw = int(d.textlength(str(n), font=f))
+            for xy in ((self.lw // 2 + dx, n + 1), (self.lw // 2 + dx, self.lh - n - 12),
+                       (n + 1, self.lh // 2 + dx), (self.lw - n - 1 - tw, self.lh // 2 + dx)):
+                d.rectangle((xy[0] - 1, xy[1], xy[0] + tw, xy[1] + 10), fill=(0, 0, 0))
+                d.text(xy, str(n), font=f, fill=(255, 255, 0))
+        return img
+
     def test_pattern(self, cover: Image.Image | None = None) -> Image.Image:
         """Calibration picture: red = edge of the panel, green = visible area (after margins)."""
         base = self.render(cover or _sample_cover(), "Title of the track", "Artist name")
