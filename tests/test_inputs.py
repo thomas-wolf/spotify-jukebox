@@ -1,9 +1,14 @@
+import os
+import pty
+import threading
+import time
+
 import pytest
 
 from jukebox.events import EventBus
 from jukebox.inputs.adc import VolumeKnob, to_percent
 from jukebox.inputs.gpio import Button, GpioInputs, RotaryEncoder
-from jukebox.inputs.rdm6300 import FrameBuffer, parse_frame
+from jukebox.inputs.rdm6300 import FrameBuffer, Rdm6300Reader, parse_frame
 from jukebox.inputs.usb_reader import KeyAssembler
 
 
@@ -42,6 +47,36 @@ def test_rdm_formats_match_phoniebox_v2():
                                  b"short", b"\x01" + frame("0415026F42")[1:]])
 def test_rdm_rejects_bad_frames(bad):
     assert parse_frame(bad) is None
+
+
+def _run_reader_on_pty():
+    master, slave = pty.openpty()
+    bus = EventBus()
+    reader = Rdm6300Reader(bus, port=os.ttyname(slave))
+    reader.start()
+    return master, slave, bus, reader
+
+
+def test_rdm_reader_reads_card_and_stays_idle_without_data():
+    """Sanity check on a pty: a card is read and an idle port costs no CPU (a pty cannot reproduce
+    the busy loop seen on a real, unconnected UART, so this does not prove that fix)."""
+    master, slave, bus, reader = _run_reader_on_pty()
+    try:
+        cpu0, t0 = time.process_time(), time.monotonic()
+        time.sleep(1.2)
+        assert time.process_time() - cpu0 < 0.3 * (time.monotonic() - t0)  # not a busy loop
+        os.write(master, frame("0700673158"))
+        got = []
+        deadline = time.monotonic() + 3
+        while not got and time.monotonic() < deadline:
+            bus.drain(lambda e: got.append(e.data["id"]))
+            time.sleep(0.05)
+        assert got == ["070067315809"]
+    finally:
+        reader.stop()
+        reader.join(timeout=3)
+        os.close(master)
+        os.close(slave)
 
 
 def test_rdm_buffer_resyncs_after_garbage_and_split_reads():

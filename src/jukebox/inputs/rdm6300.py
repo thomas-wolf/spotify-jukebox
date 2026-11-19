@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import select
 import termios
 import threading
 import time
@@ -92,7 +93,9 @@ class Rdm6300Reader(threading.Thread):
     def _open(self) -> int:
         fd = os.open(self.port, os.O_RDONLY | os.O_NOCTTY)
         attrs = termios.tcgetattr(fd)
-        attrs[0] = 0                                   # iflag
+        # iflag: ignore break and framing/parity errors. A floating RX pin (reader not
+        # connected) otherwise yields an endless stream of NUL bytes and a 100 % busy loop.
+        attrs[0] = termios.IGNBRK | termios.IGNPAR
         attrs[1] = 0                                   # oflag
         attrs[2] = termios.CS8 | termios.CREAD | termios.CLOCAL
         attrs[3] = 0                                   # lflag: raw
@@ -112,7 +115,13 @@ class Rdm6300Reader(threading.Thread):
             buffer, present, last_seen = FrameBuffer(), None, 0.0
             try:
                 while not self._halt.is_set():
-                    for frame in buffer.feed(os.read(fd, 64)):
+                    # Wait for data with a timeout instead of relying on VTIME alone: if the
+                    # port returns immediately (no real UART behind it), do not spin.
+                    ready, _, _ = select.select([fd], [], [], 0.5)
+                    data = os.read(fd, 64) if ready else b""
+                    if ready and not data:
+                        time.sleep(0.1)
+                    for frame in buffer.feed(data):
                         card = parse_frame(frame, self.id_format)
                         if card is None:
                             continue
