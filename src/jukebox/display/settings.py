@@ -36,6 +36,7 @@ class DisplaySettings:
     idle_image: str = ""            # picture for boot and "nothing playing" (empty: blank screen)
     overlay_opacity: float = 0.92   # darkness of the band behind title and artist in layout "overlay" (0..1)
     overlay_lift: int = 0           # layout "overlay": extra pixels between the text and the bottom edge
+    overlay_artist: bool = False    # layout "overlay": also show the artist (default: the title alone)
     idle_fit: str = "cover"         # cover: fill and crop, contain: whole picture visible
     idle_on_pause: bool = False     # also show it while paused
 
@@ -59,6 +60,7 @@ class DisplaySettings:
             artist_size=int(d.get("artist_size", 16)),
             idle_image=str(d.get("idle_image", "") or ""), idle_fit=str(d.get("idle_fit", "cover")),
             overlay_opacity=float(d.get("overlay_opacity", 0.92)), overlay_lift=int(d.get("overlay_lift", 0)),
+            overlay_artist=bool(d.get("overlay_artist", False)),
             idle_on_pause=bool(d.get("idle_on_pause", False)),
         )
         s.validate()

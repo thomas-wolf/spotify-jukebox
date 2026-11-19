@@ -109,7 +109,9 @@ class Renderer:
 
     def _overlay(self, img: Image.Image, title: str, artist: str) -> None:
         """Title and artist over the lower part of the cover, on a dark gradient so that they stay readable."""
-        if not (title or artist):
+        if not self.s.overlay_artist:
+            artist = ""
+        if not title and not artist:
             return
         v, pad = self.vis, 8
         draw = ImageDraw.Draw(img)

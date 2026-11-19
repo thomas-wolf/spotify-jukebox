@@ -339,3 +339,21 @@ def test_overlay_lift_moves_the_text_up():
     assert lowest_ink_row(20) == lowest_ink_row(0) - 20
     with pytest.raises(ConfigError):
         DisplaySettings.from_section({"overlay_lift": 101}).validate()
+
+
+def test_overlay_shows_only_the_title_unless_the_artist_is_switched_on():
+    cover = Image.new("RGB", (300, 300), (40, 40, 40))
+
+    def ink_rows(**extra):
+        s = DisplaySettings.from_section({"layout": "overlay", "rotation": 180, "background": "#000000", **extra})
+        img = Renderer(s).render(cover, "Title", "Artist")
+        return [y for y in range(320) if any(img.getpixel((x, y)) == (255, 255, 255) for x in range(240))]
+
+    assert DisplaySettings.from_section({}).overlay_artist is False
+    title_only = ink_rows()
+    with_artist = ink_rows(overlay_artist=True)
+    # the artist line is grey, only the title is pure white. With the artist on, the title block moves up
+    # by one artist line; title alone, it sits at the bottom.
+    assert title_only and with_artist
+    assert max(with_artist) < max(title_only)
+    assert min(with_artist) < min(title_only)
