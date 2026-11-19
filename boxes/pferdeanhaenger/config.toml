@@ -7,7 +7,7 @@
 name = "pferdeanhaenger"
 
 [audio]
-start_volume = 80          # Soloist through PipeWire is much quieter than the old setup (was 30)
+start_volume = 60          # Soloist through PipeWire is much quieter than the old setup (was 30)
 max_volume = 100         # hard cap, also applies to the knob
 volume_step = 5
 
@@ -111,6 +111,7 @@ reset = 25
 # backlight = ...           # optional: pin that switches the backlight (here: LED pin wired to 3.3V, always on)
 margins = { left = 0, top = 0, right = 0, bottom = 0 }   # pixels hidden by the housing, as you look at it
 layout = "overlay"           # overlay (cover full screen, title on a gradient), auto, split (cover + text), cover (cover alone)
+overlay_opacity = 0.8        # overlay layout: darkness of the band behind title and artist (0 = transparent, 1 = black; default 0.92)
 cover_side = "left"          # left, right (wide displays) or top, bottom (tall ones)
 cover_fit = "contain"        # contain: whole cover visible, cover: fill and crop
 background = "average"       # average colour of the cover, blur, or a color like "#101010"
