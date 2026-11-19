@@ -240,8 +240,9 @@ More keys (`delete`, `bwlimit`, `cards_per_box`, `first_run_delay`, `rclone`, `r
 | `port` | `8080` | Port |
 
 The page shows what is playing (with previous, play/pause, next, stop and volume), the ID of the last card
-that was presented, a form to assign a card (Spotify link, local folder or action) and the list of all cards
-with search, edit, delete and a test button.
+that was presented, a form to assign a card (Spotify link, local folder or action) and, at the bottom, the list
+of all cards with search, edit, delete and a test button. The list is closed at first and is fetched when it is
+opened, and the folder and action lists when the form needs them, so the page opens fast on a poor Wi-Fi.
 
 - **No authentication.** Anybody who can reach the port can change cards and control playback. Use it in a
   trusted home network only.
@@ -250,6 +251,10 @@ with search, edit, delete and a test button.
 - A Spotify link pasted into the form is converted to the `spotify:<type>:<id>` form.
 - The list of local folders in the form shows folders under `[local] root` (three levels deep) that contain
   audio files.
+- The server keeps connections open (HTTP/1.1) and compresses larger answers with gzip. Every card that is
+  started is logged with its source (`card <id> (<name>) via usb|rdm6300|web: <target>`): compare that time with
+  the click when a start seems late. If the log line is late, the delay is on the way to the box (Wi-Fi), not in
+  the player.
 - Changing a request needs the content type `application/json`, so a foreign web page cannot change cards just
   by sending a form.
 

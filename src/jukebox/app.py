@@ -65,7 +65,7 @@ class App:
     # -- event entry point (runs on the main loop thread) -------------------
     def handle(self, event: Event) -> None:
         if event.name == ev.CARD:
-            self.on_card(str(event.data["id"]))
+            self.on_card(str(event.data["id"]), str(event.data.get("source", "")))
         elif event.name == ev.ACTION:
             self.do_action(event.data["name"], **event.data.get("args", {}))
 
@@ -92,12 +92,14 @@ class App:
             self._cards_ci = {k.lower(): v for k, v in self.cards.items()}
         return bool(keys)
 
-    def on_card(self, card_id: str) -> None:
+    def on_card(self, card_id: str, source: str = "") -> None:
         card = self._cards_ci.get(card_id.lower())
         if card is None:
-            log.info("unknown card %s", card_id)
+            log.info("unknown card %s (%s)", card_id, source or "?")
             self.bus.post(ev.CARD_UNKNOWN, id=card_id)
             return
+        # One line per card, with its source: this is what to look at when a start seems late.
+        log.info("card %s (%s) via %s: %s", card_id, card.name or "-", source or "?", card.action or card.play)
         if card.action:
             self.do_action(card.action, **card.args)
             return

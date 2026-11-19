@@ -128,7 +128,7 @@ class Rdm6300Reader(threading.Thread):
                         last_seen = time.monotonic()
                         if card != present:
                             present = card
-                            self.bus.post("card", id=card)
+                            self.bus.post("card", id=card, source="rdm6300")
                     if present and time.monotonic() - last_seen > self.release_after:
                         present = None  # tag removed; the next presentation counts again
             except OSError:

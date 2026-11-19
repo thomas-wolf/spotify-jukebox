@@ -20,6 +20,11 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
 - [x] Startup time: the jukebox no longer waits for the network (ready after ~5 s). Spotify is ready after ~19 s;
   ~6 s of that are four systemd reloads triggered from `NetworkManager.service` at start (cause not found, see
   [TROUBLESHOOTING.md](TROUBLESHOOTING.md)). Parked.
+- [ ] Web UI: "Play" in the card list started a card only 20 to 40 s later while the USB reader was instant (the
+  code path after the event is the same). Suspects: Wi-Fi power save of the Pi, lost SYNs with HTTP/1.0 (fixed in
+  the code: keep-alive). Check on the box: `iw dev wlan0 get power_save`, `iw dev wlan0 link`; if power save is on,
+  `nmcli connection modify HomeOffice 802-11-wireless.powersave 2` and reconnect. The log now shows each card
+  with its source.
 - [ ] Idle picture and startup sound: `~/.config/jukebox/idle.jpg`, `startup.mp3`.
 - [ ] rclone sync against Dropbox (`[sync]` in `config.local.toml`, `config = "off"`).
 - [ ] Check the rotation direction (180) and the overlay text size.

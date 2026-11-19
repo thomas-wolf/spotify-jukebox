@@ -71,7 +71,7 @@ class UsbReader(threading.Thread):
                             name = name[0]
                         card = assembler.feed(name)
                         if card:
-                            self.bus.post("card", id=card)
+                            self.bus.post("card", id=card, source="usb")
             except OSError:
                 log.warning("USB reader disconnected")
             finally:

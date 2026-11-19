@@ -143,3 +143,82 @@ def test_dropped_connections_are_not_logged(caplog):
     except ConnectionResetError:
         srv.handle_error(None, ("127.0.0.1", 1))
     assert not caplog.records
+
+
+def test_keep_alive_serves_several_requests_on_one_connection(web):
+    import http.client
+    w, *_ = web
+    c = http.client.HTTPConnection("127.0.0.1", w.port)
+    for _ in range(3):
+        c.request("GET", "/api/state")
+        r = c.getresponse()
+        assert r.status == 200 and r.version == 11
+        json.loads(r.read())
+    # a rejected POST must not leave its body behind and confuse the next request on the same connection
+    c.request("POST", "/api/cards/A/play", body=b'{"x": 1}', headers={"Content-Type": "text/plain"})
+    r = c.getresponse(); r.read()
+    assert r.status == 400
+    c.request("GET", "/api/state")
+    r = c.getresponse()
+    assert r.status == 200
+    c.close()
+
+
+def test_oversized_body_is_refused_and_closes_the_connection(web):
+    import http.client
+    w, *_ = web
+    c = http.client.HTTPConnection("127.0.0.1", w.port)
+    c.putrequest("POST", "/api/action")
+    c.putheader("Content-Type", "application/json")
+    c.putheader("Content-Length", str(10 * 1024 * 1024))
+    c.endheaders()
+    r = c.getresponse()
+    assert r.status == 400
+    c.close()
+
+
+def test_gzip_only_when_asked_and_worth_it(web):
+    import gzip
+    import http.client
+    w, app, *_ = web
+    for i in range(60):
+        app.set_card(Card(f"C{i}", f"Card number {i}", play="spotify:playlist:abcdefghij"))
+    c = http.client.HTTPConnection("127.0.0.1", w.port)
+    c.request("GET", "/api/cards", headers={"Accept-Encoding": "gzip"})
+    r = c.getresponse()
+    raw = r.read()
+    assert r.getheader("Content-Encoding") == "gzip"
+    assert len(json.loads(gzip.decompress(raw))) == 61
+    c.request("GET", "/api/cards")
+    r = c.getresponse()
+    assert r.getheader("Content-Encoding") is None and len(json.loads(r.read())) == 61
+    c.request("GET", "/api/state", headers={"Accept-Encoding": "gzip"})
+    r = c.getresponse(); r.read()
+    assert r.getheader("Content-Encoding") is None   # tiny: not worth compressing
+    c.close()
+
+
+def test_folder_list_is_cached_briefly(web):
+    w, *_ = web
+    assert jcall(w, "GET", "/api/folders")[1] == ["books/x"]
+    (w.local_root / "new").mkdir()
+    (w.local_root / "new" / "1.mp3").write_text("x")
+    assert jcall(w, "GET", "/api/folders")[1] == ["books/x"]      # still the cached walk
+    w._folders = None
+    assert jcall(w, "GET", "/api/folders")[1] == ["books/x", "new"]
+
+
+def test_state_reports_the_card_count(web):
+    w, app, *_ = web
+    assert jcall(w, "GET", "/api/state")[1]["cards"] == 1
+    app.set_card(Card("B", "x", play="spotify:playlist:b"))
+    assert jcall(w, "GET", "/api/state")[1]["cards"] == 2
+
+
+def test_play_from_the_web_is_logged_with_its_source(web, caplog):
+    import logging
+    w, app, bus, _ = web
+    with caplog.at_level(logging.INFO, logger="jukebox.app"):
+        assert jcall(w, "POST", "/api/cards/A/play", {})[0] == 200
+        bus.drain(app.handle)
+    assert any("card A (Bedtime) via web" in r.getMessage() for r in caplog.records)

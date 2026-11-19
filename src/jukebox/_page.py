@@ -15,6 +15,8 @@ button{cursor:pointer} button.primary{background:var(--a);color:#fff;border-colo
 #last{padding:.6rem;border-radius:.4rem;background:#2a72;margin-bottom:.6rem}
 table{width:100%;border-collapse:collapse} td{padding:.4rem .3rem;border-top:1px solid var(--b);vertical-align:top;word-break:break-all}
 td.act{white-space:nowrap;text-align:right} input[type=range]{padding:0;flex:2}
+details>summary{cursor:pointer;font-size:1rem;text-transform:uppercase;letter-spacing:.05em;opacity:.8;padding:.2rem 0}
+details[open]>summary{margin-bottom:.6rem}
 </style></head><body>
 <h1>Jukebox</h1>
 
@@ -47,16 +49,21 @@ td.act{white-space:nowrap;text-align:right} input[type=range]{padding:0;flex:2}
 </section>
 
 <section>
-  <h2 style="margin-top:0">Cards <span id="count" class="muted"></span></h2>
-  <input id="filter" placeholder="Search" style="width:100%;box-sizing:border-box;margin-bottom:.5rem">
-  <table id="cards"></table>
+  <details id="cardsbox">
+    <summary>Cards <span id="count" class="muted"></span></summary>
+    <input id="filter" placeholder="Search" style="width:100%;box-sizing:border-box;margin-bottom:.5rem">
+    <table id="cards"></table>
+  </details>
 </section>
 
 <script>
 const $ = id => document.getElementById(id);
 const post = (u, b, m = "POST") => fetch(u, {method: m, headers: {"Content-Type": "application/json"}, body: JSON.stringify(b || {})})
   .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.status); return j; });
-let cards = [], lastSeen = 0, actions = [];
+let cards = [], lastSeen = 0, total = null, loaded = {};
+// The list, the folders and the actions are fetched only when they are needed: the page itself stays small and
+// opens quickly on a poor Wi-Fi.
+const once = (key, url, fn) => loaded[key] ? null : (loaded[key] = fetch(url).then(r => r.json()).then(fn).catch(() => { loaded[key] = null; }));
 const ARG = {volume_set: ["value", "volume 0-100"], seek_forward: ["seconds", "seconds"], seek_back: ["seconds", "seconds"]};
 
 document.querySelectorAll("[data-act]").forEach(b => b.onclick = () => post("/api/action", {name: b.dataset.act}).catch(e => $("err").textContent = e.message));
@@ -68,6 +75,8 @@ function show() {
   $("f-spotify").hidden = t !== "spotify"; $("f-folder").hidden = t !== "folder"; $("f-stream").hidden = t !== "stream";
   $("f-action").hidden = t !== "action";
   $("f-arg").hidden = !(t === "action" && ARG[$("f-action").value]);
+  if (t === "folder") once("folders", "/api/folders", j => $("folders").replaceChildren(...j.map(n => new Option(n, n))));
+  if (t === "action") once("actions", "/api/actions", j => { const v = $("f-action").value; $("f-action").replaceChildren(...j.map(n => new Option(n, n))); if (v) $("f-action").value = v; show(); });
   if (!$("f-arg").hidden) $("f-arg").placeholder = ARG[$("f-action").value][1];
 }
 $("f-type").onchange = $("f-action").onchange = show;
@@ -83,13 +92,15 @@ $("save").onclick = async () => {
   else { body.action = $("f-action").value; const a = ARG[body.action];
     if (a) { if ($("f-arg").value === "") { $("msg").textContent = "Value needed"; return; } body.args = {[a[0]]: +$("f-arg").value}; } }
   try { await post("/api/cards/" + encodeURIComponent($("f-id").value.trim()), body, "PUT");
-    $("msg").textContent = "Saved"; clearForm(); $("msg").textContent = "Saved"; loadCards();
+    clearForm(); $("msg").textContent = "Saved"; if ($("cardsbox").open) loadCards(); else total = null;
   } catch (e) { $("msg").textContent = e.message; }
 };
 
 function edit(c) {
   $("f-id").value = c.id; $("f-name").value = c.name || ""; $("msg").textContent = "";
-  if (c.action) { $("f-type").value = "action"; $("f-action").value = c.action; const a = ARG[c.action]; $("f-arg").value = a ? (c.args[a[0]] ?? "") : ""; }
+  if (c.action) { $("f-type").value = "action";
+    if (!loaded.actions) $("f-action").replaceChildren(new Option(c.action, c.action));   // the full list follows in show()
+    $("f-action").value = c.action; const a = ARG[c.action]; $("f-arg").value = a ? (c.args[a[0]] ?? "") : ""; }
   else if (c.play.startsWith("spotify:")) { $("f-type").value = "spotify"; $("f-spotify").value = c.play; }
   else if (c.play.startsWith("stream:")) { $("f-type").value = "stream"; $("f-stream").value = c.play.slice(7); }
   else { $("f-type").value = "folder"; $("f-folder").value = c.play.replace(/^(folder|file):/, ""); }
@@ -106,31 +117,42 @@ function render() {
     a.textContent = c.name || "(no name)"; const id = document.createElement("div"); id.className = "muted"; id.textContent = c.id; a.append(id);
     d.textContent = c.play || ("action: " + c.action + (Object.keys(c.args || {}).length ? " " + JSON.stringify(c.args) : ""));
     x.className = "act";
-    for (const [label, fn, cls] of [["Play", () => post("/api/cards/" + encodeURIComponent(c.id) + "/play")], ["Edit", () => edit(c)],
+    for (const [label, fn, cls] of [["Play", async function () { // feedback: shows when the box has received the request
+          this.textContent = "…"; try { await post("/api/cards/" + encodeURIComponent(c.id) + "/play"); this.textContent = "✓"; $("err").textContent = ""; }
+          catch (e) { this.textContent = "Play"; $("err").textContent = e.message; } setTimeout(() => this.textContent = "Play", 2000); }], ["Edit", () => edit(c)],
         ["Delete", async () => { if (confirm("Delete card " + (c.name || c.id) + "?")) { await post("/api/cards/" + encodeURIComponent(c.id), {}, "DELETE"); loadCards(); } }, "danger"]]) {
-      const b = document.createElement("button"); b.textContent = label; if (cls) b.className = cls; b.onclick = fn; x.append(b, " ");
+      const b = document.createElement("button"); b.textContent = label; if (cls) b.className = cls; b.onclick = () => fn.call(b); x.append(b, " ");
     }
   }
 }
 $("filter").oninput = render;
-const loadCards = () => fetch("/api/cards").then(r => r.json()).then(j => { cards = j; render(); });
+const loadCards = () => fetch("/api/cards").then(r => r.json()).then(j => { cards = j; total = j.length; render(); });
+$("cardsbox").ontoggle = () => { if ($("cardsbox").open && total === null) loadCards(); };
 
+// One request at a time, the next one only after the previous has finished (a slow link must not pile up
+// requests), paused while the tab is hidden, slower after a failure.
+let pollTimer = null;
 async function poll() {
+  clearTimeout(pollTimer); let delay = 1500;
+  const ctl = new AbortController(), kill = setTimeout(() => ctl.abort(), 8000);
   try {
-    const s = await (await fetch("/api/state")).json();
+    const s = await (await fetch("/api/state", {signal: ctl.signal})).json();
     $("now").textContent = (s.playing ? "▶ " : "⏸ ") + (s.target ? (s.name || s.target) : "nothing playing");
     $("err").textContent = s.error || "";
     $("vol").max = s.max_volume; if (document.activeElement !== $("vol")) { $("vol").value = s.volume; $("volv").textContent = s.volume; }
+    if (!$("cardsbox").open) { $("count").textContent = `(${s.cards})`; if (total !== s.cards) total = null; }
+    else if (total !== null && s.cards !== total) loadCards();   // changed elsewhere (sync, other browser)
     if (s.last_card && s.last_card_time !== lastSeen) {
       const first = lastSeen === 0; lastSeen = s.last_card_time;
       const box = $("last"); box.className = ""; box.textContent = "Last card: " + s.last_card + (s.last_card_known ? " (known: " + (s.last_card_name || "no name") + ")" : " (not assigned yet)");
       if (!first && !s.last_card_known) { $("f-id").value = s.last_card; }
     }
-  } catch (e) { $("err").textContent = "no connection"; }
+  } catch (e) { $("err").textContent = "no connection"; delay = 5000; }
+  clearTimeout(kill);
+  if (!document.hidden) pollTimer = setTimeout(poll, delay);
 }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
 
-fetch("/api/actions").then(r => r.json()).then(j => { actions = j; $("f-action").replaceChildren(...j.map(n => new Option(n, n))); show(); });
-fetch("/api/folders").then(r => r.json()).then(j => $("folders").replaceChildren(...j.map(n => new Option(n, n))));
-loadCards(); poll(); setInterval(poll, 1500); show();
+poll(); show();
 </script></body></html>
 """
