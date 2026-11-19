@@ -109,7 +109,7 @@ rotation = 180               # 0, 90, 180, 270 (as you look at it)
 dc = 22                      # BCM pins for data/command and reset (pins 15 and 22)
 reset = 25
 # backlight = ...           # optional: pin that switches the backlight (here: LED pin wired to 3.3V, always on)
-margins = { left = 0, top = 0, right = 0, bottom = 0 }   # pixels hidden by the housing, as you look at it
+margins = { left = 4, top = 0, right = 4, bottom = 0 }   # pixels hidden by the housing, as you look at it
 layout = "overlay"           # overlay (cover full screen, title on a gradient), auto, split (cover + text), cover (cover alone)
 overlay_opacity = 0.65       # overlay layout: darkness of the band behind the text (0 = transparent, 1 = black; default 0.92)
 overlay_artist = false       # overlay layout: show the artist as well (default false: title only)
