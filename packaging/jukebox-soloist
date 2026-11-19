@@ -10,8 +10,12 @@ if [ -z "${SOLOIST_API_KEY:-}" ]; then
 	exit 78
 fi
 
+# The audio server (PipeWire) of the service user lives in /run/user/<uid>. Work the path out here: systemd's %U
+# in `Environment=` of a system unit resolves to 0 (root), not to the User= of the unit, so the unit cannot say it.
+runtime="/run/user/$(id -u)"
+export XDG_RUNTIME_DIR="${runtime}"
+
 # Wait for the audio server of the service user (up to a minute after boot)
-runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 i=0
 while [ ! -S "${runtime}/pipewire-0" ] && [ ! -S "${runtime}/pulse/native" ] && [ "${i}" -lt 60 ]; do
 	sleep 1

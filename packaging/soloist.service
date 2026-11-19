@@ -11,8 +11,8 @@ Type=simple
 User=pi
 SupplementaryGroups=audio
 # Soloist talks to PipeWire (or PulseAudio) in the user session of the service user. That session must exist
-# without a login: `loginctl enable-linger <user>`. The wrapper waits until its socket is there.
-Environment=XDG_RUNTIME_DIR=/run/user/%U
+# without a login: `loginctl enable-linger <user>`. The wrapper sets XDG_RUNTIME_DIR to /run/user/<uid> itself (do not
+# use %U here: in a system unit it is 0) and waits until the socket is there.
 # SOLOIST_API_KEY (required) and SOLOIST_NAME (device name, default "Jukebox"). Mode 600, never in git.
 EnvironmentFile=/home/pi/.config/jukebox/soloist.env
 ExecStart=/usr/local/bin/jukebox-soloist
