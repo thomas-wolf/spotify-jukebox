@@ -36,7 +36,7 @@ Install: see [../README.md](../README.md). Check with `jukebox -c boxes/feuerweh
 | 29 | 5 | encoder DT |
 | 17 | 3V3 | encoder + |
 | 34 | GND | encoder GND |
-| 15 | 22 | encoder push button: held 2 s mutes / unmutes the siren (old script) |
+| 15 | 22 | encoder push button: short press = siren (until the red button is wired), held 2 s mutes / unmutes the siren |
 
 The perfboard plan in the documentation uses the same pins (38, 9, 18, 37, 30, 16, 33, 22, 5, 25).
 

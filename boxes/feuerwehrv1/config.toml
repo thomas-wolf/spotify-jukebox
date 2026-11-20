@@ -62,8 +62,9 @@ hold_time = 2.0
 pin = 27
 action = "sirene"
 
-[[gpio.button]]            # encoder push button (SW, pin 15): held 2 s = mute / unmute the siren (old script: mute_alarm)
-pin = 22
+[[gpio.button]]            # encoder push button (SW, pin 15): short press = siren (as long as the red button is not wired),
+pin = 22                   # held 2 s = mute / unmute the siren (old script: mute_alarm). The press fires on release.
+action = "sirene"
 hold_action = "alarm_mute"
 hold_time = 2.0
 
