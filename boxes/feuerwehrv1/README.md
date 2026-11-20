@@ -48,7 +48,7 @@ The perfboard plan in the documentation uses the same pins (38, 9, 18, 37, 30, 1
   `[boot] i2s_free_gpio20 = true` like the Pferdeanhänger (confirmed there: GPIO 20 and GPIO 26 work with a MiniAmp).
   Not yet tried on this box.
 - **GPIO 3 (pin 5)** is the shutdown button and also an I2C pin; I2C stays off.
-- **Siren and lights** are in `hooks.py` (ported from the old `gpio.py`): the red button stops the music, plays
+- **Siren and lights** are in `hooks.py` (ported from the old `gpio.py`): the red button pauses the music, plays
   `martinshorn.mp3` and runs the blue / yellow light show (7 rounds), then resumes the music if it was playing. The
   encoder button held for 2 s mutes or unmutes the siren. The sound file is private: put it into `~/.config/jukebox/`
   or into `Jukebox2.0/boxes/feuerwehrv1/` in the cloud. The LEDs can only be on or off, so the blue lights are dark

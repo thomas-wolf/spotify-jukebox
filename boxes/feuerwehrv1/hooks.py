@@ -2,8 +2,8 @@
 
 Ported from the old Phoniebox script (gpio.py, `def_alarm` and `def_mute_alarm`).
 
-- Action `sirene` (red button): stops the music, plays the siren sound, runs the light show (blue left/right
-  alternate, the yellow lights flash in the first half of every round), then resumes the music if it was playing.
+- Action `sirene` (red button): pauses the music (it goes on at the same spot afterwards), plays the siren sound, runs the light show (blue left/right
+  alternate, the yellow lights flash in the first half of every round), then resumes the music if it was playing (a live stream is dropped by the player and reloaded).
   The yellow front lights are on while idle (`[siren] front_lights`, default true, plus `on = true` on the LED).
 - Action `alarm_mute` (encoder push button, held 2 s): toggles "siren muted". While muted the red button does nothing.
 
@@ -77,7 +77,7 @@ def setup(app):
             state["busy"] = True
         was_playing = bool(app.players.is_playing())
         if was_playing:
-            app.do_action("stop")
+            app.do_action("pause")     # not "stop": that unloads the local playlist and resume would find nothing
         threading.Thread(target=run_siren, args=(was_playing,), daemon=True).start()
 
     def alarm_mute():

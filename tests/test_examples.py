@@ -127,9 +127,9 @@ def test_feuerwehrv1_hook_siren_and_mute():
         while time.time() < deadline and "resume" not in calls:
             time.sleep(0.01)
 
-    app.actions["sirene"]()            # music playing: stop, light show, resume
+    app.actions["sirene"]()            # music playing: pause, light show, resume
     wait_idle()
-    assert calls == ["stop", "resume"]
+    assert calls == ["pause", "resume"]
     assert leds["blue_left"].states[-1] is False and leds["blue_right"].states[-1] is False
     assert leds["yellow"].states[0] is True and leds["yellow"].states[-1] is True   # front lights: on at start and after
 
