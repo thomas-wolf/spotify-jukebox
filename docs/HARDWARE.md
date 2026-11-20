@@ -227,6 +227,13 @@ Things to check on that box:
   The pull-up makes a button to ground read 0 when pressed (check: stop `jukebox`, `sudo pinctrl set 2 ip pu`, watch
   `pinctrl lev 2`).
 - **GPIO 4** belongs to the SHIM. Do not assign it to anything else.
+- **Display supply (found 2026-11-20):** the display is wired to the permanent +5 V ("Dauerplus"), not to the Pi
+  header. The OnOff SHIM only cuts the power of the Pi itself (it pulls the Pi's supply when GPIO 4 goes low after
+  the halt), so the display stays powered after a shutdown. It then loses its SPI signal and shows **white** for
+  good (the panel is "normally white" and the backlight has no switch). The software already draws a black frame
+  before it stops. Fix (hardware, not done yet): power VCC (and the backlight pin if it is separate) from the Pi
+  header (physical pin 2 or 4 for 5 V, pin 1 or 17 for 3.3 V, if the module allows 3.3 V), then the SHIM takes
+  the display down together with the Pi. Check with a multimeter at the display VCC after the shutdown.
 - The reader is a serial (UART) module in the roof, assumed to be an RDM6300. Its TX goes to the Pi's RX (pin 10, GPIO 15). Check the card IDs, see above.
 
 ## Checking the pins
