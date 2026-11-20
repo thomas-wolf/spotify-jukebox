@@ -1,0 +1,36 @@
+#!/bin/sh
+# Installs a build of the jukebox from GitHub on a box without git: downloads the tarball of a commit (or branch),
+# copies it over /opt/jukebox/repo, reinstalls the package into the venv, writes /opt/jukebox/VERSION and restarts
+# the service. Usage: sudo jukebox-deploy [<commit-or-branch>]   (default: develop)
+# Needs root and a network connection. Deleted files of an older build stay in place (cp, not rsync --delete),
+# which keeps box-local files such as config.local.toml untouched.
+set -eu
+
+ref="${1:-develop}"
+repo=/opt/jukebox/repo
+venv=/opt/jukebox/venv
+url="https://github.com/thomas-wolf/spotify-jukebox/archive/${ref}.tar.gz"
+
+if [ "$(id -u)" -ne 0 ]; then
+	echo "run with sudo" >&2
+	exit 1
+fi
+
+tmp=$(mktemp -d)
+trap 'rm -rf "${tmp}"' EXIT
+wget -qO "${tmp}/jb.tar.gz" "${url}"
+mkdir "${tmp}/src"
+tar -xzf "${tmp}/jb.tar.gz" -C "${tmp}/src" --strip-components=1
+
+# cp -r (not -a): a stale build/ dir with old file times would make pip reuse the old code
+cp -r "${tmp}/src/." "${repo}/"
+cd "${repo}"
+rm -rf build src/*.egg-info
+"${venv}/bin/pip" install --no-cache-dir --no-build-isolation --force-reinstall --no-deps .
+
+# a branch name gives no commit: show the ref, a commit hash is shown as given
+echo "${ref}" > /opt/jukebox/VERSION
+echo "installed ${ref}"
+systemctl restart jukebox
+sleep 2
+systemctl is-active jukebox

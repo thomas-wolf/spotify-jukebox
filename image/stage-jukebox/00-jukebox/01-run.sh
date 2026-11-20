@@ -28,6 +28,7 @@ done
 # Soloist: the binary is not part of the image (Spotify forbids passing it on); jukebox-soloist-update downloads it
 install -D -m 755 "${ROOTFS_DIR}/opt/jukebox/repo/packaging/jukebox-soloist" "${ROOTFS_DIR}/usr/local/bin/jukebox-soloist"
 install -D -m 755 "${ROOTFS_DIR}/opt/jukebox/repo/packaging/jukebox-soloist-update" "${ROOTFS_DIR}/usr/local/sbin/jukebox-soloist-update"
+install -D -m 755 "${ROOTFS_DIR}/opt/jukebox/repo/packaging/jukebox-deploy" "${ROOTFS_DIR}/usr/local/sbin/jukebox-deploy"
 install -m 644 "${ROOTFS_DIR}/opt/jukebox/repo/packaging/soloist-update.service" "${units}/soloist-update.service"
 install -m 644 "${ROOTFS_DIR}/opt/jukebox/repo/packaging/soloist-update.timer" "${units}/soloist-update.timer"
 install -m 644 files/jukebox-firstboot.service "${units}/jukebox-firstboot.service"
