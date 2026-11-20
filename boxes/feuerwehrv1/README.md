@@ -59,8 +59,19 @@ The perfboard plan in the documentation uses the same pins (38, 9, 18, 37, 30, 1
 
 ## Open
 
+- Seen working on the box (2026-11-20): the buttons on top and at the front, volume with the encoder (with the PipeWire
+  output of user `jukebox` at 1.0 and `start_volume` 35 / `max_volume` 80), shutdown by holding the yellow right
+  button and waking by a short press, Wi-Fi after a correct password.
 - Unverified on the hardware: `hooks.py` (siren, lights, mute; only tested with fakes), USB reader name, Soloist as
-  backend (assumption), encoder direction with the new decoder, `i2s_free_gpio20` on this box, Pi model.
+  backend (assumption), `i2s_free_gpio20` on this box, Pi model.
 - Idle "Blaulicht" glow (half brightness) and a light show for other events are not built.
+- **Hardware to fix** (found 2026-11-20):
+  - Red siren button (pin 13 / GPIO 27, GND pin 14) has only one contact connected: solder the second one. Until then
+    the encoder button (short press) triggers the siren. Remove `action = "sirene"` from that button when it works.
+  - Only one of the two yellow front LEDs (in parallel on GPIO 25, 220 Ohm each) lights. Both share the signal, so it
+    is the wiring: check the polarity of the dark LED, its solder joints, its resistor and its ground wire, or swap the
+    two LEDs to see whether the fault stays at the position.
+  - The red LED of the Pi stays on after a shutdown: that is the power LED, the power bank still feeds the Pi. Only a
+    cut of the power turns it off (no OnOff SHIM in this box).
 - Documentation to-dos that are hardware only: speaker (sound, volume, interference), case for the Pi with the
   HiFiBerry on top, charging socket on the outside, final soldering of the perfboard.
