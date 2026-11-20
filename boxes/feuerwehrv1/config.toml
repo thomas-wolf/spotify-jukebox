@@ -36,7 +36,7 @@ device_name = "RFID"          # unverified: substring of the evdev device name o
 enabled = false
 
 # --- GPIO (BCM numbers) ------------------------------------------------------
-# Buttons are wired to GND (internal pull-up). Reserved elsewhere: 18/19/21 I2S (MiniAmp), 2/3 I2C (off here, GPIO 3 is
+# Buttons are wired to GND (internal pull-up, as in the old script). Reserved elsewhere: 18/19/21 I2S (MiniAmp), 2/3 I2C (off here, GPIO 3 is
 # the power button).
 [gpio]
 chip = "/dev/gpiochip0"
@@ -49,9 +49,9 @@ action = "prev"
 pin = 26
 action = "next"
 
-[[gpio.button]]            # yellow left (pin 33, GND pin 25): stop
-pin = 13
-action = "stop"
+[[gpio.button]]            # yellow left (pin 33, GND pin 25): the documentation says "stop", the old script (gpio.py)
+pin = 13                   # paused (playerpause), so it pauses / resumes
+action = "play_pause"
 
 [[gpio.button]]            # yellow right (pin 5, GND pin 25): shutdown only when held 2 s. GPIO 3 also wakes the Pi from halt.
 pin = 3
@@ -62,19 +62,18 @@ hold_time = 2.0
 pin = 27
 action = "sirene"
 
-[[gpio.rotary]]            # encoder: CLK pin 31, DT pin 29, + pin 17 (3V3), GND pin 34
-pin_a = 6
-pin_b = 5
-cw = "volume_up"           # unverified: swap cw/ccw if it turns the wrong way
+[[gpio.button]]            # encoder push button (SW, pin 15): held 2 s = mute / unmute the siren (old script: mute_alarm)
+pin = 22
+hold_action = "alarm_mute"
+hold_time = 2.0
+
+[[gpio.rotary]]            # encoder: CLK pin 31 (GPIO 6), DT pin 29 (GPIO 5), + pin 17 (3V3), GND pin 34
+pin_a = 6                  # The old script used A = GPIO 5, B = GPIO 6 and "turn right = louder". Its decoder
+pin_b = 5                  # counts clockwise when A leads, this one when pin_b leads, so the order is swapped here
+cw = "volume_up"           # to keep the direction. Not tried with this code: swap cw/ccw if it turns the wrong way.
 ccw = "volume_down"
 
-# The encoder's push button (SW, pin 15 = GPIO 22) is optional in the documentation and not known to be wired. If it
-# is, enable this:
-# [[gpio.button]]
-# pin = 22
-# action = "play_pause"
-
-# LEDs: only hooks.py drives them (nothing happens without a hook).
+# LEDs: only hooks.py drives them (the siren light show; dark otherwise).
 [[gpio.led]]               # pin 18, blue left (100 Ohm), "Blaulicht"
 name = "blue_left"
 pin = 24
@@ -116,8 +115,13 @@ music = "pull"
 enabled = true            # no password: trusted home network only
 port = 8080
 
-# [hooks]                 # enable once hooks.py (siren, blue and yellow lights) exists
-# file = "hooks.py"
+[hooks]
+file = "hooks.py"          # siren (red button) with light show, and the siren mute (encoder button held)
+
+[siren]                    # read by hooks.py
+sound = "~/.config/jukebox/martinshorn.mp3"   # private file, not in the repository (sync: boxes/feuerwehrv1/)
+rounds = 7                 # light rounds of 4 x 0.25 s, as in the old script
+step = 0.25
 
 # --- device tree overlays, applied by: jukebox setup --apply -------------------
 [boot]

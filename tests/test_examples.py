@@ -93,3 +93,52 @@ def test_spotify_backend_is_validated(tmp_path):
     bad.write_text('[spotify]\nbackend = "other"\n')
     with pytest.raises(ConfigError):
         load_config(str(bad))
+
+
+def test_feuerwehrv1_hook_siren_and_mute():
+    import importlib.util
+    import time
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location("hf1", BOXES / "feuerwehrv1" / "hooks.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    class Led:
+        def __init__(self):
+            self.states = []
+
+        def set(self, on):
+            self.states.append(bool(on))
+
+    calls = []
+    leds = {n: Led() for n in ("blue_left", "blue_right", "yellow")}
+    playing = {"v": True}
+    app = SimpleNamespace(
+        actions={}, leds=leds,
+        cfg=SimpleNamespace(section=lambda n: {"sound": "/nonexistent.mp3", "rounds": 2, "step": 0}),
+        players=SimpleNamespace(is_playing=lambda: playing["v"]),
+        do_action=lambda name, **a: calls.append(name))
+    mod.setup(app)
+    assert {"sirene", "alarm_mute"} <= set(app.actions)
+
+    def wait_idle():
+        deadline = time.time() + 5
+        while time.time() < deadline and "resume" not in calls:
+            time.sleep(0.01)
+
+    app.actions["sirene"]()            # music playing: stop, light show, resume
+    wait_idle()
+    assert calls == ["stop", "resume"]
+    assert all(led.states and led.states[-1] is False for led in leds.values())
+
+    calls.clear()
+    app.actions["alarm_mute"]()        # muted: the red button does nothing
+    app.actions["sirene"]()
+    time.sleep(0.05)
+    assert calls == []
+    app.actions["alarm_mute"]()        # unmuted, nothing playing: no resume
+    playing["v"] = False
+    app.actions["sirene"]()
+    time.sleep(0.2)
+    assert calls == []
