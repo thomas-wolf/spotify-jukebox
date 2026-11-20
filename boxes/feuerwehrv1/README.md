@@ -68,10 +68,15 @@ The perfboard plan in the documentation uses the same pins (38, 9, 18, 37, 30, 1
 - **Hardware to fix** (found 2026-11-20):
   - Red siren button (pin 13 / GPIO 27, GND pin 14) has only one contact connected: solder the second one. Until then
     the encoder button (short press) triggers the siren. Remove `action = "sirene"` from that button when it works.
-  - Only one of the two yellow front LEDs (in parallel on GPIO 25, 220 Ohm each) lights. Both share the signal, so it
-    is the wiring: check the polarity of the dark LED, its solder joints, its resistor and its ground wire, or swap the
-    two LEDs to see whether the fault stays at the position.
+  - Of each LED pair only the left one (seen from the front) lights, blue and yellow alike (2026-11-20). Blue left /
+    right are on GPIO 24 / 23, the two yellow ones are in parallel on GPIO 25 (220 Ohm each). Whether "left from the
+    front" is `blue_left` or `blue_right` in the config is not checked yet: run the siren and see which pin it is
+    (the light show alternates the two). For each dark LED check the polarity, its solder joints, its resistor and
+    its ground wire, or swap it with the working one to see whether the fault stays at the position or goes with
+    the LED. Both dark LEDs sit on the same side, which points to something shared there (a common ground wire, a
+    perfboard track or a connector) rather than two broken LEDs. The two blue ones have separate GPIOs and resistors.
   - The red LED of the Pi stays on after a shutdown: that is the power LED, the power bank still feeds the Pi. Only a
     cut of the power turns it off (no OnOff SHIM in this box).
 - Documentation to-dos that are hardware only: speaker (sound, volume, interference), case for the Pi with the
-  HiFiBerry on top, charging socket on the outside, final soldering of the perfboard.
+  HiFiBerry on top, charging socket on the outside, final soldering of the perfboard, gluing the
+  speaker in, leading the charging cable through the bottom of the case.
