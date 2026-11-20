@@ -162,32 +162,34 @@ def cmd_run(args) -> int:
         display = build_display(cfg.section("display"), cfg.path.resolve().parent if cfg.path else None,
                                 cfg.path.parent if cfg.path else None)
         bind(display, app.bus)
-        spotify_cfg = cfg.section("spotify")
-        soloist = spotify_cfg["backend"] == "soloist"
-        if spotify_cfg["enabled"] and soloist:
-            from .players.trackinfo import SoloistTrackReporter
-            app.players.backend("spotify").client.listeners.append(SoloistTrackReporter(app.bus).on_state)
-        elif spotify_cfg["enabled"]:
+    # Track information (title, cover) is reported whether or not the box has a display: the web page and Home
+    # Assistant use it too.
+    spotify_cfg = cfg.section("spotify")
+    soloist = spotify_cfg["backend"] == "soloist"
+    if spotify_cfg["enabled"] and soloist:
+        from .players.trackinfo import SoloistTrackReporter
+        app.players.backend("spotify").client.listeners.append(SoloistTrackReporter(app.bus).on_state)
+    elif spotify_cfg["enabled"]:
+        from .players.spotify import http_transport
+        from .players.trackinfo import SpotifyTrackPoller
+        poller = SpotifyTrackPoller(app.bus, http_transport(spotify_cfg["api_url"]))
+        poller.start()
+        threads.append(poller)
+    local_player = app.players.backend("folder")
+    if local_player is not None and hasattr(local_player, "current_track"):
+        from .covers import CoverResolver, SpotifySearch
+        from .players.trackinfo import LocalTrackPoller
+        covers_cfg = cfg.section("covers")
+        search = None
+        # the search needs go-librespot's token endpoint; Soloist offers none
+        if covers_cfg["spotify_search"] and spotify_cfg["enabled"] and not soloist:
             from .players.spotify import http_transport
-            from .players.trackinfo import SpotifyTrackPoller
-            poller = SpotifyTrackPoller(app.bus, http_transport(spotify_cfg["api_url"]))
-            poller.start()
-            threads.append(poller)
-        local_player = app.players.backend("folder")
-        if local_player is not None and hasattr(local_player, "current_track"):
-            from .covers import CoverResolver, SpotifySearch
-            from .players.trackinfo import LocalTrackPoller
-            covers_cfg = cfg.section("covers")
-            search = None
-            # the search needs go-librespot's token endpoint; Soloist offers none
-            if covers_cfg["spotify_search"] and spotify_cfg["enabled"] and not soloist:
-                from .players.spotify import http_transport
-                call = http_transport(cfg.section("spotify")["api_url"])
-                search = SpotifySearch(lambda: (call("POST", "/token", None) or {}).get("token"))
-            resolver = CoverResolver(cfg.data_dir, search, write_to_folder=covers_cfg["write_to_folder"])
-            local_poller = LocalTrackPoller(app.bus, local_player, resolver, expand(cfg.section("local")["root"]))
-            local_poller.start()
-            threads.append(local_poller)
+            call = http_transport(cfg.section("spotify")["api_url"])
+            search = SpotifySearch(lambda: (call("POST", "/token", None) or {}).get("token"))
+        resolver = CoverResolver(cfg.data_dir, search, write_to_folder=covers_cfg["write_to_folder"])
+        local_poller = LocalTrackPoller(app.bus, local_player, resolver, expand(cfg.section("local")["root"]))
+        local_poller.start()
+        threads.append(local_poller)
     if cfg.section("sync").get("enabled"):
         from .sync import SyncThread
         syncer = build_syncer(cfg, cards_path)
