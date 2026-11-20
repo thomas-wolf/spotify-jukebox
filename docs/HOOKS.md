@@ -43,7 +43,7 @@ shutdown = "~/sounds/shutdown.mp3"
 ```
 
 Relative paths are taken relative to the real `config.toml` (a link is followed), so a box folder in the repository can carry its own `sounds/`. **Convention:** without an entry, `startup.mp3` (boot) and `shutdown.mp3` (shutdown) in the configuration folder `~/.config/jukebox/` are played (also `.ogg`, `.wav`, `.flac`, `.m4a`). That folder is never part of the repository. An entry in `[sounds.events]` takes precedence. Each box has its own files. If a file is missing there is a warning in the log.
-The sound is started in the background and blocks nothing.
+The sound is started in the background and blocks nothing. Two exceptions, both settings in `[sounds]` (see [CONFIG.md](CONFIG.md)): a sound that is due before PipeWire is up (startup sound right after boot) waits for the PipeWire socket in a helper thread (`audio_wait`), and the `shutdown` action waits for the sound to finish before it powers off (`shutdown_wait`), the `shutdown` event is delivered before the poweroff command, not after it.
 
 ## hooks.py
 

@@ -25,7 +25,11 @@ DEFAULTS: dict[str, Any] = {
         "soloist_ws": "127.0.0.1:9090",          # Soloist's WebSocket API
     },
     "local": {"enabled": True, "root": "~/music", "mpv": "mpv"},
-    "sounds": {"command": ["mpv", "--no-video", "--really-quiet"]},
+    "sounds": {
+        "command": ["mpv", "--no-video", "--really-quiet"],
+        "audio_wait": 20.0,      # seconds a sound may wait for the PipeWire socket (boot race)
+        "shutdown_wait": 8.0,    # seconds the box waits for the shutdown sound before it powers off
+    },
     "display": {"enabled": False},
     # Cover art for local files (needs [display] enabled): picture in the folder, else search on Spotify
     "covers": {"spotify_search": True, "write_to_folder": True},

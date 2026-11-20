@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import signal
 import sys
 from pathlib import Path
@@ -130,7 +131,22 @@ def cmd_sync(args) -> int:
     return 1 if res.errors else 0
 
 
+def fix_runtime_dir(environ=None, uid: int | None = None) -> None:
+    """Point XDG_RUNTIME_DIR at /run/user/<our uid> (PipeWire/Pulse socket for mpv and the sounds).
+
+    The units used to set it with %U, which a *system* unit resolves to 0 (root), so mpv looked in
+    /run/user/0 ("Failed to create secure directory (/run/user/0/pulse)"). A value that names another
+    user's directory is replaced; a deliberate other value is left alone."""
+    environ = os.environ if environ is None else environ
+    uid = os.getuid() if uid is None else uid
+    if uid == 0:
+        return
+    if environ.get("XDG_RUNTIME_DIR") in (None, "", "/run/user/0"):
+        environ["XDG_RUNTIME_DIR"] = f"/run/user/{uid}"
+
+
 def cmd_run(args) -> int:
+    fix_runtime_dir()
     cfg, app, cards_path = build(args.config)
     from .pins import check_pins
     for problem in check_pins(cfg).problems:

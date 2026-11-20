@@ -31,6 +31,9 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
   Which part helped (keep-alive, lazy loading, polling) was not isolated; Wi-Fi power save was not checked.
 - [ ] Idle picture and startup sound: put `idle.jpg`, `startup.mp3` into `Jukebox2.0/boxes/<box name>/` in Dropbox; the box
   pulls them (`config = "pull"`, now in the box configs). Needs a restart after the first pull. Not yet seen on the box.
+  Code since this entry: the shutdown sound used to start only after the poweroff command (event queued behind the
+  action) and was cut off; the startup sound could be due before PipeWire; `XDG_RUNTIME_DIR` was `/run/user/0`.
+  Fixed in the code (`[sounds] audio_wait`, `shutdown_wait`, `cli.fix_runtime_dir`), not yet tried on a box.
 - [ ] rclone sync against Dropbox (`[sync]` in `config.local.toml`, `config = "off"`).
 - [ ] Check the rotation direction (180) and the overlay text size.
 

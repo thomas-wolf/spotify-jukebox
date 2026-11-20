@@ -33,6 +33,7 @@ class App:
         self._cards_ci = {k.lower(): v for k, v in cards.items()}
         self._cards_lock = threading.Lock()
         self._clock, self._run = clock, run
+        self.sound_procs: list[Any] = []  # filled by hooks.install_sounds; shutdown waits for its sound
         audio = cfg.section("audio")
         self.max_volume: int = audio["max_volume"]
         self.step: int = audio["volume_step"]
@@ -168,12 +169,28 @@ class App:
             self.set_volume(previous)
 
     def shutdown(self) -> None:
-        self.bus.post(ev.SHUTDOWN)
+        # Not bus.post(): the queued event would only be handled after the poweroff command is out, and the
+        # shutdown sound (and the display) would never get their turn.
         try:
             self.players.stop()
         except PlayerError:
             pass
+        self.bus.dispatch(Event(ev.SHUTDOWN))
+        self._wait_for_sounds()
         self._run(list(self.cfg.section("system")["shutdown_command"]))
+
+    def _wait_for_sounds(self) -> None:
+        """Let the shutdown sound finish, but never longer than [sounds] shutdown_wait seconds."""
+        limit = float(self.cfg.section("sounds").get("shutdown_wait", 8.0))
+        deadline = time.monotonic() + limit
+        for proc in list(self.sound_procs):
+            try:
+                proc.wait(timeout=max(0.0, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                log.warning("shutdown sound still playing after %.0f s, powering off anyway", limit)
+                return
+            except Exception:
+                log.exception("could not wait for a sound")
 
     def _error(self, exc: Exception) -> None:
         log.error("%s", exc)

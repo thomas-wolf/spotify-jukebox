@@ -273,6 +273,8 @@ the box at `/api/cover`, up to 5 MB. No picture, no cover: the space stays empty
 | Key | Default | Meaning |
 |---|---|---|
 | `command` | `["mpv", "--no-video", "--really-quiet"]` | Program that plays event sounds. The file name is appended. |
+| `audio_wait` | `20.0` | Seconds a sound may wait for the PipeWire socket (`$XDG_RUNTIME_DIR/pipewire-0`). At boot the startup sound is due before PipeWire is up; it then starts as soon as the socket appears (or after this time anyway). `0` = never wait. |
+| `shutdown_wait` | `8.0` | Seconds the box waits for the shutdown sound to finish before it runs `shutdown_command`. A longer sound is cut off. `0` = do not wait. |
 
 **`[sounds.events]`** assigns files to events:
 

@@ -255,3 +255,80 @@ def test_overlay_missing_until_built(tmp_path):
     (tmp_path / "overlays").mkdir()
     (tmp_path / "overlays" / "jukebox-i2s-free-gpio20.dtbo").write_bytes(b"")
     assert boot.overlay_missing(p, config_txt) == []
+
+
+# --- boot and shutdown sound timing -----------------------------------------------------------------------
+
+class FakeProc:
+    def __init__(self, seconds=0.0):
+        self.seconds, self.waited = seconds, None
+
+    def poll(self):
+        return None
+
+    def wait(self, timeout=None):
+        import subprocess
+        self.waited = timeout
+        if self.seconds > (timeout or 0):
+            raise subprocess.TimeoutExpired("mpv", timeout)
+
+
+def test_a_sound_waits_for_the_pipewire_socket(tmp_path, monkeypatch):
+    import time
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+    app = make_app()
+    sound = tmp_path / "start.mp3"
+    sound.write_text("x")
+    app.cfg.raw["sounds"]["events"] = {"boot": str(sound)}
+    launched = []
+    install_sounds(app, popen=lambda cmd, **kw: launched.append(cmd) or FakeProc())
+    app.bus.dispatch(Event("boot"))
+    time.sleep(0.5)
+    assert launched == []                        # no socket yet: held back, the main loop was not blocked
+    (tmp_path / "pipewire-0").write_text("")
+    for _ in range(40):
+        if launched:
+            break
+        time.sleep(0.1)
+    assert len(launched) == 1 and len(app.sound_procs) == 1
+
+
+def test_a_sound_plays_at_once_when_the_socket_exists(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+    (tmp_path / "pipewire-0").write_text("")
+    app = make_app()
+    sound = tmp_path / "start.mp3"
+    sound.write_text("x")
+    app.cfg.raw["sounds"]["events"] = {"boot": str(sound)}
+    launched = []
+    install_sounds(app, popen=lambda cmd, **kw: launched.append(cmd) or FakeProc())
+    app.bus.dispatch(Event("boot"))
+    assert len(launched) == 1
+
+
+def make_shutdown_app(tmp_path, proc, wait=8.0):
+    ran = []
+    cfg = load_config(None)
+    cfg.raw["sounds"]["shutdown_wait"] = wait
+    app = App(cfg, {}, PlayerRouter({"spotify": FakePlayer()}), EventBus(), run=lambda cmd: ran.append(cmd))
+    cfg.path = tmp_path / "config.toml"
+    (tmp_path / "shutdown.mp3").write_text("x")
+    install_sounds(app, popen=lambda cmd, **kw: proc)
+    return app, ran
+
+
+def test_shutdown_plays_its_sound_before_poweroff(tmp_path):
+    proc = FakeProc(seconds=2.0)
+    app, ran = make_shutdown_app(tmp_path, proc)
+    order = []
+    app.bus.subscribe("shutdown", lambda e: order.append("event"))
+    app.actions["shutdown"]()
+    assert order == ["event"] and proc.waited is not None and 0 < proc.waited <= 8.0
+    assert ran == [["systemctl", "poweroff"]]
+
+
+def test_shutdown_does_not_wait_longer_than_shutdown_wait(tmp_path):
+    proc = FakeProc(seconds=60.0)                  # a sound that never ends
+    app, ran = make_shutdown_app(tmp_path, proc, wait=0.5)
+    app.actions["shutdown"]()
+    assert ran == [["systemctl", "poweroff"]]      # powered off anyway

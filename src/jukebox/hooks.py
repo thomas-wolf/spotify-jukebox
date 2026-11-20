@@ -16,7 +16,10 @@ from __future__ import annotations
 
 import importlib.util
 import logging
+import os
 import subprocess
+import threading
+import time
 from pathlib import Path
 from typing import Any, Callable
 
@@ -48,14 +51,39 @@ def conventional_sounds(local_dir: Path | None, configured: dict) -> dict[str, s
     return found
 
 
+def pipewire_socket() -> Path | None:
+    runtime = os.environ.get("XDG_RUNTIME_DIR")
+    return Path(runtime) / "pipewire-0" if runtime else None
+
+
 def install_sounds(app: App, popen: Callable[..., Any] = subprocess.Popen) -> None:
-    """Play a file for an event: [sounds.events] boot = "/path/start.mp3"."""
+    """Play a file for an event: [sounds.events] boot = "/path/start.mp3".
+
+    The sound processes are kept in ``app.sound_procs`` so that a shutdown can wait for its own sound. A sound
+    that is due before PipeWire is up (the box has just booted) waits for its socket, at most ``audio_wait`` s,
+    in a helper thread so the main loop is not held up."""
     sounds = app.cfg.section("sounds")
     command = list(sounds["command"])
+    audio_wait = float(sounds.get("audio_wait", 20.0))
     cfg_path = getattr(app.cfg, "path", None)
     base = cfg_path.resolve().parent if cfg_path else Path.cwd()  # next to the real file, also when linked
     events = dict(sounds.get("events", {}))
     events.update(conventional_sounds(cfg_path.parent if cfg_path else None, events))
+
+    def launch(cmd: list[str]) -> None:
+        app.sound_procs[:] = [p for p in app.sound_procs if getattr(p, "poll", lambda: 0)() is None]
+        proc = popen(cmd, stdin=subprocess.DEVNULL)
+        if proc is not None:
+            app.sound_procs.append(proc)
+
+    def play_when_audio_is_up(cmd: list[str], sock: Path) -> None:
+        deadline = time.monotonic() + audio_wait
+        while not sock.exists() and time.monotonic() < deadline:
+            time.sleep(0.25)
+        if not sock.exists():
+            log.warning("sound: PipeWire socket %s did not appear within %.0f s, playing anyway", sock, audio_wait)
+        launch(cmd)
+
     for event_name, file in events.items():
         path = expand(file)
         if not path.is_absolute():
@@ -65,7 +93,13 @@ def install_sounds(app: App, popen: Callable[..., Any] = subprocess.Popen) -> No
             if not path.is_file():
                 log.warning("sound file missing: %s", path)
                 return
-            popen(command + [str(path)], stdin=subprocess.DEVNULL)
+            cmd = command + [str(path)]
+            sock = pipewire_socket()
+            if sock is None or sock.exists() or audio_wait <= 0:
+                launch(cmd)
+            else:
+                threading.Thread(target=play_when_audio_is_up, args=(cmd, sock), daemon=True,
+                                 name="sound-wait").start()
 
         app.bus.subscribe(event_name, play)
 
