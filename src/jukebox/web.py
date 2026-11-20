@@ -28,6 +28,8 @@ AUDIO_EXT = {".mp3", ".flac", ".ogg", ".oga", ".opus", ".m4a", ".m4b", ".aac", "
 MAX_BODY = 64 * 1024
 FOLDERS_TTL = 60.0   # seconds
 GZIP_MIN = 1024      # do not bother compressing anything smaller
+COVER_MAX = 5 * 1024 * 1024   # a local cover picture bigger than this is not offered to the browser
+COVER_TYPES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
 _ARG_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -102,9 +104,12 @@ class Web:
         self.app, self.cards_path, self.local_root = app, cards_path, local_root
         self.lock = threading.Lock()
         self._folders: tuple[float, list[str]] | None = None
+        self._cover_file: Path | None = None      # local cover picture of the current track, served at /api/cover
+        self._cover_ver = 0
+        self._cover_key_last: tuple | None = None
         self.state = {"playing": False, "target": None, "name": "", "volume": app.players.volume,
-                      "error": "", "last_card": None, "last_card_time": 0.0}
-        for name in (ev.CARD, ev.CARD_UNKNOWN, ev.PLAYING, ev.PAUSED, ev.STOPPED, ev.VOLUME, ev.ERROR):
+                      "error": "", "last_card": None, "last_card_time": 0.0, "cover": ""}
+        for name in (ev.CARD, ev.CARD_UNKNOWN, ev.PLAYING, ev.PAUSED, ev.STOPPED, ev.VOLUME, ev.ERROR, ev.TRACK):
             app.bus.subscribe(name, self._on_event)
         self.server = _Server((host, port), self._handler())
         self.server.daemon_threads = True
@@ -132,14 +137,58 @@ class Web:
                 s["playing"], s["error"] = True, ""
                 if e.data.get("target"):
                     s["target"], s["name"] = e.data["target"], e.data.get("name", "")
+                    self._set_cover(None)             # a new start: the track event with its cover follows
             elif e.name == ev.PAUSED:
                 s["playing"] = False
             elif e.name == ev.STOPPED:
                 s["playing"], s["target"], s["name"] = False, None, ""
+                self._set_cover(None)
+            elif e.name == ev.TRACK:
+                self._set_cover(e.data.get("cover_url"))
             elif e.name == ev.VOLUME:
                 s["volume"] = e.data["value"]
             elif e.name == ev.ERROR:
                 s["error"] = e.data.get("message", "")
+
+    def _set_cover(self, src) -> None:
+        """Remember the cover of the current track (caller holds the lock). A Spotify picture is a web address the
+        browser loads itself; a picture file on this box is served at /api/cover (only the file the player
+        reported, never a path from a request)."""
+        s = self.state
+        self._cover_file = None
+        s["cover"] = ""
+        if not isinstance(src, str) or not src:
+            return
+        if src.startswith(("https://", "http://")):
+            s["cover"] = src
+            return
+        path = Path(src[len("file://"):] if src.startswith("file://") else src)
+        ctype = COVER_TYPES.get(path.suffix.lower())
+        if not path.is_absolute() or ctype is None:
+            return
+        try:
+            st = path.stat()
+        except OSError:
+            return
+        if not path.is_file() or st.st_size > COVER_MAX:
+            return
+        key = (str(path), st.st_mtime_ns)
+        if key != self._cover_key_last:
+            self._cover_ver += 1
+            self._cover_key_last = key
+        self._cover_file = path
+        s["cover"] = f"/api/cover?v={self._cover_ver}"
+
+    def cover_bytes(self) -> tuple[bytes, str] | None:
+        with self.lock:
+            path = self._cover_file
+        if path is None:
+            return None
+        try:
+            data = path.read_bytes()
+        except OSError:
+            return None
+        return (data, COVER_TYPES[path.suffix.lower()]) if len(data) <= COVER_MAX else None
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -185,15 +234,16 @@ class Web:
             def log_message(self, fmt, *args):
                 log.debug("web %s", fmt % args)
 
-            def _send(self, code: int, body: bytes, ctype: str = "application/json") -> None:
+            def _send(self, code: int, body: bytes, ctype: str = "application/json", cache: str = "no-store") -> None:
                 self.send_response(code)
                 self.send_header("Content-Type", ctype)
                 self.send_header("Vary", "Accept-Encoding")
-                if len(body) >= GZIP_MIN and "gzip" in self.headers.get("Accept-Encoding", ""):
+                if (len(body) >= GZIP_MIN and "gzip" in self.headers.get("Accept-Encoding", "")
+                        and not ctype.startswith("image/")):          # pictures are compressed already
                     body = gzip.compress(body, 5)
                     self.send_header("Content-Encoding", "gzip")
                 self.send_header("Content-Length", str(len(body)))
-                self.send_header("Cache-Control", "no-store")
+                self.send_header("Cache-Control", cache)
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -234,6 +284,12 @@ class Web:
                             return self._send(200, PAGE.encode(), "text/html; charset=utf-8")
                         if path == "/api/state":
                             return self._json(web.snapshot())
+                        if path == "/api/cover":
+                            cover = web.cover_bytes()
+                            if cover is None:
+                                return self._json({"error": "no cover"}, 404)
+                            # the address carries a version, so the browser may keep the picture
+                            return self._send(200, cover[0], cover[1], "private, max-age=86400")
                         if path == "/api/cards":
                             return self._json(web.cards_json())
                         if path == "/api/folders":

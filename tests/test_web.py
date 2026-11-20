@@ -222,3 +222,85 @@ def test_play_from_the_web_is_logged_with_its_source(web, caplog):
         assert jcall(w, "POST", "/api/cards/A/play", {})[0] == 200
         bus.drain(app.handle)
     assert any("card A (Bedtime) via web" in r.getMessage() for r in caplog.records)
+
+
+def _state(w):
+    return jcall(w, "GET", "/api/state")[1]
+
+
+def test_spotify_cover_is_passed_on_as_an_address(web):
+    w, app, bus, _ = web
+    assert _state(w)["cover"] == ""
+    bus.post(ev.TRACK, title="T", artist="A", cover_url="https://i.scdn.co/image/abc")
+    bus.drain(app.handle)
+    assert _state(w)["cover"] == "https://i.scdn.co/image/abc"
+    assert jcall(w, "GET", "/api/cover")[0] == 404          # nothing local to serve
+    bus.post(ev.TRACK, title="T2", artist="A", cover_url="javascript:alert(1)")
+    bus.drain(app.handle)
+    assert _state(w)["cover"] == ""                           # only http(s) addresses and local pictures
+
+
+def test_local_cover_is_served_from_the_file_the_player_reported(web):
+    w, app, bus, tmp = web
+    pic = tmp / "cover.jpg"
+    pic.write_bytes(b"\xff\xd8jpegdata" * 500)                # over 1 KB: still not gzipped
+    bus.post(ev.TRACK, title="T", artist="A", cover_url=str(pic))
+    bus.drain(app.handle)
+    url = _state(w)["cover"]
+    assert url.startswith("/api/cover?v=")
+    req = urllib.request.Request(f"http://127.0.0.1:{w.port}{url}", headers={"Accept-Encoding": "gzip"})
+    with urllib.request.urlopen(req) as r:
+        assert r.headers["Content-Type"] == "image/jpeg" and r.headers.get("Content-Encoding") is None
+        assert r.read() == pic.read_bytes() and "max-age" in r.headers["Cache-Control"]
+    bus.post(ev.TRACK, title="T", artist="A", cover_url=str(pic))      # same file again: same address
+    bus.drain(app.handle)
+    assert _state(w)["cover"] == url
+    pic.write_bytes(b"\xff\xd8other" * 10)                              # replaced: new address
+    bus.post(ev.TRACK, title="T", artist="A", cover_url=str(pic))
+    bus.drain(app.handle)
+    assert _state(w)["cover"] != url
+
+
+def test_cover_goes_away_with_a_new_start_or_stop(web):
+    w, app, bus, tmp = web
+    pic = tmp / "folder.png"
+    pic.write_bytes(b"\x89PNG" + b"x" * 20)
+    bus.post(ev.TRACK, title="T", artist="A", cover_url=str(pic))
+    bus.drain(app.handle)
+    assert _state(w)["cover"]
+    bus.post(ev.PAUSED); bus.drain(app.handle)
+    assert _state(w)["cover"]                                           # paused: still the same track
+    bus.post(ev.PLAYING, target="folder:x", name="X"); bus.drain(app.handle)
+    assert _state(w)["cover"] == "" and jcall(w, "GET", "/api/cover")[0] == 404
+    bus.post(ev.TRACK, title="T", artist="A", cover_url=str(pic)); bus.post(ev.STOPPED)
+    bus.drain(app.handle)
+    assert _state(w)["cover"] == ""
+
+
+def test_cover_refuses_other_files_and_big_ones(web, monkeypatch):
+    w, app, bus, tmp = web
+    secret = tmp / "secret.txt"
+    secret.write_text("no")
+    big = tmp / "big.jpg"
+    big.write_bytes(b"\xff\xd8" + b"x" * 100)
+    monkeypatch.setattr("jukebox.web.COVER_MAX", 50)
+    for src in (str(secret), str(big), "relative/cover.jpg", str(tmp / "missing.jpg")):
+        bus.post(ev.TRACK, title="T", artist="A", cover_url=src)
+        bus.drain(app.handle)
+        assert _state(w)["cover"] == "", src
+        assert jcall(w, "GET", "/api/cover")[0] == 404
+
+
+def test_page_has_cover_and_a_shutdown_button_that_asks_first(web):
+    w, *_ = web
+    page = call(w, "GET", "/")[1].decode()
+    assert 'id="cover"' in page and 'id="shutdown"' in page and "confirm(" in page
+
+
+def test_shutdown_action_goes_through_the_bus(web):
+    w, app, bus, _ = web
+    seen = []
+    bus.subscribe("*", seen.append)
+    assert jcall(w, "POST", "/api/action", {"name": "shutdown"})[0] == 200
+    bus.drain(lambda e: None)                       # not app.handle: that would run the real command
+    assert [(e.name, e.data["name"]) for e in seen] == [(ev.ACTION, "shutdown")]

@@ -11,6 +11,8 @@ button,input,select{font:inherit;padding:.45rem .7rem;border:1px solid var(--b);
 button{cursor:pointer} button.primary{background:var(--a);color:#fff;border-color:var(--a)} button.danger{color:#c33}
 .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:.3rem 0}
 .row>input,.row>select{flex:1;min-width:8rem} label{display:block;font-size:.85rem;opacity:.7;margin-top:.5rem}
+#nowrow{display:flex;gap:.8rem;align-items:center} #nowrow>div{flex:1;min-width:0}
+#cover{width:6rem;height:6rem;object-fit:cover;border-radius:.4rem;flex:none;background:var(--b)}
 #now{font-size:1.1rem} #err{color:#c33;min-height:1.2em} .muted{opacity:.65}
 #last{padding:.6rem;border-radius:.4rem;background:#2a72;margin-bottom:.6rem}
 table{width:100%;border-collapse:collapse} td{padding:.4rem .3rem;border-top:1px solid var(--b);vertical-align:top;word-break:break-all}
@@ -21,7 +23,8 @@ details[open]>summary{margin-bottom:.6rem}
 <h1>Jukebox</h1>
 
 <section>
-  <div id="now">&nbsp;</div><div id="err"></div>
+  <div id="nowrow"><img id="cover" alt="" hidden referrerpolicy="no-referrer">
+    <div><div id="now">&nbsp;</div><div id="err"></div></div></div>
   <div class="row">
     <button data-act="prev">&#9198;</button><button data-act="play_pause" class="primary">&#9199;</button>
     <button data-act="next">&#9197;</button><button data-act="stop">&#9209;</button>
@@ -56,6 +59,10 @@ details[open]>summary{margin-bottom:.6rem}
   </details>
 </section>
 
+<section>
+  <div class="row"><button id="shutdown" class="danger">Shut down the jukebox</button><span id="sysmsg" class="muted"></span></div>
+</section>
+
 <script>
 const $ = id => document.getElementById(id);
 const post = (u, b, m = "POST") => fetch(u, {method: m, headers: {"Content-Type": "application/json"}, body: JSON.stringify(b || {})})
@@ -67,6 +74,14 @@ const once = (key, url, fn) => loaded[key] ? null : (loaded[key] = fetch(url).th
 const ARG = {volume_set: ["value", "volume 0-100"], seek_forward: ["seconds", "seconds"], seek_back: ["seconds", "seconds"]};
 
 document.querySelectorAll("[data-act]").forEach(b => b.onclick = () => post("/api/action", {name: b.dataset.act}).catch(e => $("err").textContent = e.message));
+$("shutdown").onclick = async () => {
+  if (!confirm("Shut the jukebox down? It has to be switched on again by hand.")) return;
+  try { await post("/api/action", {name: "shutdown"}); $("sysmsg").textContent = "Shutting down. Wait a few seconds before you cut the power."; }
+  catch (e) { $("sysmsg").textContent = e.message; }
+};
+let coverNow = "";
+$("cover").onload = () => $("cover").hidden = false;
+$("cover").onerror = () => $("cover").hidden = true;
 $("vol").onchange = () => post("/api/action", {name: "volume_set", args: {value: +$("vol").value}});
 $("vol").oninput = () => $("volv").textContent = $("vol").value;
 
@@ -139,6 +154,10 @@ async function poll() {
     const s = await (await fetch("/api/state", {signal: ctl.signal})).json();
     $("now").textContent = (s.playing ? "▶ " : "⏸ ") + (s.target ? (s.name || s.target) : "nothing playing");
     $("err").textContent = s.error || "";
+    if ((s.cover || "") !== coverNow) {          // load the picture only when it changes
+      coverNow = s.cover || "";
+      if (coverNow) $("cover").src = coverNow; else { $("cover").hidden = true; $("cover").removeAttribute("src"); }
+    }
     $("vol").max = s.max_volume; if (document.activeElement !== $("vol")) { $("vol").value = s.volume; $("volv").textContent = s.volume; }
     if (!$("cardsbox").open) { $("count").textContent = `(${s.cards})`; if (total !== s.cards) total = null; }
     else if (total !== null && s.cards !== total) loadCards();   // changed elsewhere (sync, other browser)

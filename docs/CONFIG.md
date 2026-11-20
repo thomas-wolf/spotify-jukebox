@@ -242,10 +242,17 @@ More keys (`delete`, `bwlimit`, `cards_per_box`, `first_run_delay`, `rclone`, `r
 | `host` | `0.0.0.0` | Address to listen on. `127.0.0.1` makes it reachable from the box itself only. |
 | `port` | `8080` | Port |
 
-The page shows what is playing (with previous, play/pause, next, stop and volume), the ID of the last card
+The page shows what is playing (with the cover next to it when there is one, and previous, play/pause, next, stop
+and volume), the ID of the last card
 that was presented, a form to assign a card (Spotify link, local folder or action) and, at the bottom, the list
 of all cards with search, edit, delete and a test button. The list is closed at first and is fetched when it is
 opened, and the folder and action lists when the form needs them, so the page opens fast on a poor Wi-Fi.
+A button at the very bottom shuts the box down (the `shutdown` action, i.e. `[system] shutdown_command`) after a
+confirmation; the box then has to be switched on again by hand.
+
+The cover is the picture of the current track. A Spotify cover is loaded by the browser from Spotify (so the
+phone needs internet access); the picture of a local folder (`cover.jpg` and so on, see `[display]`) is sent by
+the box at `/api/cover`, up to 5 MB. No picture, no cover: the space stays empty.
 
 - **No authentication.** Anybody who can reach the port can change cards and control playback. Use it in a
   trusted home network only.
