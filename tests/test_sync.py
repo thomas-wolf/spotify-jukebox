@@ -223,8 +223,19 @@ def test_music_delete_mode_uses_sync_with_limit_and_refuses_missing_remote(tmp_p
     assert "--max-delete" in sync_cmd and not res.errors
 
 
+def test_config_pull_without_cloud_folder_is_not_an_error(tmp_path):
+    """A new box has no <remote>/boxes/<box>/ yet: that is a note, not a failure (the UI showed rclone's
+    'directory not found' as a sync error)."""
+    syncer, fake, cloud, conf = setup(tmp_path)
+    res = syncer.run_once(("config",))
+    assert not res.errors and not res.config_changed
+    assert any("no folder" in m for m in res.messages)
+    assert not calls_of(fake, "copy")
+
+
 def test_failures_are_reported_not_raised(tmp_path):
     syncer, fake, cloud, conf = setup(tmp_path)
+    (cloud / "boxes" / "kitchen").mkdir(parents=True)   # a missing cloud folder is not an error (see above)
     fake.fail_on = "copy"
     res = syncer.run_once(("config", "music"))
     assert len(res.errors) == 2 and "boom" in res.errors[0]

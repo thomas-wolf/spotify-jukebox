@@ -293,6 +293,9 @@ class Syncer:
     # -- config folder ---------------------------------------------------------------------
     def _config(self, res: SyncResult, dry_run: bool) -> None:
         remote = self._box()
+        if self.rclone.stat(remote) is None:    # no folder for this box in the cloud (yet): nothing to pull, no error
+            res.messages.append(f"config: no folder {remote} in the cloud yet (put idle.jpg, startup.mp3 ... there)")
+            return
         watched = [self.config_dir / n for n in RESTART_FILES]
         before = [_sha(p) for p in watched]
         args = ["copy", remote, str(self.config_dir), "--update"]
