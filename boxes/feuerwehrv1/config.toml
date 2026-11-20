@@ -26,11 +26,11 @@ enabled = true
 root = "~/music"
 
 # --- readers ---------------------------------------------------------------
-# The documentation only lists a flat card reader (9.5 x 6.2 x 1.1 cm), no RDM6300 and no UART pins, so it is a
-# USB one.
+# The documentation only lists a flat card reader (9.5 x 6.2 x 1.1 cm), no RDM6300 and no UART pins; it is a Neuftech
+# USB reader (keyboard emulation, same evdev name as on the Pferdeanhaenger).
 [readers.usb]
 enabled = true
-device_name = "RFID"          # unverified: substring of the evdev device name of the reader
+device_name = "HXGCoLtd Keyboard"   # Neuftech USB reader, name read on the box 2026-11-20
 
 [readers.rdm6300]
 enabled = false

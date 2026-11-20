@@ -62,7 +62,7 @@ The perfboard plan in the documentation uses the same pins (38, 9, 18, 37, 30, 1
 - Seen working on the box (2026-11-20): the buttons on top and at the front, volume with the encoder (with the PipeWire
   output of user `jukebox` at 1.0 and `start_volume` 35 / `max_volume` 80), shutdown by holding the yellow right
   button and waking by a short press, Wi-Fi after a correct password.
-- Unverified on the hardware: `hooks.py` (siren, lights, mute; only tested with fakes), USB reader name, Soloist as
+- Unverified on the hardware: `hooks.py` (siren, lights, mute; only tested with fakes), Soloist as
   backend (assumption), `i2s_free_gpio20` on this box, Pi model.
 - Idle "Blaulicht" glow (half brightness) and a light show for other events are not built.
 - **Hardware to fix** (found 2026-11-20):
