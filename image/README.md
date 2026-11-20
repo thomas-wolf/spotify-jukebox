@@ -86,6 +86,8 @@ The log also lists the boxes the image contains.
 
 ### Wi-Fi
 
+The whole path for one box (files, rclone, Soloist, troubleshooting): [docs/BOX_SETUP.md](../docs/BOX_SETUP.md).
+
 Put `wifi_ssid`, `wifi_password` (8 to 63 characters, or 64 hex digits; leave it out for an open network) and
 `wifi_country` (two capital letters, e.g. `DE`; without a country Raspberry Pi OS keeps the radio blocked) into
 `jukebox.toml`. The first boot writes `/etc/NetworkManager/system-connections/jukebox-wifi.nmconnection` (mode 600,

@@ -16,6 +16,10 @@ boxes/<name>/
 2. `jukebox -c boxes/<name>/config.toml pins` must report no errors (the tests check this for every box).
 3. Write the pin table into `boxes/<name>/README.md` (physical pin, BCM, part).
 
+## Set up a new box from the image
+
+Step by step (boot partition, cloud files, rclone, Soloist, checks): [docs/BOX_SETUP.md](../docs/BOX_SETUP.md).
+
 ## Install on a box
 
 ```bash
