@@ -56,7 +56,7 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
 
 ## Other boxes
 
-- [ ] Pinouts for Sanka, Feuerwehr and the sliding-potentiometer box, each in its own `boxes/<name>/`.
+- [ ] Pinouts for Sanka and the sliding-potentiometer box, each in its own `boxes/<name>/` (`feuerwehrv1` and `feuerwehrv2` exist).
 
 ## Maybe later
 

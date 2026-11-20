@@ -1,0 +1,131 @@
+# Fire engine box, first draft ("Feuerwehr v1"). Pinout from the project documentation (physical pins -> BCM),
+# see README.md. This was the very first prototype: shakier wiring (perfboard) and a part list that differs from the
+# other boxes (no display, volume by rotary encoder only). Everything marked "unverified" has not been tried
+# on the hardware yet.
+
+[box]
+name = "feuerwehrv1"
+
+[audio]
+start_volume = 30
+max_volume = 80          # hard cap, also applies to the knob
+volume_step = 5
+
+[cards]
+same_card = "restart"    # toggle | ignore | restart | next
+same_card_delay = 3.0
+
+[spotify]
+enabled = true
+backend = "soloist"                  # assumption: one of the children's Family accounts (no audio key from go-librespot)
+soloist_ws = "127.0.0.1:9090"
+api_url = "http://127.0.0.1:3678"   # only used with backend = "go-librespot"
+
+[local]
+enabled = true
+root = "~/music"
+
+# --- readers ---------------------------------------------------------------
+# The documentation only lists a flat card reader (9.5 x 6.2 x 1.1 cm), no RDM6300 and no UART pins, so it is a
+# USB one.
+[readers.usb]
+enabled = true
+device_name = "RFID"          # unverified: substring of the evdev device name of the reader
+
+[readers.rdm6300]
+enabled = false
+
+# --- GPIO (BCM numbers) ------------------------------------------------------
+# Buttons are wired to GND (internal pull-up). Reserved elsewhere: 18/19/21 I2S (MiniAmp), 2/3 I2C (off here, GPIO 3 is
+# the power button).
+[gpio]
+chip = "/dev/gpiochip0"
+
+[[gpio.button]]            # blue left (pin 38, GND pin 9): previous. GPIO 20 works because [boot] i2s_free_gpio20 = true
+pin = 20
+action = "prev"
+
+[[gpio.button]]            # blue right (pin 37, GND pin 30): next
+pin = 26
+action = "next"
+
+[[gpio.button]]            # yellow left (pin 33, GND pin 25): stop
+pin = 13
+action = "stop"
+
+[[gpio.button]]            # yellow right (pin 5, GND pin 25): shutdown only when held 2 s. GPIO 3 also wakes the Pi from halt.
+pin = 3
+hold_action = "shutdown"
+hold_time = 2.0
+
+[[gpio.button]]            # red (pin 13, GND pin 14): "Tatuetata". Action defined in hooks.py (not written yet)
+pin = 27
+action = "sirene"
+
+[[gpio.rotary]]            # encoder: CLK pin 31, DT pin 29, + pin 17 (3V3), GND pin 34
+pin_a = 6
+pin_b = 5
+cw = "volume_up"           # unverified: swap cw/ccw if it turns the wrong way
+ccw = "volume_down"
+
+# The encoder's push button (SW, pin 15 = GPIO 22) is optional in the documentation and not known to be wired. If it
+# is, enable this:
+# [[gpio.button]]
+# pin = 22
+# action = "play_pause"
+
+# LEDs: only hooks.py drives them (nothing happens without a hook).
+[[gpio.led]]               # pin 18, blue left (100 Ohm), "Blaulicht"
+name = "blue_left"
+pin = 24
+
+[[gpio.led]]               # pin 16, blue right (100 Ohm), "Blaulicht"
+name = "blue_right"
+pin = 23
+
+[[gpio.led]]               # pin 22, both yellow LEDs in parallel (220 Ohm each), "Fernlicht"
+name = "yellow"
+pin = 25
+
+# --- potentiometer ------------------------------------------------------------
+# The documentation lists "1 Potentiometer" and "Ansteuerung Potentiometer" as a to-do, but volume is on the rotary
+# encoder in the pin list. So no ADS1115.
+[adc]
+enabled = false
+
+# --- sounds and hooks ---------------------------------------------------------
+[sounds.events]
+# Sounds by convention: ~/.config/jukebox/startup.mp3 (boot) and shutdown.mp3. Private files, not in this repository.
+
+[display]                    # this box has no display
+enabled = false
+
+[covers]
+spotify_search = true
+write_to_folder = true
+
+[sync]
+enabled = true            # needs rclone with the remote `dropbox` (see docs/SYNC.md)
+remote = "dropbox:Jukebox2.0"
+interval_minutes = 30
+cards = "both"
+config = "pull"           # Jukebox2.0/boxes/feuerwehrv1/ -> ~/.config/jukebox/ (startup.mp3, ...)
+music = "pull"
+
+[web]
+enabled = true            # no password: trusted home network only
+port = 8080
+
+# [hooks]                 # enable once hooks.py (siren, blue and yellow lights) exists
+# file = "hooks.py"
+
+# --- device tree overlays, applied by: jukebox setup --apply -------------------
+[boot]
+audio = "hifiberry-miniamp"   # dtoverlay=hifiberry-dac, on-board audio off
+i2s_free_gpio20 = true        # own overlay: the DAC does not need I2S data-in, so GPIO 20 is a normal pin (needs dtc)
+spi = false                   # no display
+i2c = false
+
+[system]
+# needs /etc/sudoers.d/jukebox, see docs/INSTALL.md
+shutdown_command = ["sudo", "systemctl", "poweroff"]
