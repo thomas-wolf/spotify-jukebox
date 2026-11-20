@@ -7,8 +7,8 @@
 name = "feuerwehrv1"
 
 [audio]
-start_volume = 60        # Soloist via PipeWire is much quieter than the number says (Pferdeanhaenger: 60 / 100)
-max_volume = 100         # hard cap, also applies to the knob
+start_volume = 35        # with the PipeWire sink of user jukebox at 1.0 (it was 0.40 and made everything quiet)
+max_volume = 80          # hard cap, also applies to the knob
 volume_step = 5
 
 [cards]
