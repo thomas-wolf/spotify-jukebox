@@ -34,5 +34,8 @@ install -m 644 files/jukebox-firstboot.service "${units}/jukebox-firstboot.servi
 install -D -m 755 files/jukebox-firstboot "${ROOTFS_DIR}/usr/local/sbin/jukebox-firstboot"
 install -D -m 440 files/sudoers "${ROOTFS_DIR}/etc/sudoers.d/jukebox"
 
+# PipeWire output of a new box starts at 100 % instead of WirePlumber's default of 0.40 (everything was too quiet)
+install -D -m 644 files/51-jukebox-volume.conf "${ROOTFS_DIR}/etc/wireplumber/wireplumber.conf.d/51-jukebox-volume.conf"
+
 # Template for the file the user puts on the boot partition
 install -D -m 644 files/jukebox.toml.example "${ROOTFS_DIR}/boot/firmware/jukebox.toml.example"

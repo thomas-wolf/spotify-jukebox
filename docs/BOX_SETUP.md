@@ -117,7 +117,15 @@ sudo -u jukebox env HOME=/var/lib/jukebox /opt/jukebox/venv/bin/jukebox \
 ```
 
 The log shows whether the card reader was found. If its name differs from `device_name` in the box config, set
-`device_name` to a part of the real name in `config.local.toml`. Then press every button once, turn the encoder and
+`device_name` to a part of the real name in `config.local.toml`. The PipeWire output of the service user should be at full volume (an older image left it at 0.40 and everything was
+quiet):
+
+```bash
+sudo -u jukebox env XDG_RUNTIME_DIR=/run/user/$(id -u jukebox) wpctl get-volume @DEFAULT_AUDIO_SINK@
+# if it says 0.40: sudo -u jukebox env XDG_RUNTIME_DIR=/run/user/$(id -u jukebox) wpctl set-volume @DEFAULT_AUDIO_SINK@ 1.0
+```
+
+Then press every button once, turn the encoder and
 present a card.
 
 ## Troubleshooting

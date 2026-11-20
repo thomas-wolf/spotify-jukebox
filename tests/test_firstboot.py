@@ -223,3 +223,12 @@ def test_wifi_64_hex_key_is_accepted(fb, paths):
     request(paths, f'box = "{real_box()}"\nwifi_ssid = "x"\nwifi_password = "{"ab12" * 16}"\n')
     fb.provision(paths, reboot=False)
     assert f"psk={'ab12' * 16}" in nm_file(paths).read_text()
+
+
+def test_image_installs_the_wireplumber_volume_setting():
+    """WirePlumber's default sink volume (0.40 in wpctl) made new boxes quiet; the image ships a setting for 1.0."""
+    files = SCRIPT.parent
+    conf = (files / "51-jukebox-volume.conf").read_text()
+    assert "device.routes.default-sink-volume = 1.0" in conf
+    run_sh = (files.parent / "01-run.sh").read_text()
+    assert "files/51-jukebox-volume.conf" in run_sh and "/etc/wireplumber/wireplumber.conf.d/" in run_sh

@@ -22,6 +22,10 @@ chroot part (`02-run-chroot.sh`), the Docker build and the first boot on a Pi ha
 - Services `soloist`, `jukebox` and `jukebox-firstboot`, enabled, plus `soloist-update.timer` and the sudoers rule
   for `systemctl poweroff`. go-librespot is installed but off (`sudo systemctl enable --now go-librespot` and
   `backend = "go-librespot"` bring it back). Linger is on for `jukebox`: PipeWire runs in its user session at boot. The units are generated from `packaging/` (user and paths replaced at build time).
+- WirePlumber setting `/etc/wireplumber/wireplumber.conf.d/51-jukebox-volume.conf`: the PipeWire output starts at
+  1.0 instead of 0.40 (WirePlumber's default for a sink without saved state). **Not verified on a built image**:
+  after the first boot `sudo -u jukebox env XDG_RUNTIME_DIR=/run/user/$(id -u jukebox) wpctl get-volume
+  @DEFAULT_AUDIO_SINK@` should say 1.00. The jukebox volume itself is `[audio] start_volume` in the box config.
 
 Not in the image: the Soloist binary (Spotify forbids passing it on; downloaded after the first boot), the API key and the Spotify login (once per box, see below), cards, music, user and password. The Wi-Fi is not baked in either: it comes from `jukebox.toml` on the boot partition (see below).
 
