@@ -137,7 +137,6 @@ class Web:
                 s["playing"], s["error"] = True, ""
                 if e.data.get("target"):
                     s["target"], s["name"] = e.data["target"], e.data.get("name", "")
-                    self._set_cover(None)             # a new start: the track event with its cover follows
             elif e.name == ev.PAUSED:
                 s["playing"] = False
             elif e.name == ev.STOPPED:

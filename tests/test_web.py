@@ -261,7 +261,7 @@ def test_local_cover_is_served_from_the_file_the_player_reported(web):
     assert _state(w)["cover"] != url
 
 
-def test_cover_goes_away_with_a_new_start_or_stop(web):
+def test_cover_survives_playing_events_and_goes_with_stop_or_a_track_without_cover(web):
     w, app, bus, tmp = web
     pic = tmp / "folder.png"
     pic.write_bytes(b"\x89PNG" + b"x" * 20)
@@ -270,7 +270,10 @@ def test_cover_goes_away_with_a_new_start_or_stop(web):
     assert _state(w)["cover"]
     bus.post(ev.PAUSED); bus.drain(app.handle)
     assert _state(w)["cover"]                                           # paused: still the same track
+    # Soloist reports the track before the box posts `playing` for the card: that must not wipe the cover
     bus.post(ev.PLAYING, target="folder:x", name="X"); bus.drain(app.handle)
+    assert _state(w)["cover"]
+    bus.post(ev.TRACK, title="T2", artist="A", cover_url=None); bus.drain(app.handle)
     assert _state(w)["cover"] == "" and jcall(w, "GET", "/api/cover")[0] == 404
     bus.post(ev.TRACK, title="T", artist="A", cover_url=str(pic)); bus.post(ev.STOPPED)
     bus.drain(app.handle)
