@@ -85,12 +85,12 @@ must be open in the same network for the pairing.
 ```bash
 sudo jukebox-soloist-update
 read -rsp 'API key: ' KEY; echo
-printf 'SOLOIST_API_KEY=%s\nSOLOIST_NAME=Feuerwehr\n' "$KEY" | \
+printf 'SOLOIST_API_KEY=%s\nSOLOIST_NAME=feuerwehrv1\n' "$KEY" | \
   sudo -u jukebox sh -c 'umask 077; cat > /var/lib/jukebox/.config/jukebox/soloist.env'
 
 sudo systemctl stop soloist
 sudo -u jukebox env HOME=/var/lib/jukebox XDG_RUNTIME_DIR=/run/user/$(id -u jukebox) \
-  /opt/soloist/soloist --device-name Feuerwehr --api-key "$KEY" --ws 127.0.0.1:9090 --pair
+  /opt/soloist/soloist --device-name feuerwehrv1 --api-key "$KEY" --ws 127.0.0.1:9090 --pair
 unset KEY
 sudo systemctl restart soloist jukebox
 ```
