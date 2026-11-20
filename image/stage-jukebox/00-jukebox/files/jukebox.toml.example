@@ -7,3 +7,9 @@ box = "kitchen"
 
 # Optional. Hostname (<hostname>.local in the network). Default: same as the box name.
 # hostname = "kitchen"
+
+# Optional. Wi-Fi. The first boot writes it as a NetworkManager profile (a Wi-Fi from Raspberry Pi Imager or
+# network-config was lost on real boxes). The password stays readable in this file on the boot partition.
+# wifi_ssid = "MyNetwork"
+# wifi_password = "my password"     # 8 to 63 characters; leave out for an open network
+# wifi_country = "DE"               # two letters: Raspberry Pi OS keeps the radio blocked without one

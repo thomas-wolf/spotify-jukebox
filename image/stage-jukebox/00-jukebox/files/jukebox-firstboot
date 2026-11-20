@@ -4,8 +4,10 @@
 Reads /boot/firmware/jukebox.toml (put there by the user, see jukebox.toml.example), then once:
   1. installs the box configuration (boxes/<box>/ of the image, or a folder jukebox/ on the boot partition),
   2. sets the hostname,
-  3. runs ``jukebox setup --apply`` (device-tree overlays of that box),
-  4. writes a marker and reboots.
+  3. writes the Wi-Fi (optional ``wifi_ssid`` / ``wifi_password`` / ``wifi_country``) as a plain NetworkManager
+     profile, because the cloud-init / netplan route lost the profile on real boxes,
+  4. runs ``jukebox setup --apply`` (device-tree overlays of that box),
+  5. writes a marker and reboots.
 Standard library only. Run by jukebox-firstboot.service, which is skipped once the marker exists.
 """
 
@@ -19,17 +21,27 @@ import shutil
 import subprocess
 import sys
 import tomllib
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 NAME_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")  # also a valid hostname label
-KNOWN_KEYS = {"box", "hostname"}
+KNOWN_KEYS = {"box", "hostname", "wifi_ssid", "wifi_password", "wifi_country"}
+COUNTRY_RE = re.compile(r"^[A-Z]{2}$")
+HEX64_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 SHUTDOWN = ["sudo", "systemctl", "poweroff"]  # matches the sudoers rule of the image
 
 
 class FirstBootError(Exception):
     pass
+
+
+@dataclass
+class Wifi:
+    ssid: str
+    password: str | None = None   # None = open network
+    country: str | None = None
 
 
 @dataclass
@@ -58,8 +70,35 @@ def run(cmd: list[str], check: bool = True) -> int:
     return subprocess.run(cmd, check=check).returncode
 
 
-def read_request(paths: Paths) -> tuple[str, str]:
-    """Returns (box, hostname) from jukebox.toml; raises FirstBootError for anything unusable."""
+def _printable(value: str) -> bool:
+    return all(ch >= " " and ch != "\x7f" for ch in value)
+
+
+def read_wifi(f: Path, data: dict) -> Wifi | None:
+    """The optional wifi_* keys of jukebox.toml; raises FirstBootError for anything unusable."""
+    ssid = data.get("wifi_ssid")
+    password = data.get("wifi_password")
+    country = data.get("wifi_country")
+    if ssid is None:
+        if password is not None or country is not None:
+            raise FirstBootError(f"{f}: 'wifi_password' / 'wifi_country' need 'wifi_ssid'")
+        return None
+    if not isinstance(ssid, str) or not ssid or len(ssid.encode()) > 32 or not _printable(ssid):
+        raise FirstBootError(f"{f}: 'wifi_ssid' must be a text of 1 to 32 bytes without control characters")
+    if password is not None:
+        if not isinstance(password, str) or not _printable(password):
+            raise FirstBootError(f"{f}: 'wifi_password' must be a text without control characters")
+        if password == "":
+            password = None  # empty = open network
+        elif not (8 <= len(password) <= 63 or HEX64_RE.match(password)):
+            raise FirstBootError(f"{f}: 'wifi_password' must be 8 to 63 characters (or 64 hex digits)")
+    if country is not None and (not isinstance(country, str) or not COUNTRY_RE.match(country)):
+        raise FirstBootError(f"{f}: 'wifi_country' must be a two-letter country code in capitals, e.g. \"DE\"")
+    return Wifi(ssid, password, country)
+
+
+def read_request(paths: Paths) -> tuple[str, str, Wifi | None]:
+    """Returns (box, hostname, wifi) from jukebox.toml; raises FirstBootError for anything unusable."""
     f = paths.boot / "jukebox.toml"
     try:
         with open(f, "rb") as fh:
@@ -70,14 +109,14 @@ def read_request(paths: Paths) -> tuple[str, str]:
         raise FirstBootError(f"{f}: {exc}") from exc
     unknown = sorted(set(data) - KNOWN_KEYS)
     if unknown:
-        raise FirstBootError(f"{f}: unknown key(s) {', '.join(unknown)} (allowed: box, hostname)")
+        raise FirstBootError(f"{f}: unknown key(s) {', '.join(unknown)} (allowed: {', '.join(sorted(KNOWN_KEYS))})")
     box = data.get("box")
     if not isinstance(box, str) or not NAME_RE.match(box):
         raise FirstBootError(f"{f}: 'box' is required: lowercase letters, digits and '-', max 63 characters")
     hostname = data.get("hostname", box)
     if not isinstance(hostname, str) or not NAME_RE.match(hostname):
         raise FirstBootError(f"{f}: 'hostname' must be lowercase letters, digits and '-', max 63 characters")
-    return box, hostname
+    return box, hostname, read_wifi(f, data)
 
 
 def chown_to_user(path: Path, user: str) -> None:
@@ -153,12 +192,58 @@ def set_hostname(paths: Paths, hostname: str) -> None:
         (d / "99-jukebox-hostname.cfg").write_text("preserve_hostname: true\nmanage_etc_hosts: false\n")
 
 
+def _keyfile_escape(value: str) -> str:
+    """In a NetworkManager keyfile a backslash starts an escape and leading / trailing blanks are trimmed."""
+    value = value.replace("\\", "\\\\")
+    stripped = value.strip(" ")
+    lead, trail = len(value) - len(value.lstrip(" ")), len(value) - len(value.rstrip(" "))
+    if not stripped:
+        return "\\s" * len(value)
+    return "\\s" * lead + stripped + "\\s" * trail
+
+
+def write_wifi(paths: Paths, wifi: Wifi) -> Path:
+    """Writes the Wi-Fi as /etc/NetworkManager/system-connections/jukebox-wifi.nmconnection (mode 600).
+
+    A plain NetworkManager keyfile, not netplan: on real boxes the profile that cloud-init handed to netplan was
+    lost (empty /etc/netplan/90-NM-*.yaml). The uuid is derived from the SSID, so running this again replaces
+    the profile instead of adding a second one.
+    """
+    d = paths.etc / "NetworkManager" / "system-connections"
+    d.mkdir(parents=True, exist_ok=True)
+    ssid = _keyfile_escape(wifi.ssid)
+    lines = ["# written by jukebox-firstboot", "[connection]", f"id={ssid}",
+             f"uuid={uuid.uuid5(uuid.NAMESPACE_URL, 'jukebox-wifi:' + wifi.ssid)}",
+             "type=wifi", "autoconnect=true", "autoconnect-priority=10", "",
+             "[wifi]", "mode=infrastructure", f"ssid={ssid}", ""]
+    if wifi.password is not None:
+        lines += ["[wifi-security]", "key-mgmt=wpa-psk", f"psk={_keyfile_escape(wifi.password)}", ""]
+    lines += ["[ipv4]", "method=auto", "", "[ipv6]", "method=auto", ""]
+    target = d / "jukebox-wifi.nmconnection"
+    tmp = d / ".jukebox-wifi.nmconnection.tmp"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)  # NetworkManager ignores keyfiles that others can read
+    with os.fdopen(fd, "w") as fh:
+        fh.write("\n".join(lines))
+    os.replace(tmp, target)
+    if wifi.country:
+        # best effort: without a regulatory domain Raspberry Pi OS keeps the radio blocked
+        run(["raspi-config", "nonint", "do_wifi_country", wifi.country], check=False)
+    run(["rfkill", "unblock", "wifi"], check=False)
+    run(["nmcli", "connection", "reload"], check=False)  # NetworkManager may already be running
+    return target
+
+
 def provision(paths: Paths, reboot: bool = True) -> int:
-    box, hostname = read_request(paths)
-    say(f"box '{box}', hostname '{hostname}'")
+    box, hostname, wifi = read_request(paths)
+    say(f"box '{box}', hostname '{hostname}'" + (f", Wi-Fi '{wifi.ssid}'" if wifi else ""))
     config = install_box_config(paths, box)
     write_shutdown_override(paths, config)
     set_hostname(paths, hostname)
+    if wifi:
+        try:
+            say(f"Wi-Fi profile {write_wifi(paths, wifi)}")
+        except OSError as exc:
+            raise FirstBootError(f"cannot write the Wi-Fi profile: {exc}") from exc
     run([str(paths.venv / "bin" / "jukebox"), "-c", str(config), "setup", "--apply"])
     paths.marker.write_text(f"box={box}\nhostname={hostname}\n"
                             f"time={datetime.now(timezone.utc).isoformat(timespec='seconds')}\n")

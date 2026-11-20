@@ -4,6 +4,9 @@ Status of the Pferdeanhänger box and the rewrite. Tick items off here when they
 
 ## Next up
 
+- [ ] **Try the Wi-Fi from `jukebox.toml` on a real card** (`wifi_ssid`, `wifi_password`, `wifi_country`, written by
+  `jukebox-firstboot` as a NetworkManager profile, see [image/README.md](../image/README.md#wi-fi)). Replaces the
+  `network-config` route, whose profile was lost on real boxes. Then also check that `user-data` still gives the user.
 - [ ] **Card reader (RDM6300, UART):** connect it, check that `id_format = "dec"` produces the same ids as the
   old v2 cards (`0013167757` style). If not, try `hex` or `float`, see [HARDWARE.md](HARDWARE.md).
 - [ ] **Copy the audio folders** for the local-file cards (the four folders the import skipped, probably excluded by

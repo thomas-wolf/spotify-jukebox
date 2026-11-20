@@ -148,3 +148,78 @@ def test_unit_has_no_ordering_that_can_form_a_cycle():
         for dep in line.removeprefix("After=").split():
             assert dep in {"local-fs.target"}, f"After={dep} may form a cycle with multi-user.target"
     assert "WantedBy=multi-user.target" in unit
+
+
+# --- Wi-Fi as a plain NetworkManager profile (the cloud-init / netplan route lost it on real boxes) ---------------
+
+def nm_file(paths):
+    return paths.etc / "NetworkManager" / "system-connections" / "jukebox-wifi.nmconnection"
+
+
+def test_no_wifi_keys_writes_no_profile(fb, paths):
+    request(paths, f'box = "{real_box()}"\n')
+    fb.provision(paths, reboot=False)
+    assert not nm_file(paths).exists()
+
+
+def test_wifi_profile_is_written_private_and_complete(fb, paths):
+    request(paths, f'box = "{real_box()}"\nwifi_ssid = "HomeOffice"\nwifi_password = "secret-pass"\n'
+                   'wifi_country = "DE"\n')
+    fb.provision(paths, reboot=False)
+    f = nm_file(paths)
+    text = f.read_text()
+    assert (f.stat().st_mode & 0o777) == 0o600
+    assert "id=HomeOffice" in text and "ssid=HomeOffice" in text and "type=wifi" in text
+    assert "key-mgmt=wpa-psk" in text and "psk=secret-pass" in text and "autoconnect=true" in text
+    assert ["raspi-config", "nonint", "do_wifi_country", "DE"] in fb.calls
+    assert ["nmcli", "connection", "reload"] in fb.calls
+    # the Wi-Fi is set up before the overlays and the reboot
+    assert fb.calls.index(["nmcli", "connection", "reload"]) < fb.calls.index(
+        [str(paths.venv / "bin" / "jukebox"), "-c", str(paths.conf / "config.toml"), "setup", "--apply"])
+
+
+def test_wifi_rerun_replaces_the_profile(fb, paths):
+    request(paths, f'box = "{real_box()}"\nwifi_ssid = "Net"\nwifi_password = "password-one"\n')
+    fb.provision(paths, reboot=False)
+    uuid1 = [ln for ln in nm_file(paths).read_text().splitlines() if ln.startswith("uuid=")]
+    request(paths, f'box = "{real_box()}"\nwifi_ssid = "Net"\nwifi_password = "password-two"\n')
+    fb.provision(paths, reboot=False)
+    text = nm_file(paths).read_text()
+    assert "psk=password-two" in text and "password-one" not in text
+    assert uuid1 == [ln for ln in text.splitlines() if ln.startswith("uuid=")]
+    assert len(list(nm_file(paths).parent.iterdir())) == 1
+
+
+def test_open_wifi_has_no_security_section(fb, paths):
+    request(paths, f'box = "{real_box()}"\nwifi_ssid = "Cafe"\n')
+    fb.provision(paths, reboot=False)
+    assert "wifi-security" not in nm_file(paths).read_text()
+    assert not any(c[:3] == ["raspi-config", "nonint", "do_wifi_country"] for c in fb.calls)
+
+
+def test_wifi_special_characters_are_escaped(fb, paths):
+    request(paths, f'box = "{real_box()}"\nwifi_ssid = " my\\\\net "\nwifi_password = "pa\\\\ss word#1"\n')
+    fb.provision(paths, reboot=False)
+    text = nm_file(paths).read_text()
+    assert "ssid=\\smy\\\\net\\s" in text and "psk=pa\\\\ss word#1" in text
+
+
+@pytest.mark.parametrize("extra", [
+    'wifi_password = "password1"\n',                          # password without ssid
+    'wifi_ssid = ""\n', 'wifi_ssid = 5\n', 'wifi_ssid = "' + "a" * 33 + '"\n', 'wifi_ssid = "a\\nb"\n',
+    'wifi_ssid = "x"\nwifi_password = "short"\n', 'wifi_ssid = "x"\nwifi_password = "' + "a" * 64 + '"\n',
+    'wifi_ssid = "x"\nwifi_password = "password1"\nwifi_country = "de"\n',
+    'wifi_ssid = "x"\nwifi_password = "password1"\nwifi_country = "DEU"\n',
+    'wifi_ssid = "x"\nwifi_pasword = "typo"\n',
+])
+def test_bad_wifi_changes_nothing(fb, paths, extra):
+    request(paths, f'box = "{real_box()}"\n{extra}')
+    assert fb.main(["--boot", str(paths.boot)]) == 1
+    assert (paths.etc / "hostname").read_text() == "raspberrypi\n"
+    assert not paths.marker.exists() and not fb.calls and not nm_file(paths).exists()
+
+
+def test_wifi_64_hex_key_is_accepted(fb, paths):
+    request(paths, f'box = "{real_box()}"\nwifi_ssid = "x"\nwifi_password = "{"ab12" * 16}"\n')
+    fb.provision(paths, reboot=False)
+    assert f"psk={'ab12' * 16}" in nm_file(paths).read_text()

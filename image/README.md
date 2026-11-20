@@ -23,7 +23,7 @@ chroot part (`02-run-chroot.sh`), the Docker build and the first boot on a Pi ha
   for `systemctl poweroff`. go-librespot is installed but off (`sudo systemctl enable --now go-librespot` and
   `backend = "go-librespot"` bring it back). Linger is on for `jukebox`: PipeWire runs in its user session at boot. The units are generated from `packaging/` (user and paths replaced at build time).
 
-Not in the image: the Soloist binary (Spotify forbids passing it on; downloaded after the first boot), the API key and the Spotify login (once per box, see below), cards, music, Wi-Fi, user and password.
+Not in the image: the Soloist binary (Spotify forbids passing it on; downloaded after the first boot), the API key and the Spotify login (once per box, see below), cards, music, user and password. The Wi-Fi is not baked in either: it comes from `jukebox.toml` on the boot partition (see below).
 
 ## Build
 
@@ -53,11 +53,16 @@ Secrets and local choices go into `image/config.local` (not in git), e.g. `FIRST
    ```toml
    box = "pferdeanhaenger"     # selects boxes/<box>/config.toml of the image
    # hostname = "pferdeanhaenger"   # optional, default: the box name
+   # Wi-Fi, optional (see "Wi-Fi" below):
+   # wifi_ssid = "HomeOffice"
+   # wifi_password = "..."
+   # wifi_country = "DE"
    ```
 
 3. Insert the card and power on. The first boot reads the file once and then reboots by itself:
    - installs `boxes/<box>/config.toml` (and `hooks.py`) for the service user (links into the image),
    - sets the hostname (`<hostname>.local` in the network),
+   - writes the Wi-Fi from `wifi_ssid` / `wifi_password` as a NetworkManager profile (if given),
    - runs `jukebox setup --apply` (HiFiBerry overlay, on-board audio off, ...),
    - writes `/var/lib/jukebox/.firstboot-done` and reboots.
 4. Soloist, once per box (the box needs network for this; user `jukebox` has no shell, so the commands run
@@ -78,6 +83,22 @@ Secrets and local choices go into `image/config.local` (not in git), e.g. `FIRST
 The name must be lowercase letters, digits and `-` (maximum 63 characters). Anything else, an unknown key or
 an unknown box stops the first boot with a message in `journalctl -u jukebox-firstboot`, and changes nothing.
 The log also lists the boxes the image contains.
+
+### Wi-Fi
+
+Put `wifi_ssid`, `wifi_password` (8 to 63 characters, or 64 hex digits; leave it out for an open network) and
+`wifi_country` (two capital letters, e.g. `DE`; without a country Raspberry Pi OS keeps the radio blocked) into
+`jukebox.toml`. The first boot writes `/etc/NetworkManager/system-connections/jukebox-wifi.nmconnection` (mode 600,
+autoconnect, priority 10) and the box joins the network after the reboot.
+
+Why not `network-config` / Raspberry Pi Imager? On real boxes the Wi-Fi profile handed to cloud-init and netplan
+was lost (empty `/etc/netplan/90-NM-*.yaml`, no profile in NetworkManager). The cause was not found, so the image
+bypasses netplan. Do not set the Wi-Fi in both places. The password stays readable in `jukebox.toml` on the boot
+partition; remove the line after the first boot if that bothers you (the profile is already written, and a rerun of
+the first boot would then have no Wi-Fi). A wrong password or SSID does not stop the first boot, the box just stays
+offline: fix it with `sudo nmcli device wifi connect "<ssid>" --ask` over a cable, or edit the profile.
+
+Not yet tried on a real card; the tests (`tests/test_firstboot.py`) cover the file content, rights and errors.
 
 ### A box that is not in the image
 
