@@ -203,7 +203,7 @@ other pinouts; only that file is specific to it.
 | Back button (horse sound) | 36 | 16 | `pferdesound`, see `boxes/pferdeanhaenger/hooks.py` |
 | LED top red | 18 | 24 | `status` |
 | LEDs back white / red | 13 / 16 | 27 / 23 | `back_white`, `back_red` |
-| Button LED red | 3 | 2 | `button_red` |
+| Red LED button (back) | 3 | 2 | `gpio.button` `motor` (plays `motor.mp3`, music pauses and resumes), see `boxes/pferdeanhaenger/hooks.py`. Its LED is not driven |
 | Display DC / RESET / CS | 15 / 22 / 24 | 22 / 25 / 8 | `[display]` dc=22, reset=25 |
 | Display MOSI / MISO / SCLK | 19 / 21 / 23 | 10 / 9 / 11 | SPI0 |
 | RDM6300 (reader) | 8 / 10 | 14 / 15 | UART, `/dev/serial0` |
@@ -221,8 +221,11 @@ Things to check on that box:
   `[boot] i2s_free_gpio20 = true` loads an extra overlay that takes pin 20 out of the I2S pin group
   (see below). **Checked on the box (Pi 4):** after `sudo jukebox setup --apply` and a reboot `pinctrl get 20`
   shows a plain input (`ip pu`), the sound still works and the green button gives "previous".
-- **GPIO 2 (red button LED)** is the I2C SDA pin with a fixed pull-up on the board. It works as an output
-  while `i2c = false`.
+- **GPIO 2 (red LED button at the back, pin 3)** is the I2C SDA pin with a fixed pull-up on the board. It was
+  first configured as an LED output (`button_red`); on 2026-11-20 the user said it is a button, so it is an input
+  now (`action = "motor"`). A pin cannot be both: the lamp inside the button is not driven. Needs `i2c = false`.
+  The pull-up makes a button to ground read 0 when pressed (check: stop `jukebox`, `sudo pinctrl set 2 ip pu`, watch
+  `pinctrl lev 2`).
 - **GPIO 4** belongs to the SHIM. Do not assign it to anything else.
 - The reader is a serial (UART) module in the roof, assumed to be an RDM6300. Its TX goes to the Pi's RX (pin 10, GPIO 15). Check the card IDs, see above.
 

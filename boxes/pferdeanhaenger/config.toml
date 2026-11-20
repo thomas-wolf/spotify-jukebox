@@ -86,9 +86,9 @@ name = "back_red"
 pin = 23
 on = true
 
-[[gpio.led]]               # button LED at the back (pin 3, red)
-name = "button_red"
-pin = 2
+[[gpio.button]]            # red LED button at the back (pin 3, GPIO 2, SDA pin with a fixed pull-up): engine sound.
+pin = 2                    # Confirmed as a button on the box. Its LED is not driven (GPIO 2 is the input now).
+action = "motor"           # action defined in hooks.py; plays ~/.config/jukebox/motor.mp3 (Dropbox boxes/pferdeanhaenger/)
 
 # --- potentiometer on an ADS1115 --------------------------------------------
 [adc]
@@ -136,6 +136,10 @@ music = "pull"               # <remote>/music/ -> [local] root
 [web]
 enabled = true            # no password: trusted home network only
 port = 8080
+
+[motor]                      # read by hooks.py; motor.mp3 is taken from the configuration folder by default
+# file = "~/sounds/motor.mp3"
+# pause_playback = true      # the music pauses during the engine sound and goes on afterwards (only if it was playing)
 
 [pferdesound]               # read by hooks.py
 folder = "~/sounds/pferd"

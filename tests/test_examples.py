@@ -36,8 +36,34 @@ def test_pferdeanhaenger_hook_registers_action():
     spec.loader.exec_module(mod)
     app = SimpleNamespace(actions={}, cfg=SimpleNamespace(section=lambda n: {}))
     mod.setup(app)
-    assert "pferdesound" in app.actions
+    assert "pferdesound" in app.actions and "motor" in app.actions
     app.actions["pferdesound"]()  # folder missing: only logs a warning
+    app.actions["motor"]()        # file missing: only logs a warning
+
+
+def test_pferdeanhaenger_motor_button_is_gpio2_and_plays_motor(tmp_path):
+    import importlib.util
+    from types import SimpleNamespace
+    cfg = tomllib.loads((BOXES / "pferdeanhaenger" / "config.toml").read_text())
+    assert {"pin": 2, "action": "motor"}.items() <= next(b for b in cfg["gpio"]["button"] if b["pin"] == 2).items()
+    assert not any(l["pin"] == 2 for l in cfg["gpio"]["led"])        # GPIO 2 is an input now
+    spec = importlib.util.spec_from_file_location("hp", BOXES / "pferdeanhaenger" / "hooks.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    (tmp_path / "motor.mp3").write_text("x")
+    import time
+    for playing, expected in ((True, ["pause", "resume"]), (False, [])):
+        done = []
+        app = SimpleNamespace(actions={}, do_action=done.append, players=SimpleNamespace(is_playing=lambda p=playing: p),
+                              cfg=SimpleNamespace(path=tmp_path / "config.toml",
+                                                  section=lambda n: {"command": ["true"]} if n == "motor" else {}))
+        mod.setup(app)
+        app.actions["motor"]()
+        for _ in range(50):
+            if done == expected:
+                break
+            time.sleep(0.05)
+        assert done == expected                                       # pause, sound, resume; nothing if it was silent
 
 
 def test_hold_only_button_ignores_short_press():
