@@ -130,7 +130,8 @@ def test_feuerwehrv1_hook_siren_and_mute():
     app.actions["sirene"]()            # music playing: stop, light show, resume
     wait_idle()
     assert calls == ["stop", "resume"]
-    assert all(led.states and led.states[-1] is False for led in leds.values())
+    assert leds["blue_left"].states[-1] is False and leds["blue_right"].states[-1] is False
+    assert leds["yellow"].states[0] is True and leds["yellow"].states[-1] is True   # front lights: on at start and after
 
     calls.clear()
     app.actions["alarm_mute"]()        # muted: the red button does nothing
@@ -142,3 +143,35 @@ def test_feuerwehrv1_hook_siren_and_mute():
     app.actions["sirene"]()
     time.sleep(0.2)
     assert calls == []
+
+
+def test_feuerwehrv1_front_lights_can_be_switched_off():
+    import importlib.util
+    import time
+    from types import SimpleNamespace
+
+    spec = importlib.util.spec_from_file_location("hf1b", BOXES / "feuerwehrv1" / "hooks.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    class Led:
+        def __init__(self):
+            self.states = []
+
+        def set(self, on):
+            self.states.append(bool(on))
+
+    calls = []
+    leds = {n: Led() for n in ("blue_left", "blue_right", "yellow")}
+    app = SimpleNamespace(
+        actions={}, leds=leds,
+        cfg=SimpleNamespace(section=lambda n: {"sound": "/nonexistent.mp3", "rounds": 1, "step": 0,
+                                               "front_lights": False}),
+        players=SimpleNamespace(is_playing=lambda: True),
+        do_action=lambda name, **a: calls.append(name))
+    mod.setup(app)
+    app.actions["sirene"]()
+    deadline = time.time() + 5
+    while time.time() < deadline and "resume" not in calls:
+        time.sleep(0.01)
+    assert leds["yellow"].states[-1] is False   # dark again after the show

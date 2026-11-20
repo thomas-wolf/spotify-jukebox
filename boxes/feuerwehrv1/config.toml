@@ -73,7 +73,8 @@ pin_b = 5                  # counts clockwise when A leads, this one when pin_b 
 cw = "volume_up"           # to keep the direction. Not tried with this code: swap cw/ccw if it turns the wrong way.
 ccw = "volume_down"
 
-# LEDs: only hooks.py drives them (the siren light show; dark otherwise).
+# LEDs: the yellow front lights are always on (`on = true`); the blue lights are dark and only run in the siren show
+# (hooks.py).
 [[gpio.led]]               # pin 18, blue left (100 Ohm), "Blaulicht"
 name = "blue_left"
 pin = 24
@@ -82,9 +83,10 @@ pin = 24
 name = "blue_right"
 pin = 23
 
-[[gpio.led]]               # pin 22, both yellow LEDs in parallel (220 Ohm each), "Fernlicht"
-name = "yellow"
+[[gpio.led]]               # pin 22, both yellow LEDs in parallel (220 Ohm each), "Fernlicht": always on
+name = "yellow"            # (the siren flashes them and hooks.py switches them back on afterwards, see [siren])
 pin = 25
+on = true
 
 # --- potentiometer ------------------------------------------------------------
 # The documentation lists "1 Potentiometer" and "Ansteuerung Potentiometer" as a to-do, but volume is on the rotary
@@ -122,6 +124,7 @@ file = "hooks.py"          # siren (red button) with light show, and the siren m
 sound = "~/.config/jukebox/martinshorn.mp3"   # private file, not in the repository (sync: boxes/feuerwehrv1/)
 rounds = 7                 # light rounds of 4 x 0.25 s, as in the old script
 step = 0.25
+front_lights = true        # the yellow lights stay on when the siren is not running; false = dark when idle
 
 # --- device tree overlays, applied by: jukebox setup --apply -------------------
 [boot]

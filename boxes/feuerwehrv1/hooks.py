@@ -4,11 +4,13 @@ Ported from the old Phoniebox script (gpio.py, `def_alarm` and `def_mute_alarm`)
 
 - Action `sirene` (red button): stops the music, plays the siren sound, runs the light show (blue left/right
   alternate, the yellow lights flash in the first half of every round), then resumes the music if it was playing.
+  The yellow front lights are on while idle (`[siren] front_lights`, default true, plus `on = true` on the LED).
 - Action `alarm_mute` (encoder push button, held 2 s): toggles "siren muted". While muted the red button does nothing.
 
 The sound file is private and not in the repository: put `martinshorn.mp3` into `~/.config/jukebox/` (or set
 `[siren] sound` in config.toml). With cloud sync it can live in `<remote>/boxes/feuerwehrv1/martinshorn.mp3`.
-The LED class can only switch on and off, so the blue lights are dark when idle (the old script held them at half
+The yellow front lights are on while idle (`[siren] front_lights`, default true; the config also has `on = true` on
+that LED) and come back on after the siren. The LED class can only switch on and off, so the blue lights are dark when idle (the old script held them at half
 brightness with PWM).
 """
 import logging
@@ -26,10 +28,13 @@ def setup(app):
     command = cfg.get("command", ["mpv", "--no-video", "--really-quiet"])
     rounds = int(cfg.get("rounds", 7))        # old script: 7 rounds of one second
     step = float(cfg.get("step", 0.25))       # seconds per light phase, 4 phases per round
+    front_on = bool(cfg.get("front_lights", True))   # yellow lights stay on when idle
     state = {"muted": False, "busy": False}
     lock = threading.Lock()
 
     blue_l, blue_r, yellow = (app.leds.get(n) for n in ("blue_left", "blue_right", "yellow"))
+    if yellow is not None and front_on:
+        yellow.set(True)      # also when the LED has no `on = true` in the config
 
     def set_leds(bl, br, y):
         for led, on in ((blue_l, bl), (blue_r, br), (yellow, y)):
@@ -56,7 +61,7 @@ def setup(app):
         except Exception:
             log.exception("sirene failed")
         finally:
-            set_leds(0, 0, 0)
+            set_leds(0, 0, front_on)
             if was_playing:
                 app.do_action("resume")
             with lock:
