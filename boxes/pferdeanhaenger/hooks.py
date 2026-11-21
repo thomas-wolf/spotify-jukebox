@@ -1,6 +1,6 @@
-"""hooks.py of Marie's horse trailer: the back button plays a random horse sound, the red LED button (pin 3,
-GPIO 2) plays the engine sound motor.mp3
-(the music pauses and goes on afterwards, if it was playing).
+"""hooks.py of Marie's horse trailer: the white back button (GPIO 16) plays a random horse sound, the red LED
+button (pin 3, GPIO 2) plays the engine sound motor.mp3. In both cases the music pauses and goes on afterwards,
+if it was playing.
 
 Copy next to config.toml as hooks.py. Put mp3/ogg/wav files in the folder from [pferdesound]. motor.mp3 comes
 from the configuration folder (~/.config/jukebox/, synced from Dropbox boxes/pferdeanhaenger/) or from [motor] file.
@@ -19,7 +19,7 @@ def setup(app):
     cfg = app.cfg.section("pferdesound")
     folder = Path(str(cfg.get("folder", "~/sounds/pferd"))).expanduser()
     command = cfg.get("command", ["mpv", "--no-video", "--really-quiet"])
-    stop_playback = cfg.get("stop_playback", True)   # v2 stopped the music before the sound
+    pause_playback = cfg.get("pause_playback", True)   # pause before, resume after (only if it was playing)
     state = {"proc": None}
 
     def pferdesound():
@@ -30,12 +30,16 @@ def setup(app):
         proc = state["proc"]
         if proc is not None and proc.poll() is None:
             return  # still neighing
-        if stop_playback:
-            app.do_action("stop")
-        state["proc"] = subprocess.Popen([*command, str(random.choice(files))])
+        was_playing = bool(pause_playback and app.players.is_playing())
+        if was_playing:
+            app.do_action("pause")   # not "stop": that unloads a local playlist and resume would find nothing
+        proc = subprocess.Popen([*command, str(random.choice(files))], stdin=subprocess.DEVNULL)
+        state["proc"] = proc
+        if was_playing:
+            threading.Thread(target=lambda: (proc.wait(), app.do_action("resume")), daemon=True,
+                             name="pferd-resume").start()
 
     app.actions["pferdesound"] = pferdesound
-
 
     # --- red LED button: engine sound --------------------------------------------------------------------------
     motor_cfg = app.cfg.section("motor")

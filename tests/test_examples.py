@@ -201,3 +201,26 @@ def test_feuerwehrv1_front_lights_can_be_switched_off():
     while time.time() < deadline and "resume" not in calls:
         time.sleep(0.01)
     assert leds["yellow"].states[-1] is False   # dark again after the show
+
+
+def test_pferdesound_pauses_and_resumes_the_music(tmp_path):
+    import importlib.util
+    import time
+    from types import SimpleNamespace
+    spec = importlib.util.spec_from_file_location("hp", BOXES / "pferdeanhaenger" / "hooks.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    (tmp_path / "pferd").mkdir()
+    (tmp_path / "pferd" / "a.mp3").write_text("x")
+    for playing, expected in ((True, ["pause", "resume"]), (False, [])):
+        done = []
+        sections = {"pferdesound": {"folder": str(tmp_path / "pferd"), "command": ["true"]}}
+        app = SimpleNamespace(actions={}, do_action=done.append, players=SimpleNamespace(is_playing=lambda p=playing: p),
+                              cfg=SimpleNamespace(path=tmp_path / "config.toml", section=lambda n: sections.get(n, {})))
+        mod.setup(app)
+        app.actions["pferdesound"]()
+        for _ in range(50):
+            if done == expected:
+                break
+            time.sleep(0.05)
+        assert done == expected
