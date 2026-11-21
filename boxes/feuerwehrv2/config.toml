@@ -27,7 +27,7 @@ root = "~/music"
 # No RDM6300 in the wiring list (and GPIO 14/15 are used as plain pins), so the reader is a USB one.
 [readers.usb]
 enabled = true
-device_name = "RFID"          # unverified: substring of the evdev device name of the reader
+device_name = "HXGCoLtd Keyboard"   # same reader model as on the Pferdeanhaenger (set by the user, not checked on this box)
 
 [readers.rdm6300]
 enabled = false               # GPIO 14 (LED) and 15 (button) are the UART pins
