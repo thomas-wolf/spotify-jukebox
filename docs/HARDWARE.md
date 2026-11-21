@@ -248,3 +248,14 @@ header. Hardware the jukebox does not drive (a SHIM, say) is declared in the box
 ```
 
 The same check runs when the box starts (as log warnings) and in the tests for every `boxes/*/config.toml`.
+
+## SD card
+
+A weak card shows up as long stalls, not as errors. Seen on the Pferdeanhaenger box (2026-11-21): the
+root file system and the Wi-Fi driver froze for minutes (`INFO: task jbd2/mmcblk0p2 blocked for more than 120
+seconds` in `dmesg`, then brcmfmac `-110` timeouts, `kworker` and `ksoftirqd` at high load), no `I/O error`. The
+card was an unbranded one (`name USD00`, `manfid 0xad`). Use a branded A1/A2 card (SanDisk `manfid 0x03`,
+Samsung `0x01`) from a trustworthy seller; fakes are common.
+
+`tools/sdbench.py` measures the card (sequential and random 4k speed, latency of single writes, stalls of 500 ms or
+more) and can watch for stalls for a while: `sudo python3 tools/sdbench.py --soak 30`.
