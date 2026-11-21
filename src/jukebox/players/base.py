@@ -41,5 +41,10 @@ class Player(ABC):
     @abstractmethod
     def is_playing(self) -> bool: ...
 
+    def has_session(self) -> bool:
+        """True if the backend has something loaded that play/next/prev can act on, although the jukebox did not
+        start it (a Spotify Connect session started from the app, then paused)."""
+        return False
+
     def close(self) -> None:
         pass

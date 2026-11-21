@@ -160,3 +160,13 @@ def test_client_thread_reads_state_over_a_real_websocket():
         time.sleep(0.02)
     assert client.state and client.state["status"] == "playing" and client.logged_in
     client.stop()
+
+
+def test_has_session_needs_a_loaded_item():
+    c = SoloistClient("127.0.0.1", 9090)
+    p = SoloistPlayer(c)
+    assert not p.has_session()                       # no state yet
+    c.state = {"status": "paused"}
+    assert not p.has_session()                       # a state without an item: nothing to resume
+    c.state = {"status": "paused", "item": {"uri": "spotify:track:1"}}
+    assert p.has_session()

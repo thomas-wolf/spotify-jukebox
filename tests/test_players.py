@@ -191,3 +191,45 @@ def test_router_start_volume_reaches_a_backend_that_was_not_ready_yet():
     a.fail = False
     r.play("spotify:x")
     assert a.calls[-2:] == [("volume", 30), ("play", "spotify:x")]
+
+
+# -- playback started from outside (Spotify app: "play on <box>") -------------------------------------------
+class ExternalPlayer(FakePlayer):
+    def __init__(self, name="spotify"):
+        super().__init__(name)
+        self.session = False
+
+    def has_session(self):
+        return self.session
+
+
+def test_buttons_follow_playback_started_from_the_spotify_app():
+    spotify, folder = ExternalPlayer(), FakePlayer("folder")
+    r = PlayerRouter({"spotify": spotify, "folder": folder})
+    spotify.playing = True                      # started in the app, the jukebox never called play()
+    assert r.is_playing()
+    r.next()
+    r.pause()
+    assert ("next",) in spotify.calls and ("pause",) in spotify.calls
+    assert folder.calls == []
+
+
+def test_buttons_find_a_paused_session_started_from_the_app():
+    spotify = ExternalPlayer()
+    r = PlayerRouter({"spotify": spotify})
+    with pytest.raises(PlayerError):
+        r.resume()                              # nothing loaded anywhere
+    spotify.session = True                      # something is loaded in the app, paused
+    r.resume()
+    assert ("resume",) in spotify.calls
+
+
+def test_a_card_still_wins_and_stops_the_outside_playback():
+    spotify, folder = ExternalPlayer(), FakePlayer("folder")
+    r = PlayerRouter({"spotify": spotify, "folder": folder})
+    spotify.playing = True
+    r.pause()                                   # picks the Spotify backend up
+    spotify.playing = True
+    r.play("folder:Pferde")
+    assert ("stop",) in spotify.calls and ("play", "folder:Pferde") in folder.calls
+

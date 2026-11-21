@@ -225,5 +225,9 @@ class SoloistPlayer(Player):
     def is_playing(self) -> bool:
         return bool(self.client.state) and self.client.state.get("status") in PLAYING
 
+    def has_session(self) -> bool:
+        state = self.client.state or {}
+        return bool(state.get("item"))
+
     def close(self) -> None:
         self.client.stop()

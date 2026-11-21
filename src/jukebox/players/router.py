@@ -39,10 +39,29 @@ class PlayerRouter:
         self._active = backend
         self.current_target = target
 
+    def _current(self) -> Player | None:
+        """The backend the buttons control: the one that is playing right now, also when somebody else started it
+        (the Spotify app: "play on <box>"), otherwise the one the jukebox started last, otherwise a backend with a
+        loaded session (started from outside and paused)."""
+        active = self._active
+        if active is not None and active.is_playing():
+            return active
+        for backend in set(self._backends.values()):
+            if backend is not active and backend.is_playing():
+                self._active, self.current_target = backend, None
+                return backend
+        if active is None:
+            for backend in set(self._backends.values()):
+                if backend.has_session():
+                    self._active = backend
+                    return backend
+        return active
+
     def _need(self) -> Player:
-        if self._active is None:
+        active = self._current()
+        if active is None:
             raise PlayerError("nothing is loaded")
-        return self._active
+        return active
 
     def pause(self) -> None:
         self._need().pause()
@@ -55,8 +74,9 @@ class PlayerRouter:
         active.pause() if active.is_playing() else active.resume()
 
     def stop(self) -> None:
-        if self._active is not None:
-            self._active.stop()
+        active = self._current()
+        if active is not None:
+            active.stop()
 
     def next(self) -> None:
         self._need().next()
@@ -68,7 +88,8 @@ class PlayerRouter:
         self._need().seek(seconds)
 
     def is_playing(self) -> bool:
-        return self._active is not None and self._active.is_playing()
+        active = self._current()
+        return active is not None and active.is_playing()
 
     def set_volume(self, volume: int) -> None:
         self._volume = max(0, min(100, volume))
