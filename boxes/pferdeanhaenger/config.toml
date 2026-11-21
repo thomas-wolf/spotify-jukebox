@@ -142,7 +142,7 @@ port = 8080
 # pause_playback = true      # the music pauses during the engine sound and goes on afterwards (only if it was playing)
 
 [pferdesound]               # read by hooks.py
-folder = "~/sounds/pferd"
+folder = "~/.config/jukebox/pferd"   # synced from Dropbox: Jukebox2.0/boxes/pferdeanhaenger/pferd/ (any mp3/ogg/wav/flac/m4a)
 
 [hooks]
 file = "hooks.py"             # optional, relative to this file
