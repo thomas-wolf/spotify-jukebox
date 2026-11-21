@@ -14,3 +14,4 @@ pipewire
 pipewire-alsa
 wireplumber
 device-tree-compiler
+python3-paho-mqtt

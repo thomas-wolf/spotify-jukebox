@@ -33,6 +33,7 @@ fi
 # Fail the build early if something is wrong
 /opt/jukebox/venv/bin/jukebox --help >/dev/null
 /opt/jukebox/venv/bin/python -c "import gpiod; assert hasattr(gpiod, 'request_lines'), 'libgpiod API v1 found, v2 needed'"
+/opt/jukebox/venv/bin/python -c "import paho.mqtt.client"
 visudo -cf /etc/sudoers.d/jukebox
 python3 -m py_compile /usr/local/sbin/jukebox-firstboot
 
