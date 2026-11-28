@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from . import boot
+from . import events as ev
 from .app import App
 from . import importer
 from .config import ConfigError, add_card, expand, load_cards, load_config
@@ -162,6 +163,9 @@ def cmd_run(args) -> int:
         display = build_display(cfg.section("display"), cfg.path.resolve().parent if cfg.path else None,
                                 cfg.path.parent if cfg.path else None)
         bind(display, app.bus)
+        from .display import bind_update_notice
+        bind_update_notice(display, app.bus)
+    app.display = display                    # hooks may show a short message (see boxes/pferdeanhaenger/hooks.py)
     # Track information (title, cover) is reported whether or not the box has a display: the web page and Home
     # Assistant use it too.
     spotify_cfg = cfg.section("spotify")
@@ -235,7 +239,12 @@ def cmd_run(args) -> int:
     signal.signal(signal.SIGTERM, lambda *_: app.bus.stop())
     signal.signal(signal.SIGINT, lambda *_: app.bus.stop())
     app.start()
-    log.info("%s is ready", cfg.section("box")["name"])
+    from .version import check_update, installed_build
+    update = check_update(cfg.data_dir)
+    log.info("%s is ready (build %s)", cfg.section("box")["name"], installed_build() or "unknown")
+    if update:
+        log.warning("updated from build %s to %s", *update)
+        app.bus.post(ev.UPDATED, old=update[0], new=update[1])
     try:
         app.bus.run(app.handle)
     finally:

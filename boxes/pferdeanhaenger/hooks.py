@@ -96,6 +96,10 @@ def setup(app):
         ref = deploy_cfg.get("ref", "develop")
         log_path = Path.home() / "deploy.log"
         log.warning("deploy: started %s %s (output in %s); the service restarts at the end", command, ref, log_path)
+        display = getattr(app, "display", None)
+        if display is not None:       # the new build is shown after the restart (jukebox.version)
+            from jukebox.version import installed_build
+            display.show_track(f"Update {installed_build() or '?'} \u2192 {ref}", "", None)
         try:
             out = open(log_path, "ab")
             # own session: the script finishes with `systemctl restart jukebox`, which ends this process

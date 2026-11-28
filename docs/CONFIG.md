@@ -202,6 +202,10 @@ the visible area after `margins`, the yellow letters TL, TR, BL, BR mark the cor
 the housing opens. `jukebox display-test --save test.png` writes the same picture to a file (no panel
 needed), `--cover file.jpg` tries your own cover.
 
+**Update message:** `jukebox-deploy` writes the installed build (short commit hash) to `/opt/jukebox/VERSION`. The
+service remembers the build it ran last (`<data_dir>/build.txt`); after an update the display shows `Update <old> -> <new>`
+for 8 s (the log says `updated from build ... to ...`). The first start after installing shows nothing.
+
 **Where the cover comes from**
 
 - **Spotify:** Cover, title and artist come from go-librespot's `/status` (polled every two seconds).
