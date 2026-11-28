@@ -66,6 +66,11 @@ action = "mute"
 pin = 16
 action = "pferdesound"
 
+[[gpio.chord]]             # blue + yellow + green held together for 2 s: install the newest build (hooks.py: action deploy)
+pins = [26, 12, 20]        # the three buttons keep working alone; as members of the chord they fire on release
+hold_time = 2.0
+action = "deploy"
+
 [[gpio.rotary]]            # encoder CLK = pin 31, DT = pin 29
 pin_a = 6
 pin_b = 5
@@ -144,6 +149,13 @@ port = 8080
 [pferdesound]               # read by hooks.py
 # pause_playback = true     # the music pauses during the horse sound and goes on afterwards (only if it was playing)
 folder = "~/.config/jukebox/pferd"   # synced from Dropbox: Jukebox2.0/boxes/pferdeanhaenger/pferd/ (any mp3/ogg/wav/flac/m4a)
+
+[deploy]                     # read by hooks.py: what the three-button chord runs
+# ref = "develop"            # branch or commit given to jukebox-deploy
+# The service user needs permission (once, as root on the box; the image has it from now on):
+#   echo 'jukebox ALL=(root) NOPASSWD: /usr/local/sbin/jukebox-deploy' > /etc/sudoers.d/jukebox-deploy
+#   chmod 440 /etc/sudoers.d/jukebox-deploy
+# Output of the last run: /var/lib/jukebox/deploy.log
 
 [hooks]
 file = "hooks.py"             # optional, relative to this file

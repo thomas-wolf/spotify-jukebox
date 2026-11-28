@@ -115,6 +115,18 @@ GPIO numbers are BCM numbers (not the pin numbers on the header). Needs `python3
 | `hold_time` | `1.0` | Seconds until `hold_action` fires |
 | `repeat` | `false` | The action repeats while held (useful for volume) |
 
+**Button chord: `[[gpio.chord]]`** (several buttons held together)
+
+| Key | Default | Meaning |
+|---|---|---|
+| `pins` | | At least two BCM pins, each defined as `[[gpio.button]]` (otherwise the box refuses to start) |
+| `action` | | Fires once when all pins have been held together for `hold_time`; release one button to arm it again |
+| `hold_time` | `2.0` | Seconds, counted from the moment the last button went down |
+| `args` | | Arguments for the action |
+
+The member buttons keep working alone, but their `action` then fires on release instead of on press, and not at all
+when the chord was held (so the chord does not skip a track). Example: `boxes/pferdeanhaenger/` runs `jukebox-deploy`.
+
 **Rotary encoder: `[[gpio.rotary]]`**
 
 | Key | Default | Meaning |

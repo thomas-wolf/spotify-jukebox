@@ -21,6 +21,11 @@ Per-box pinouts live in config.toml, e.g.
     hold_action = "shutdown" # held for hold_time seconds
     hold_time = 2.0
 
+    [[gpio.chord]]           # several buttons held together
+    pins = [26, 20, 12]      # the buttons must be defined above (they keep working alone)
+    hold_time = 2.0          # all pressed at the same time for this long
+    action = "deploy"        # fires once; release one button to arm it again
+
     [[gpio.rotary]]
     pin_a = 22
     pin_b = 23
@@ -51,7 +56,7 @@ class Button:
     def __init__(self, emit: Emit, *, pull: str = "up", action: str | None = None,
                  args: dict[str, Any] | None = None, hold_action: str | None = None,
                  hold_time: float = 1.0, repeat: bool = False,
-                 repeat_interval: float = 0.3) -> None:
+                 repeat_interval: float = 0.3, defer: bool = False) -> None:
         self.emit, self.action, self.args = emit, action, args or {}
         self.hold_action, self.hold_time = hold_action, hold_time
         self.repeat, self.repeat_interval = repeat, repeat_interval
@@ -59,18 +64,27 @@ class Button:
         self._pressed_at: float | None = None
         self._next_repeat = 0.0
         self._hold_fired = False
+        # Member of a chord: the short press fires on release, and not at all if another member was held at the
+        # same time (so that pressing the chord does not also skip a track).
+        self.defer, self.suppressed = defer, False
+
+    @property
+    def pressed_at(self) -> float | None:
+        return self._pressed_at
 
     def on_level(self, level: int, now: float) -> None:
         pressed = level == self.active_level
         if pressed and self._pressed_at is None:
-            self._pressed_at, self._hold_fired = now, False
+            self._pressed_at, self._hold_fired, self.suppressed = now, False, False
             if self.repeat and self.action:
                 self.emit(self.action, self.args)
                 self._next_repeat = now + self.repeat_interval * 2  # longer first pause
-            elif not self.hold_action and self.action:
+            elif not self.hold_action and self.action and not self.defer:
                 self.emit(self.action, self.args)
         elif not pressed and self._pressed_at is not None:
-            if self.hold_action and not self._hold_fired and self.action:
+            if self.defer and not self.hold_action and not self.repeat and self.action and not self.suppressed:
+                self.emit(self.action, self.args)
+            elif self.hold_action and not self._hold_fired and self.action:
                 self.emit(self.action, self.args)  # short press (no action: only the hold counts)
             self._pressed_at = None
 
@@ -83,6 +97,27 @@ class Button:
         if self.hold_action and not self._hold_fired and now - self._pressed_at >= self.hold_time:
             self._hold_fired = True
             self.emit(self.hold_action, {})
+
+
+class Chord:
+    """Fires ``action`` once when all member buttons have been held together for ``hold_time`` seconds."""
+
+    def __init__(self, emit: Emit, buttons: list[Button], *, action: str,
+                 args: dict[str, Any] | None = None, hold_time: float = 2.0) -> None:
+        self.emit, self.buttons, self.action = emit, buttons, action
+        self.args, self.hold_time = args or {}, hold_time
+        self._fired = False
+
+    def tick(self, now: float) -> None:
+        times = [b.pressed_at for b in self.buttons]
+        if any(t is None for t in times):
+            self._fired = False
+            return
+        for b in self.buttons:      # all are down: none of them is a plain short press any more
+            b.suppressed = True
+        if not self._fired and now - max(times) >= self.hold_time:
+            self._fired = True
+            self.emit(self.action, self.args)
 
 
 class RotaryEncoder:
@@ -225,6 +260,7 @@ class GpioInputs(threading.Thread):
         self.bus, self._clock = bus, clock
         self._halt = threading.Event()
         self._buttons: dict[int, Button] = {}
+        self._chords: list[Chord] = []
         self._encoders: dict[int, tuple[RotaryEncoder, str]] = {}
         self.leds: dict[str, Led] = {}
         pulls: dict[int, str] = {}
@@ -233,12 +269,19 @@ class GpioInputs(threading.Thread):
         def emit(name: str, args: dict[str, Any]) -> None:
             self.bus.post("action", name=name, args=args)
 
+        chord_pins = {p for c in gpio_cfg.get("chord", []) for p in c["pins"]}
         for c in gpio_cfg.get("button", []):
             pulls[c["pin"]] = c.get("pull", "up")
             self._buttons[c["pin"]] = Button(
                 emit, pull=c.get("pull", "up"), action=c.get("action"), args=c.get("args"),
                 hold_action=c.get("hold_action"), hold_time=c.get("hold_time", 1.0),
-                repeat=c.get("repeat", False))
+                repeat=c.get("repeat", False), defer=c["pin"] in chord_pins)
+        for c in gpio_cfg.get("chord", []):
+            missing = [p for p in c["pins"] if p not in self._buttons]
+            if missing or len(c["pins"]) < 2:
+                raise ValueError(f"[[gpio.chord]] needs at least two pins that are defined as [[gpio.button]]: {c['pins']}")
+            self._chords.append(Chord(emit, [self._buttons[p] for p in c["pins"]], action=c["action"],
+                                      args=c.get("args"), hold_time=c.get("hold_time", 2.0)))
         for c in gpio_cfg.get("rotary", []):
             enc = RotaryEncoder(emit, cw=c["cw"], ccw=c["ccw"],
                                 cw_args=c.get("cw_args"), ccw_args=c.get("ccw_args"))
@@ -267,6 +310,8 @@ class GpioInputs(threading.Thread):
         now = self._clock()
         for button in self._buttons.values():
             button.tick(now)
+        for chord in self._chords:
+            chord.tick(now)
 
     def run(self) -> None:
         try:

@@ -201,6 +201,55 @@ def test_gpio_inputs_wiring_from_config():
     assert [(e.name, e.data["name"]) for e in seen] == [("action", "next")]
 
 
+def chord_rig():
+    bus = EventBus()
+    cfg = {"button": [{"pin": 26, "action": "next"}, {"pin": 20, "action": "prev"}, {"pin": 12, "action": "play_pause"},
+                      {"pin": 13, "action": "mute"}],
+           "chord": [{"pins": [26, 20, 12], "hold_time": 2.0, "action": "deploy"}]}
+    t = [0.0]
+    g = GpioInputs(bus, cfg, backend_factory=FakeBackend, clock=lambda: t[0])
+    seen = []
+    bus.subscribe("*", seen.append)
+
+    def at(time, *edges):
+        t[0] = time
+        g.backend.pending = list(edges)
+        g.step(0)
+        bus.drain(lambda e: None)
+        return [e.data["name"] for e in seen]
+    return at, seen
+
+
+def test_chord_fires_once_after_hold_and_the_buttons_stay_silent():
+    at, seen = chord_rig()
+    at(0.0, (26, 0), (20, 0), (12, 0))
+    assert at(1.9) == []
+    assert at(2.1) == ["deploy"]
+    assert at(5.0) == ["deploy"]                       # still held: not again
+    at(5.1, (26, 1), (20, 1), (12, 1))
+    assert [e.data["name"] for e in seen] == ["deploy"]   # no next / prev / pause on release
+
+
+def test_chord_released_early_does_nothing_and_buttons_do_not_fire_twice():
+    at, seen = chord_rig()
+    at(0.0, (26, 0), (20, 0), (12, 0))
+    at(1.0, (26, 1), (20, 1), (12, 1))
+    assert at(3.0) == []
+
+
+def test_chord_member_alone_still_works_on_release_and_other_buttons_are_not_delayed():
+    at, seen = chord_rig()
+    assert at(0.0, (26, 0)) == []                      # member: fires on release
+    assert at(0.2, (26, 1)) == ["next"]
+    assert at(1.0, (13, 0)) == ["next", "mute"]        # not a member: fires on press
+
+
+def test_chord_needs_defined_buttons():
+    with pytest.raises(ValueError):
+        GpioInputs(EventBus(), {"button": [{"pin": 1, "action": "next"}],
+                                "chord": [{"pins": [1, 2], "action": "x"}]}, backend_factory=FakeBackend)
+
+
 # -- ADC ----------------------------------------------------------------------
 def test_to_percent_clamps_and_scales():
     assert to_percent(0) == 0

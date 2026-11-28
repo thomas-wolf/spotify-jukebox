@@ -2,6 +2,9 @@
 button (pin 3, GPIO 2) plays the engine sound motor.mp3. In both cases the music pauses and goes on afterwards,
 if it was playing.
 
+The chord blue + yellow + green (next, pause, previous) held together for 2 s runs `sudo jukebox-deploy` (action
+`deploy`, see [deploy] in config.toml and the sudoers line in the comment there).
+
 Copy next to config.toml as hooks.py. Put mp3/ogg/wav files in the folder from [pferdesound]. motor.mp3 comes
 from the configuration folder (~/.config/jukebox/, synced from Dropbox boxes/pferdeanhaenger/) or from [motor] file.
 """
@@ -80,3 +83,25 @@ def setup(app):
         threading.Thread(target=after, daemon=True, name="motor-resume").start()
 
     app.actions["motor"] = motor
+
+    # --- three top buttons held together: install the newest build from GitHub -------------------------------------
+    deploy_cfg = app.cfg.section("deploy")
+    deploy_state = {"proc": None}
+
+    def deploy():
+        proc = deploy_state["proc"]
+        if proc is not None and proc.poll() is None:
+            return  # already running
+        command = deploy_cfg.get("command", ["sudo", "-n", "/usr/local/sbin/jukebox-deploy"])
+        ref = deploy_cfg.get("ref", "develop")
+        log_path = Path.home() / "deploy.log"
+        log.warning("deploy: started %s %s (output in %s); the service restarts at the end", command, ref, log_path)
+        try:
+            out = open(log_path, "ab")
+            # own session: the script finishes with `systemctl restart jukebox`, which ends this process
+            deploy_state["proc"] = subprocess.Popen([*command, ref], stdin=subprocess.DEVNULL, stdout=out,
+                                                    stderr=subprocess.STDOUT, start_new_session=True)
+        except OSError:
+            log.exception("deploy: could not start %s", command)
+
+    app.actions["deploy"] = deploy
