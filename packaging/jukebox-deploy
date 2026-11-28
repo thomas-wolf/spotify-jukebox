@@ -20,6 +20,13 @@ tmp=$(mktemp -d)
 trap 'rm -rf "${tmp}"' EXIT
 wget -qO "${tmp}/jb.tar.gz" "${url}"
 mkdir "${tmp}/src"
+# GitHub names the top folder <repo>-<full commit hash> (also for a branch): that gives the build for VERSION
+top=$(tar -tzf "${tmp}/jb.tar.gz" | head -n 1 | cut -d/ -f1)
+hash=${top##*-}
+case "${hash}" in
+	*[!0-9a-f]* | "") build="${ref}" ;;
+	*) build=$(printf '%s' "${hash}" | cut -c1-7) ;;
+esac
 tar -xzf "${tmp}/jb.tar.gz" -C "${tmp}/src" --strip-components=1
 
 # cp -r (not -a): a stale build/ dir with old file times would make pip reuse the old code
@@ -28,9 +35,10 @@ cd "${repo}"
 rm -rf build src/*.egg-info
 "${venv}/bin/pip" install --no-cache-dir --no-build-isolation --force-reinstall --no-deps .
 
-# a branch name gives no commit: show the ref, a commit hash is shown as given
-echo "${ref}" > /opt/jukebox/VERSION
-echo "installed ${ref}"
+# short commit hash of what was installed (the ref itself if the tarball gave no hash); the service compares it with
+# the build it ran last and shows "Update <old> -> <new>" on the display
+echo "${build}" > /opt/jukebox/VERSION
+echo "installed ${ref} (build ${build})"
 systemctl restart jukebox
 sleep 2
 systemctl is-active jukebox

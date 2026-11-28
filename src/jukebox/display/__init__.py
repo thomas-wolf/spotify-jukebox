@@ -175,3 +175,26 @@ def bind(display: Display, bus: EventBus) -> None:
     else:
         bus.subscribe("stopped", lambda _e: display.clear())
     bus.subscribe("shutdown", lambda _e: display.clear())
+
+
+def bind_update_notice(display: Display, bus: EventBus, seconds: float = 8.0) -> None:
+    """Show "Update <old> -> <new>" for a few seconds after an update, then go back to the idle picture or a blank
+    screen, unless a track has been shown in the meantime."""
+    import threading
+    shown = {"notice": False}
+
+    def on_updated(event: Event) -> None:
+        shown["notice"] = True
+        display.show_track(f"Update {event.data.get('old', '?')} \u2192 {event.data.get('new', '?')}", "", None)
+
+        def back() -> None:
+            if shown["notice"]:                       # nothing else was shown since
+                shown["notice"] = False
+                display.show_idle() if getattr(display, "idle_picture", None) else display.clear()
+        timer = threading.Timer(seconds, back)
+        timer.daemon = True
+        timer.start()
+
+    bus.subscribe("updated", on_updated)
+    bus.subscribe("track", lambda _e: shown.update(notice=False))
+    bus.subscribe("playing", lambda _e: shown.update(notice=False))

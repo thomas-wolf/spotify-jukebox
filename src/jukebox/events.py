@@ -27,6 +27,7 @@ STOPPED = "stopped"
 VOLUME = "volume"              # data: value
 TRACK = "track"                # data: title, artist, cover_url
 SHUTDOWN = "shutdown"
+UPDATED = "updated"            # data: old, new (the installed build changed since the last start)
 ERROR = "error"                # data: message
 CARDS_SAVED = "cards_saved"    # cards.toml was written by the web interface
 CARDS_CHANGED = "cards_changed"  # cards.toml was replaced on disk (sync): reload it
