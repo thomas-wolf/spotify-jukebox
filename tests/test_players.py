@@ -233,3 +233,25 @@ def test_a_card_still_wins_and_stops_the_outside_playback():
     r.play("folder:Pferde")
     assert ("stop",) in spotify.calls and ("play", "folder:Pferde") in folder.calls
 
+
+
+def test_a_card_stops_a_backend_that_plays_although_it_is_not_the_active_one():
+    """Bug 2026-11-28: SD card playing, Spotify card put on, both played and the SD music could not be stopped."""
+    spotify, folder = FakePlayer("spotify"), FakePlayer("local")
+    r = PlayerRouter({"spotify": spotify, "folder": folder})
+    r.play("spotify:playlist:1")
+    folder.playing = True                          # something started mpv behind the router's back
+    r.play("spotify:playlist:2")
+    assert ("stop",) in folder.calls and not folder.playing
+
+
+def test_stop_and_pause_also_silence_a_second_backend_that_plays():
+    spotify, folder = FakePlayer("spotify"), FakePlayer("local")
+    r = PlayerRouter({"spotify": spotify, "folder": folder})
+    r.play("spotify:playlist:1")
+    folder.playing = True
+    r.pause()
+    assert not spotify.playing and not folder.playing
+    spotify.playing = folder.playing = True
+    r.stop()
+    assert not spotify.playing and not folder.playing

@@ -29,11 +29,14 @@ class PlayerRouter:
 
     def play(self, target: str) -> None:
         backend = self._backend_for(target)
-        if self._active is not None and self._active is not backend:
-            try:
-                self._active.stop()
-            except PlayerError:
-                log.warning("could not stop previous backend", exc_info=True)
+        # Stop every other backend that is, or may be, playing, not only the one we think is active: the
+        # bookkeeping in `_active` can be wrong (playback started from the Spotify app, a race with a button).
+        for other in set(self._backends.values()):
+            if other is not backend and (other is self._active or other.is_playing()):
+                try:
+                    other.stop()
+                except PlayerError:
+                    log.warning("could not stop previous backend", exc_info=True)
         backend.set_volume(self._volume)
         backend.play(target)
         self._active = backend
@@ -65,6 +68,18 @@ class PlayerRouter:
 
     def pause(self) -> None:
         self._need().pause()
+        self._silence_others()
+
+    def _silence_others(self) -> None:
+        """Whatever else still plays next to the current backend (should never happen) is stopped, too."""
+        current = self._active
+        for other in set(self._backends.values()):
+            if other is not current and other.is_playing():
+                log.warning("%s was still playing next to %s, stopping it", other.name, getattr(current, "name", "?"))
+                try:
+                    other.stop()
+                except PlayerError:
+                    log.warning("could not stop %s", other.name, exc_info=True)
 
     def resume(self) -> None:
         self._need().resume()
@@ -77,6 +92,7 @@ class PlayerRouter:
         active = self._current()
         if active is not None:
             active.stop()
+        self._silence_others()
 
     def next(self) -> None:
         self._need().next()
